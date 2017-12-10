@@ -1,6 +1,9 @@
 #include <stdlib.h>
 #include "tpm.h"
 
+
+struct TPMContext tpm;
+
 void usage()
 {
 	printf("usage:\ttpm <log file path>\n");
@@ -14,7 +17,6 @@ int main(int argc, char const *argv[])
 	}
 
 	FILE *log = NULL;
-	struct TPMContext tpm;
 
 	if((log = fopen(argv[1], "r") ) != NULL) {
 		printf("open log:\t%s\n", argv[1]);

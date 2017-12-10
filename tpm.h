@@ -76,7 +76,7 @@ struct TPMContext
     u32 memAddrNum;	// number of different memory addresses encountered
     u32 tempVarNum;	// number of different temporary variables encounted
     struct TPMNode2 *mem2NodeHash[mem2NodeHashSize];	// maps mem addr to TPMNode2 of the latest version of a mem addr
-    union TMPNode *seqNo2NodeHash[seqNo2NodeHashSize];	// maps seq no. to TPMNode of the source of the transision
+    union TPMNode *seqNo2NodeHash[seqNo2NodeHashSize];	// maps seq no. to TPMNode of the source of the transision
     u32 minBufferSz;	// minimum buffer size (such as 8) considered for avalanche effect search
     u32 taintedBufNum;	// number of tainted buffers in the TPM.
     struct taintedBuf *taintedbuf;	// point to the tainted buffers in TPM
