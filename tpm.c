@@ -66,13 +66,12 @@ buildTPM(FILE *taintfp, struct TPMContext *tpm)
  *     <0: error
  */
 {
-    int n;
-    
+    int n = 0;
+
     char line[128] = {0};
-    n = 0;
     while(fgets(line, sizeof(line), taintfp) ) {
         n++;
-        printf("%s", line);
+        // printf("%s", line);
     }    
     printf("total lines:\t%d\n", n);
     
