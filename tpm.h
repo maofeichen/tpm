@@ -7,6 +7,7 @@
  */
 
 #include <stdio.h>
+#include "uthash.h"
 
 #ifndef TPM_H
 #define TPM_H
@@ -17,6 +18,7 @@
 
 
 /* TPM related constants */
+#define MIN_BUF_SZ          8
 
 /* the following 2 constants need to be adjuested based on statistics of the XTaint log */
 #define mem2NodeHashSize	90000
@@ -70,16 +72,53 @@ struct taintedBuf
     struct taintedBuf *next;	// point to the taintedBuf structure of the next tainted buffer; null if no more
 };
 
+struct MemHT;
+struct SeqNoHT;
+
 struct TPMContext
 {
     u32 nodeNum;	// total number of TPM node
     u32 memAddrNum;	// number of different memory addresses encountered
     u32 tempVarNum;	// number of different temporary variables encounted
-    struct TPMNode2 *mem2NodeHash[mem2NodeHashSize];	// maps mem addr to TPMNode2 of the latest version of a mem addr
-    union TPMNode *seqNo2NodeHash[seqNo2NodeHashSize];	// maps seq no. to TPMNode of the source of the transision
+
+    // struct TPMNode2 *mem2NodeHash[mem2NodeHashSize];	// maps mem addr to TPMNode2 of the latest version of a mem addr
+    // union TPMNode *seqNo2NodeHash[seqNo2NodeHashSize];	// maps seq no. to TPMNode of the source of the transision
+
+    struct MemHT *mem2NodeHT;       // uses uthash, maps mem addr to TPMNode2 of the latest version of a mem addr
+    struct SeqNoHT *seqNo2NodeHT;   // uses uthash, maps seq no. to TPMNode of the source of the transision
+
     u32 minBufferSz;	// minimum buffer size (such as 8) considered for avalanche effect search
     u32 taintedBufNum;	// number of tainted buffers in the TPM.
     struct taintedBuf *taintedbuf;	// point to the tainted buffers in TPM
+};
+
+/* hash tables, according to uthash */
+struct SeqNoHT
+{
+    u32 seqNo;
+    union TPMNode *toSeqNo;
+    UT_hash_handle hh_seqNo;
+};
+
+struct MemHT
+{
+    u32 addr;               // key
+    struct TPMNode2 *toMem; // val
+    UT_hash_handle hh_mem;
+};
+
+struct RegHT
+{
+    u32 id;
+    struct TPMNode1 *toReg;
+    UT_hash_handle hh_reg;
+};
+
+struct TempHT
+{
+    u32 id;
+    struct TPMNode1 *toTemp;
+    UT_hash_handle hh_temp;
 };
 
 /* TPM function prototypes */
@@ -103,7 +142,8 @@ union TPMNode *
 seqNo2NodeSearch(struct TPMContext *tpm, u32 seqNo);
 
 
-
+/* Helper functions */
+void init_tpmcontext(struct TPMContext *tpm);
 
 
 

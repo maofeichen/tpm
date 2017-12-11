@@ -98,3 +98,15 @@ seqNo2NodeSearch(struct TPMContext *tpm, u32 seqNo)
     return tpmnode;
 }
 
+void 
+init_tpmcontext(struct TPMContext *tpm)
+{
+    tpm->nodeNum        = 0;
+    tpm->memAddrNum     = 0;
+    tpm->tempVarNum     = 0;
+    tpm->mem2NodeHT     = NULL;
+    tpm->seqNo2NodeHT   = NULL;
+    tpm->minBufferSz    = MIN_BUF_SZ;
+    tpm->taintedBufNum  = 0;
+    tpm->taintedbuf     = NULL;
+}
