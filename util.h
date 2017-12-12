@@ -2,6 +2,12 @@
 #define UTIL_H
 
 #include "tpm.h"
+#include <stdbool.h>
+
+// Returns:
+//	true: if given flag is a mark record
+//	false: otherwise
+bool is_mark(char *flag);
 
 // Returns:
 //	0: success
