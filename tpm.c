@@ -6,6 +6,7 @@
  * */
 
 #include "tpm.h"
+#include "util.h"
 #include <stdlib.h>
 #include <string.h>
 
@@ -66,17 +67,33 @@ buildTPM(FILE *taintfp, struct TPMContext *tpm)
  *     <0: error
  */
 {
-    int n = 0;
-    struct Record rec = {0};
+    int n = 0, l = 0;
     char line[128] = {0};
 
     init_tpmcontext(tpm);
 
     while(fgets(line, sizeof(line), taintfp) ) {
-        n++;
+        char flag[3] = {0};
+
+        if(get_flag(flag, line) ) {
+            if(is_mark(flag) ) { // is mark record?
+                if(equal_mark(flag, INSN_MARK) ) {
+                    // do sth
+                    // printf("flag: %s\n", flag);
+                }
+            } else {
+                struct Record rec = {0};
+                if(split(line, '\t', &rec) == 0) {
+                    n++;
+                }else { fprintf(stderr, "error: split\n"); return -1; }
+            }
+        } else { fprintf(stderr, "error: get flag\n"); return -1; }
+
+        l++;
         // printf("%s", line);
     }    
-    printf("total lines:\t%d\n", n);
+
+    printf("total lines:\t%d - total nodes:\t%d\n", l, n);
     
     return n;
 }

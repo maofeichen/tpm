@@ -7,7 +7,8 @@
  */
 
 #include <stdio.h>
-#include "uthash.h"
+#include "flag.h"   // XTaint record flag
+#include "uthash.h" // uthash
 
 #ifndef TPM_H
 #define TPM_H
