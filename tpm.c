@@ -67,8 +67,11 @@ buildTPM(FILE *taintfp, struct TPMContext *tpm)
  */
 {
     int n = 0;
-
+    struct Record rec = {0};
     char line[128] = {0};
+
+    init_tpmcontext(tpm);
+
     while(fgets(line, sizeof(line), taintfp) ) {
         n++;
         // printf("%s", line);
@@ -105,7 +108,7 @@ init_tpmcontext(struct TPMContext *tpm)
     tpm->memAddrNum     = 0;
     tpm->tempVarNum     = 0;
     tpm->mem2NodeHT     = NULL;
-    tpm->seqNo2NodeHT   = NULL;
+    // tpm->seqNo2NodeHT   = NULL;
     tpm->minBufferSz    = MIN_BUF_SZ;
     tpm->taintedBufNum  = 0;
     tpm->taintedbuf     = NULL;

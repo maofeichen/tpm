@@ -23,7 +23,6 @@ int main(int argc, char const *argv[])
 			fprintf(stderr, "error alloc: TPMContext\n");
 		} else {
 			printf("alloc TPMContext: %zu MB\n", sizeof(struct TPMContext) / (1024*1024) );
-			init_tpmcontext(tpm);
 			buildTPM(log, tpm);
 			free(tpm);	
 		}

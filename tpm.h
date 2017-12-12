@@ -82,10 +82,10 @@ struct TPMContext
     u32 tempVarNum;	// number of different temporary variables encounted
 
     // struct TPMNode2 *mem2NodeHash[mem2NodeHashSize];	// maps mem addr to TPMNode2 of the latest version of a mem addr
-    // union TPMNode *seqNo2NodeHash[seqNo2NodeHashSize];	// maps seq no. to TPMNode of the source of the transision
+    union TPMNode *seqNo2NodeHash[seqNo2NodeHashSize];	// maps seq no. to TPMNode of the source of the transision
 
     struct MemHT *mem2NodeHT;       // uses uthash, maps mem addr to TPMNode2 of the latest version of a mem addr
-    struct SeqNoHT *seqNo2NodeHT;   // uses uthash, maps seq no. to TPMNode of the source of the transision
+    // struct SeqNoHT *seqNo2NodeHT;   // uses uthash, maps seq no. to TPMNode of the source of the transision
 
     u32 minBufferSz;	// minimum buffer size (such as 8) considered for avalanche effect search
     u32 taintedBufNum;	// number of tainted buffers in the TPM.
@@ -104,7 +104,7 @@ struct MemHT
 {
     u32 addr;               // key
     struct TPMNode2 *toMem; // val
-    UT_hash_handle hh_mem;
+    UT_hash_handle hh_mem;  // hash table head, required by uthash
 };
 
 struct RegHT
@@ -119,6 +119,18 @@ struct TempHT
     u32 id;
     struct TPMNode1 *toTemp;
     UT_hash_handle hh_temp;
+};
+
+/* single record */
+struct Record
+{
+    u32 flag;
+    u32 s_addr;
+    u32 s_val;
+    u32 d_addr;
+    u32 d_val;
+    u32 bytesz;
+    u32 ts;     // time stamp (seqNo)
 };
 
 /* TPM function prototypes */
