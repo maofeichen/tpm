@@ -20,6 +20,8 @@
 
 /* TPM related constants */
 #define MIN_BUF_SZ          8
+#define NUM_REG             14  // num of register (global temps)  
+#define NUM_TEMP            32  // need to be adjuested based on XTaint log: the max temp index that Qemu uses 
 
 /* the following 2 constants need to be adjuested based on statistics of the XTaint log */
 #define mem2NodeHashSize	90000
@@ -96,9 +98,9 @@ struct TPMContext
 /* hash tables, according to uthash */
 struct SeqNoHT
 {
-    u32 seqNo;
-    union TPMNode *toSeqNo;
-    UT_hash_handle hh_seqNo;
+    u32 seqNo;                  // key
+    union TPMNode *toSeqNo;     // val
+    UT_hash_handle hh_seqNo;    // hash table head
 };
 
 struct MemHT
@@ -106,20 +108,6 @@ struct MemHT
     u32 addr;               // key
     struct TPMNode2 *toMem; // val
     UT_hash_handle hh_mem;  // hash table head, required by uthash
-};
-
-struct RegHT
-{
-    u32 id;
-    struct TPMNode1 *toReg;
-    UT_hash_handle hh_reg;
-};
-
-struct TempHT
-{
-    u32 id;
-    struct TPMNode1 *toTemp;
-    UT_hash_handle hh_temp;
 };
 
 /* single record */
@@ -142,8 +130,10 @@ isPropagationOverwriting(u32 flag);
 union TPMNode *
 createTPMNode(u32 type, u32 addr, u32 TS);
 
-u32 
-processOneXTaintRecord(struct TPMContext *tpm, u32 seqNo, u32 size, u32 srcflg, u32 srcaddr, u32 dstflag, u32 dstaddr);
+// u32 
+// processOneXTaintRecord(struct TPMContext *tpm, u32 seqNo, u32 size, u32 srcflg, u32 srcaddr, u32 dstflag, u32 dstaddr);
+u32
+processOneXTaintRecord(struct TPMContext *tpm, struct Record *rec, struct TPMNode1 *regCntxt[], struct TPMNode1 *tempCntxt[]);
 
 u32 
 buildTPM(FILE *taintfp, struct TPMContext *tpm);
@@ -153,11 +143,5 @@ mem2NodeSearch(struct TPMContext *tpm, u32 memaddr);
 
 union TPMNode *
 seqNo2NodeSearch(struct TPMContext *tpm, u32 seqNo);
-
-
-/* Helper functions */
-void init_tpmcontext(struct TPMContext *tpm);
-
-void p_record(struct Record* rec);
 
 #endif

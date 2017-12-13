@@ -10,6 +10,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* Helper functions */
+static void init_tpmcontext(struct TPMContext *tpm);
+static void prnt_record(struct Record* rec);
+
 u32 
 isPropagationOverwriting(u32 flag)
 /* return:
@@ -48,15 +52,19 @@ createTPMNode(u32 type, u32 addr, u32 TS)
     return tpmnode;
 }
 
-u32 
-processOneXTaintRecord(struct TPMContext *tpm, u32 seqNo, u32 size, u32 srcflg, u32 srcaddr, u32 dstflag, u32 dstaddr)
+// u32 
+// processOneXTaintRecord(struct TPMContext *tpm, u32 seqNo, u32 size, u32 srcflg, u32 srcaddr, u32 dstflag, u32 dstaddr)
+u32
+processOneXTaintRecord(struct TPMContext *tpm, struct Record *rec, struct TPMNode1 *regCntxt[], struct TPMNode1 *tempCntxt[])
 /* return:
- * 	0: success
+ * 	>=0 : success and num of nodes creates
  *     <0: error
  */
 {
-  
-  
+    // TODO:
+    //  handle source node
+    //  hanlde destination node
+    //  creates transition node  
     return 0;
 }
 
@@ -68,25 +76,38 @@ buildTPM(FILE *taintfp, struct TPMContext *tpm)
  */
 {
     int n = 0, l = 0;
-    char line[128] = {0};
+    struct TPMNode1 *regCntxt[NUM_REG]   = {0}; // points to the latest register node
+    struct TPMNode1 *tempCntxt[NUM_TEMP] = {0}; // points to the latest temp node
 
     init_tpmcontext(tpm);
 
-    while(fgets(line, sizeof(line), taintfp) ) {
+    char line[128] = {0};
+    while(fgets(line, sizeof(line), taintfp) ) 
+    {
         char flag[3] = {0};
-
-        if(get_flag(flag, line) ) {
-            if(is_mark(flag) ) { // is mark record?
+        if(get_flag(flag, line) ) 
+        {
+            if(is_mark(flag) ) 
+            { // mark record, simply skip except for insn mark
                 if(equal_mark(flag, INSN_MARK) ) {
-                    // do sth
                     // printf("flag: %s\n", flag);
-                }
-            } else {
+                    // TODO: 
+                    //  clear current context of temp, due to temp are 
+                    //  only alive within instruction, if encounter an insn mark
+                    //  it crosses insn boundary 
+                } // else do nothing
+            } else { // data record, creates nodes
                 struct Record rec = {0};
-                if(split(line, '\t', &rec) == 0) {
-                    p_record(&rec);
-                    n++;
-                }else { fprintf(stderr, "error: split\n"); return -1; }
+                if(split(line, '\t', &rec) == 0) 
+                {
+                    // prnt_record(&rec);
+                    int i = 0;
+                    if( (i = processOneXTaintRecord(tpm, &rec, regCntxt, tempCntxt) ) >= 0)
+                    {
+                        n += i;
+                    } else { fprintf(stderr, "error: processOneXTaintRecord\n"); return -1; }
+                    n++; // TODO: n should increase by how many new node create each record
+                } else { fprintf(stderr, "error: split\n"); return -1; }
             }
         } else { fprintf(stderr, "error: get flag\n"); return -1; }
 
@@ -94,7 +115,7 @@ buildTPM(FILE *taintfp, struct TPMContext *tpm)
         // printf("%s", line);
     }    
 
-    printf("total lines:\t%d - total nodes:\t%d\n", l, n);
+    printf("total lines:\t%d - total data records:\t%d\n", l, n);
     
     return n;
 }
@@ -119,7 +140,7 @@ seqNo2NodeSearch(struct TPMContext *tpm, u32 seqNo)
     return tpmnode;
 }
 
-void 
+static void 
 init_tpmcontext(struct TPMContext *tpm)
 {
     tpm->nodeNum        = 0;
@@ -132,8 +153,8 @@ init_tpmcontext(struct TPMContext *tpm)
     tpm->taintedbuf     = NULL;
 }
 
-void 
-p_record(struct Record* rec)
+static void 
+prnt_record(struct Record* rec)
 {
     printf("record: flag: %x - src addr: %x - src val: %x - dst addr: %x - dst val: %x "
                             "- size: %d - seqNo: %d\n", 
