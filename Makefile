@@ -2,7 +2,7 @@ CC	= gcc
 CF	= -Wall -g -std=c11
 LF	= -g
 
-OBJS	= main.o tpm.o util.o
+OBJS	= main.o tpm.o tpmht.o util.o
 
 all	: tpm
 
@@ -14,6 +14,9 @@ main.o : main.c
 
 tpm.o : tpm.c
 	$(CC) $(CF) -c tpm.c
+
+tpmht.o : tpmht.c
+	$(CC) $(CF) -c tpmht.c
 
 util.o : util.c
 	$(CC) $(CF) -c util.c

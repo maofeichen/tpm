@@ -7,11 +7,12 @@
  */
 
 #include <stdio.h>
-#include "flag.h"   // XTaint record flag
-#include "uthash.h" // uthash
 
 #ifndef TPM_H
 #define TPM_H
+
+#include "flag.h"       // XTaint record flag
+#include "tpmht.h"    // hash tables
 
 #define u32	unsigned int
 
@@ -75,9 +76,6 @@ struct taintedBuf
     struct taintedBuf *next;	// point to the taintedBuf structure of the next tainted buffer; null if no more
 };
 
-struct MemHT;
-struct SeqNoHT;
-
 struct TPMContext
 {
     u32 nodeNum;	// total number of TPM node
@@ -87,27 +85,12 @@ struct TPMContext
     // struct TPMNode2 *mem2NodeHash[mem2NodeHashSize];	// maps mem addr to TPMNode2 of the latest version of a mem addr
     union TPMNode *seqNo2NodeHash[seqNo2NodeHashSize];	// maps seq no. to TPMNode of the source of the transision
 
-    struct MemHT *mem2NodeHT;       // uses uthash, maps mem addr to TPMNode2 of the latest version of a mem addr
+    struct MemHT *mem2NodeHT;          // uses uthash, maps mem addr to TPMNode2 of the latest version of a mem addr
     // struct SeqNoHT *seqNo2NodeHT;   // uses uthash, maps seq no. to TPMNode of the source of the transision
 
     u32 minBufferSz;	// minimum buffer size (such as 8) considered for avalanche effect search
     u32 taintedBufNum;	// number of tainted buffers in the TPM.
     struct taintedBuf *taintedbuf;	// point to the tainted buffers in TPM
-};
-
-/* hash tables, according to uthash */
-struct SeqNoHT
-{
-    u32 seqNo;                  // key
-    union TPMNode *toSeqNo;     // val
-    UT_hash_handle hh_seqNo;    // hash table head
-};
-
-struct MemHT
-{
-    u32 addr;               // key
-    struct TPMNode2 *toMem; // val
-    UT_hash_handle hh_mem;  // hash table head, required by uthash
 };
 
 /* single record */
@@ -143,5 +126,7 @@ mem2NodeSearch(struct TPMContext *tpm, u32 memaddr);
 
 union TPMNode *
 seqNo2NodeSearch(struct TPMContext *tpm, u32 seqNo);
+
+void delTPM(struct TPMContext *tpm);
 
 #endif
