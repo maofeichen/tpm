@@ -84,6 +84,7 @@ buildTPM(FILE *taintfp, struct TPMContext *tpm)
             } else {
                 struct Record rec = {0};
                 if(split(line, '\t', &rec) == 0) {
+                    p_record(&rec);
                     n++;
                 }else { fprintf(stderr, "error: split\n"); return -1; }
             }
@@ -129,4 +130,12 @@ init_tpmcontext(struct TPMContext *tpm)
     tpm->minBufferSz    = MIN_BUF_SZ;
     tpm->taintedBufNum  = 0;
     tpm->taintedbuf     = NULL;
+}
+
+void 
+p_record(struct Record* rec)
+{
+    printf("record: flag: %x - src addr: %x - src val: %x - dst addr: %x - dst val: %x "
+                            "- size: %d - seqNo: %d\n", 
+            rec->flag, rec->s_addr, rec->s_val, rec->d_addr, rec->d_val, rec->bytesz, rec->ts);
 }

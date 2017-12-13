@@ -37,8 +37,6 @@ bool is_mark(char *flag);
 //		- ts (seqNo)
 //		- bytesz if has
 int split(char *s, char c, struct Record *rec);
-static int split_load(char *s, char c, struct Record *rec);
-static int split_store(char *s, char c, struct Record *rec);
-static int split_nonmem(char *s, char c, struct Record *rec);
+
 
 #endif

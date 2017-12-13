@@ -158,6 +158,6 @@ seqNo2NodeSearch(struct TPMContext *tpm, u32 seqNo);
 /* Helper functions */
 void init_tpmcontext(struct TPMContext *tpm);
 
-
+void p_record(struct Record* rec);
 
 #endif

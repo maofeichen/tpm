@@ -3,6 +3,11 @@
 #include <string.h> //strcmp
 #include <stdlib.h>
 
+// static int split_load(char r[MAX_NUM_FIELD][MAX_FIELD_SZ], struct Record *rec);
+// static int split_store(char r[MAX_NUM_FIELD][MAX_FIELD_SZ], struct Record *rec);
+static int split_mem(char r[MAX_NUM_FIELD][MAX_FIELD_SZ], struct Record *rec);
+static int split_nonmem(char r[MAX_NUM_FIELD][MAX_FIELD_SZ], struct Record *rec);
+
 bool
 get_flag(char *flag, char *rec)
 {
@@ -41,8 +46,8 @@ split(char *s, char c, struct Record *rec)
 	if(s == NULL)
 		return -1;
 
-	char r[MAX_NUM_FIELD][MAX_FIELD_SZ] = {0};
-	char *b = s, *e = s;
+	char r[MAX_NUM_FIELD][MAX_FIELD_SZ] = { {0} };
+	char *e = s;
 	int i = 0;
 
 	// stores each field in rec to r
@@ -59,23 +64,20 @@ split(char *s, char c, struct Record *rec)
 	} while (*e++ != 0);	
 
 
-	for(i = 0; i < MAX_NUM_FIELD; i++) {
-		if(r[i][0] == '\0')
-			break;
-		printf("%d field:%s\n", i, r[i]);
-	}
+	// for(i = 0; i < MAX_NUM_FIELD; i++) {
+	// 	if(r[i][0] == '\0')
+	// 		break;
+	// 	printf("%d field:%s\n", i, r[i]);
+	// }
 
 	char flag[3] = {0};
 	if(get_flag(flag, s) ) {
-		if(equal_mark(flag, TCG_QEMU_LD) ) { // split load rec
-			// printf("flag: %s - split load\n", flag);
-			// return split_load(s, c, rec);
-		} else if(equal_mark(flag, TCG_QEMU_ST) ) { // split store rec
-			// printf("flag: %s - split store\n", flag);
-			// return split_store(s, c, rec);
+		if(equal_mark(flag, TCG_QEMU_LD) || equal_mark(flag, TCG_QEMU_ST)) { // split mem 
+			// printf("flag: %s - split mem record\n", flag);
+			split_mem(r, rec);
 		} else { // others
 			// printf("flag: %s - split non mem record\n", flag);
-			// return split_nonmem(s, c, rec);
+			split_nonmem(r, rec);
 		}
 	} else { fprintf(stderr, "error: get flag\n"); return -1; }
 
@@ -83,43 +85,43 @@ split(char *s, char c, struct Record *rec)
 }
 
 static int 
-split_load(char *s, char c, struct Record *rec)
+split_mem(char r[MAX_NUM_FIELD][MAX_FIELD_SZ], struct Record *rec)
 {
+	// int i;
+	// for(i = 0; i < MAX_NUM_FIELD; i++) {
+	// 	if(r[i][0] == '\0')
+	// 		break;
+	// 	printf("%d field:%s\n", i, r[i]);
+	// }
 
-	do {
-		char *b = s;
-		while(*s != c && *s)
-		  s++;
+	rec->flag 	= strtoul(r[0], NULL, 16); 	// 0st str: flag
+	rec->s_addr	= strtoul(r[1], NULL, 16);	// 1st str: src addr
+	rec->s_val	= strtoul(r[2], NULL, 16); 	// 2nd str: src val
+	rec->d_addr	= strtoul(r[4], NULL, 16); 	// 4th str: dst addr
+	rec->d_val	= strtoul(r[5], NULL, 16);	// 5th str: dst val
+	u32 bitsz	= strtoul(r[6], NULL, 10);	// 6th str: mem size
+	rec->bytesz	= bitsz / 8;
+	rec->ts 	= strtoul(r[7], NULL, 10);	// 7th str: seqNo
 
-	} while (*s++ != 0);	
-
-	return 0;	
-}
-
-static int split_store(char *s, char c, struct Record *rec)
-{
 	return 0;
 }
 
 static int 
-split_nonmem(char *s, char c, struct Record *rec)
+split_nonmem(char r[MAX_NUM_FIELD][MAX_FIELD_SZ], struct Record *rec)
 {
-	do {
-		int sz = 0;
-		char *b = s;
-		char field[16] = {0};
-		u32 ifield = 0;
+	// int i;
+	// for(i = 0; i < MAX_NUM_FIELD; i++) {
+	// 	if(r[i][0] == '\0')
+	// 		break;
+	// 	printf("%d field:%s\n", i, r[i]);
+	// }
 
-		while(*s != c && *s){
-		  s++;
-		  sz++;
-		}
-		memcpy(field, b, sz);
-		ifield = (u32)strtoul(field, NULL, 16);
-		printf("field: %s - ifield: %x\n", field, ifield);
-
-
-	} while (*s++ != 0);	
-
+	rec->flag 	= strtoul(r[0], NULL, 16); 	// 0st str: flag
+	rec->s_addr	= strtoul(r[1], NULL, 16);	// 1st str: src addr
+	rec->s_val	= strtoul(r[2], NULL, 16); 	// 2nd str: src val
+	rec->d_addr	= strtoul(r[4], NULL, 16); 	// 4th str: dst addr
+	rec->d_val	= strtoul(r[5], NULL, 16);	// 5th str: dst val
+	rec->bytesz	= 0;
+	rec->ts 	= strtoul(r[6], NULL, 10);	// 6th str: seqNo
 	return 0;
 }
