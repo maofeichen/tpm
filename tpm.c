@@ -11,8 +11,20 @@
 #include <string.h>
 
 /* Helper functions */
-static void init_tpmcontext(struct TPMContext *tpm);
-static void prnt_record(struct Record* rec);
+static void 
+init_tpmcontext(struct TPMContext *tpm);
+
+static void 
+clear_tempcontext(struct TPMNode1 *tempCntxt[] );
+
+static int
+handle_source(struct TPMContext *tpm, struct Record *rec, struct TPMNode1 *regCntxt[], struct TPMNode1 *tempCntxt[])
+
+static int
+handle_destination(struct TPMContext *tpm, struct Record *rec, struct TPMNode1 *regCntxt[], struct TPMNode1 *tempCntxt[])
+
+static void 
+prnt_record(struct Record* rec);
 
 u32 
 isPropagationOverwriting(u32 flag)
@@ -94,7 +106,8 @@ buildTPM(FILE *taintfp, struct TPMContext *tpm)
                     // TODO: 
                     //  clear current context of temp, due to temp are 
                     //  only alive within instruction, if encounter an insn mark
-                    //  it crosses insn boundary 
+                    //  it crosses insn boundary
+                    clear_tempcontext(tempCntxt); 
                 } // else do nothing
             } else { // data record, creates nodes
                 struct Record rec = {0};
@@ -154,9 +167,17 @@ init_tpmcontext(struct TPMContext *tpm)
 }
 
 static void 
+clear_tempcontext(struct TPMNode1 *tempCntxt[] )
+// TODO
+{
+
+}
+
+static void 
 prnt_record(struct Record* rec)
 {
-    printf("record: flag: %x - src addr: %x - src val: %x - dst addr: %x - dst val: %x "
+    printf("record: flag: %x - src addr: %x - src val: %x" 
+                            "- dst addr: %x - dst val: %x "
                             "- size: %d - seqNo: %d\n", 
             rec->flag, rec->s_addr, rec->s_val, rec->d_addr, rec->d_val, rec->bytesz, rec->ts);
 }

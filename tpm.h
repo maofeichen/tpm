@@ -127,6 +127,7 @@ mem2NodeSearch(struct TPMContext *tpm, u32 memaddr);
 union TPMNode *
 seqNo2NodeSearch(struct TPMContext *tpm, u32 seqNo);
 
-void delTPM(struct TPMContext *tpm);
+void 
+delTPM(struct TPMContext *tpm);
 
 #endif
