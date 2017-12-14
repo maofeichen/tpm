@@ -22,7 +22,7 @@
 /* TPM related constants */
 #define MIN_BUF_SZ          8
 #define NUM_REG             14  // num of register (global temps)  
-#define NUM_TEMP            32  // need to be adjuested based on XTaint log: the max temp index that Qemu uses 
+#define MAX_TEMPIDX         128 // need to be adjuested based on XTaint log: the max temp index that Qemu uses 
 
 /* the following 2 constants need to be adjuested based on statistics of the XTaint log */
 #define mem2NodeHashSize	90000
@@ -96,13 +96,15 @@ struct TPMContext
 /* single record */
 struct Record
 {
-    u32 flag;
+    u32 flag;   // src and dst flags are same
     u32 s_addr;
     u32 s_val;
     u32 d_addr;
     u32 d_val;
     u32 bytesz;
     u32 ts;     // time stamp (seqNo)
+    u32 is_load;
+    u32 is_store;
 };
 
 /* TPM function prototypes */

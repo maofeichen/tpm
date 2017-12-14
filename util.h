@@ -26,6 +26,16 @@ bool equal_mark(char *flag, char *mark);
 bool is_mark(char *flag);
 
 // Returns:
+//	t: if it's a load IR
+//	f: otherwise
+bool is_load(char *flag);
+
+// Returns:
+//	t: if it's a store IR
+//	f: otherwise
+bool is_store(char *flag);
+
+// Returns:
 //	0: success
 //	<0: error
 //	given a single record line, and separator, splits it into rec as

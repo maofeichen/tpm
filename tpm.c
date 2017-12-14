@@ -10,6 +10,25 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* handle each case of source and destination to process a record */
+static int 
+handle_src_mem(struct TPMContext *tpm, struct Record *rec);
+
+static int 
+handle_src_reg(struct TPMContext *tpm, struct Record *rec, struct TPMNode1 *regCntxt[]);
+
+static int 
+handle_src_temp(struct TPMContext *tpm, struct Record *rec, struct TPMNode1 *tempCntxt[]);
+
+static int 
+handle_dst_mem(struct TPMContext *tpm, struct Record *rec);
+
+static int 
+handle_dst_reg(struct TPMContext *tpm, struct Record *rec, struct TPMNode1 *regCntxt[]);
+
+static int 
+handle_dst_temp(struct TPMContext *tpm, struct Record *rec, struct TPMNode1 *tempCntxt[]);
+
 /* Helper functions */
 static void 
 init_tpmcontext(struct TPMContext *tpm);
@@ -17,14 +36,14 @@ init_tpmcontext(struct TPMContext *tpm);
 static void 
 clear_tempcontext(struct TPMNode1 *tempCntxt[] );
 
-static int
-handle_source(struct TPMContext *tpm, struct Record *rec, struct TPMNode1 *regCntxt[], struct TPMNode1 *tempCntxt[])
-
-static int
-handle_destination(struct TPMContext *tpm, struct Record *rec, struct TPMNode1 *regCntxt[], struct TPMNode1 *tempCntxt[])
+static int 
+get_type(u32 flag);
 
 static void 
-prnt_record(struct Record* rec);
+prnt_record(struct Record *rec);
+
+static void 
+prnt_src_addr(struct Record *rec);
 
 u32 
 isPropagationOverwriting(u32 flag)
@@ -73,10 +92,41 @@ processOneXTaintRecord(struct TPMContext *tpm, struct Record *rec, struct TPMNod
  *     <0: error
  */
 {
-    // TODO:
+    int type;
+
     //  handle source node
+    if(rec->is_load) { // src is mem addr  
+        handle_src_mem(tpm, rec); 
+    } 
+    else { // src is either reg or temp  
+        type = get_type(rec->s_addr);
+        if (type == TPM_Type_Register) { 
+            handle_src_reg(tpm, rec, regCntxt); 
+        }
+        else if (type == TPM_Type_Temprary) { 
+            handle_src_temp(tpm, rec, tempCntxt);
+        }
+        else { fprintf(stderr, "error: handle source node\n"); return -1; }
+    }
+
     //  hanlde destination node
-    //  creates transition node  
+    if(rec->is_store) { // dst is mem addr
+        handle_dst_mem(tpm, rec);
+    } 
+    else { // dst is either reg or temp
+        type = get_type(rec->d_addr);
+        if(type == TPM_Type_Register) {
+            handle_dst_reg(tpm, rec, regCntxt);
+        }
+        else if(type == TPM_Type_Temprary) {
+            handle_dst_temp(tpm, rec, tempCntxt);
+        }
+        else { fprintf(stderr, "error: handle destination node\n"); return -1; }
+    }
+
+    // TODO:
+    //  creates transition node 
+
     return 0;
 }
 
@@ -89,7 +139,7 @@ buildTPM(FILE *taintfp, struct TPMContext *tpm)
 {
     int n = 0, l = 0;
     struct TPMNode1 *regCntxt[NUM_REG]   = {0}; // points to the latest register node
-    struct TPMNode1 *tempCntxt[NUM_TEMP] = {0}; // points to the latest temp node
+    struct TPMNode1 *tempCntxt[MAX_TEMPIDX] = {0}; // points to the latest temp node
 
     init_tpmcontext(tpm);
 
@@ -114,12 +164,13 @@ buildTPM(FILE *taintfp, struct TPMContext *tpm)
                 if(split(line, '\t', &rec) == 0) 
                 {
                     // prnt_record(&rec);
+
                     int i = 0;
                     if( (i = processOneXTaintRecord(tpm, &rec, regCntxt, tempCntxt) ) >= 0)
                     {
-                        n += i;
+                        n += i; // n increases by how many new node create each record
                     } else { fprintf(stderr, "error: processOneXTaintRecord\n"); return -1; }
-                    n++; // TODO: n should increase by how many new node create each record
+                    n++; 
                 } else { fprintf(stderr, "error: split\n"); return -1; }
             }
         } else { fprintf(stderr, "error: get flag\n"); return -1; }
@@ -153,6 +204,49 @@ seqNo2NodeSearch(struct TPMContext *tpm, u32 seqNo)
     return tpmnode;
 }
 
+
+static int 
+handle_src_mem(struct TPMContext *tpm, struct Record *rec)
+{
+    // prnt_src_addr(rec);
+    return 0;
+}
+
+static int 
+handle_src_reg(struct TPMContext *tpm, struct Record *rec, struct TPMNode1 *regCntxt[])
+{
+    // prnt_src_addr(rec);
+    return 0;
+}
+
+static int 
+handle_src_temp(struct TPMContext *tpm, struct Record *rec, struct TPMNode1 *tempCntxt[])
+{
+    // prnt_src_addr(rec);
+    return 0;
+}
+
+static int 
+handle_dst_mem(struct TPMContext *tpm, struct Record *rec)
+{
+    // prnt_record(rec);
+    return 0;
+}
+
+static int 
+handle_dst_reg(struct TPMContext *tpm, struct Record *rec, struct TPMNode1 *regCntxt[])
+{
+    // prnt_record(rec);
+    return 0;
+}
+
+static int 
+handle_dst_temp(struct TPMContext *tpm, struct Record *rec, struct TPMNode1 *tempCntxt[])
+{
+    // prnt_record(rec);
+    return 0;
+}
+
 static void 
 init_tpmcontext(struct TPMContext *tpm)
 {
@@ -173,11 +267,33 @@ clear_tempcontext(struct TPMNode1 *tempCntxt[] )
 
 }
 
+static int 
+get_type(u32 addr)
+// Returns:
+//  reg or temp based on the addr 
+{
+    if(addr < G_TEMP_UNKNOWN) 
+    {
+        return TPM_Type_Temprary;
+    }
+    else if(addr <=  G_TEMP_EDI) 
+    {
+        return TPM_Type_Register;
+    } 
+    else { fprintf(stderr, "error: unkown addr type\n"); return -1; }
+}
+
 static void 
 prnt_record(struct Record* rec)
 {
-    printf("record: flag: %x - src addr: %x - src val: %x" 
-                            "- dst addr: %x - dst val: %x "
-                            "- size: %d - seqNo: %d\n", 
-            rec->flag, rec->s_addr, rec->s_val, rec->d_addr, rec->d_val, rec->bytesz, rec->ts);
+    printf("record: flag: %x src addr: %x\t\t src val: %x\t\t" 
+                            "dst addr: %x\t\t dst val: %x\t\t"
+                            "size: %d\t seqNo: %d\tis_load: %u is_store: %u\n", 
+            rec->flag, rec->s_addr, rec->s_val, rec->d_addr, rec->d_val, rec->bytesz, rec->ts, rec->is_load, rec->is_store);
+}
+
+static void 
+prnt_src_addr(struct Record *rec)
+{
+    printf("source addr: %x - seqNo: %d\n", rec->s_addr, rec->ts);
 }

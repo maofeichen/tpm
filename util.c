@@ -40,6 +40,18 @@ is_mark(char *flag)
 	} else { return false; }
 }
 
+bool 
+is_load(char *flag)
+{
+	return equal_mark(flag, TCG_QEMU_LD);
+}
+
+bool 
+is_store(char *flag)
+{
+	return equal_mark(flag, TCG_QEMU_ST);
+}
+
 int 
 split(char *s, char c, struct Record *rec)
 {
@@ -102,6 +114,10 @@ split_mem(char r[MAX_NUM_FIELD][MAX_FIELD_SZ], struct Record *rec)
 	u32 bitsz	= strtoul(r[6], NULL, 10);	// 6th str: mem size
 	rec->bytesz	= bitsz / 8;
 	rec->ts 	= strtoul(r[7], NULL, 10);	// 7th str: seqNo
+	if(is_load(r[0]) )
+		rec->is_load = 1;
+	else if(is_store(r[0]) )
+		rec->is_store = 1;
 
 	return 0;
 }
@@ -121,7 +137,7 @@ split_nonmem(char r[MAX_NUM_FIELD][MAX_FIELD_SZ], struct Record *rec)
 	rec->s_val	= strtoul(r[2], NULL, 16); 	// 2nd str: src val
 	rec->d_addr	= strtoul(r[4], NULL, 16); 	// 4th str: dst addr
 	rec->d_val	= strtoul(r[5], NULL, 16);	// 5th str: dst val
-	rec->bytesz	= 0;
+	// rec->bytesz	= 0;
 	rec->ts 	= strtoul(r[6], NULL, 10);	// 6th str: seqNo
 	return 0;
 }
