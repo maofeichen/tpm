@@ -35,6 +35,14 @@ handle_dst_temp(struct TPMContext *tpm, struct Record *rec, struct TPMNode1 *tem
 static struct Transition* 
 create_trans_node(struct Record *rec, u32 s_type, union TPMNode* src, union TPMNode* dst);
 
+
+int 
+is_left_adjacent(struct TPMContext *tpm, u32 addr);
+
+int 
+is_right_adjacent(struct TPMContext *tpm, u32 addr, u32 bytesz);
+
+
 static void 
 init_tpmcontext(struct TPMContext *tpm);
 
@@ -293,6 +301,33 @@ create_trans_node(struct Record *rec, u32 s_type, union TPMNode *src, union TPMN
     tmp->next = t;  // links t to list end
 
     return t;
+}
+
+int 
+is_left_adjacent(struct TPMContext *tpm, u32 addr)
+// Returns:
+//  1: if has left adjacent mem node
+//  0: otherwise
+//  <0: error
+{
+
+}
+
+int 
+is_right_adjacent(struct TPMContext *tpm, u32 addr, u32 bytesz)
+// Returns:
+//  1: if has right adjacent mem node
+//  0: otherwise
+//  <0: error
+// TODO
+//  store the found node pointer
+{
+    u32 r_adjcnt = addr + bytesz - 1;
+    struct MemHT *s = NULL;
+
+    s = find_mem( &(tpm->mem2NodeHT), r_adjcnt);
+    if(s == NULL) { return 0; }
+    else { return 1; }
 }
 
 static void 

@@ -11,8 +11,8 @@
 #ifndef TPM_H
 #define TPM_H
 
-#include "flag.h"       // XTaint record flag
-#include "tpmht.h"    // hash tables
+#include "flag.h"   // XTaint record flag
+#include "tpmht.h"  // hash tables
 
 #define u32	unsigned int
 
