@@ -260,7 +260,7 @@ handle_src_mem(struct TPMContext *tpm, struct Record *rec, union TPMNode* src)
 //      2.2 detects if its right neighbour exist, similar to 2.1, and updates it's rightNBR accordingly
 {
     int n, i;
-    struct MemHT *src_hn = NULL;
+    struct MemHT *src_hn = NULL, *left = NULL, *right = NULL;
     src = NULL;
 
     // prnt_src_addr(rec);
@@ -284,6 +284,24 @@ handle_src_mem(struct TPMContext *tpm, struct Record *rec, union TPMNode* src)
     } 
     else { fprintf(stderr, "error: handle source mem\n"); }
 
+    // updates adjacent mem node if any
+    if(has_adjacent(tpm, left, right, rec->s_addr, rec->bytesz) > 0) 
+    {
+        struct TPMNode2 *earliest = NULL;
+        if(left != NULL)
+        {
+            earliest = left->toMem;
+            get_earliest_version(earliest);
+            src->tpmnode2.leftNBR = earliest;
+        }
+
+        if(right != NULL)
+        {
+            earliest = right->toMem;
+            get_earliest_version(earliest);
+            src->tpmnode2.rightNBR = earliest; 
+        }
+    }
     return 0;
 }
 
