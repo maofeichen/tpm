@@ -11,23 +11,26 @@
 #include <string.h>
 
 /* handle each case of source and destination to process a record */
-static int 
+static union TPMNode* 
 handle_src_mem(struct TPMContext *tpm, struct Record *rec);
 
-static int 
+static union TPMNode* 
 handle_src_reg(struct TPMContext *tpm, struct Record *rec, struct TPMNode1 *regCntxt[]);
 
-static int 
+static union TPMNode* 
 handle_src_temp(struct TPMContext *tpm, struct Record *rec, struct TPMNode1 *tempCntxt[]);
 
-static int 
+static union TPMNode* 
 handle_dst_mem(struct TPMContext *tpm, struct Record *rec);
 
-static int 
+static union TPMNode* 
 handle_dst_reg(struct TPMContext *tpm, struct Record *rec, struct TPMNode1 *regCntxt[]);
 
-static int 
+static union TPMNode* 
 handle_dst_temp(struct TPMContext *tpm, struct Record *rec, struct TPMNode1 *tempCntxt[]);
+
+static struct Transition* 
+create_trans_node(struct Record *rec, u32 s_type, union TPMNode* src, union TPMNode* dst);
 
 /* Helper functions */
 static void 
@@ -205,46 +208,99 @@ seqNo2NodeSearch(struct TPMContext *tpm, u32 seqNo)
 }
 
 
-static int 
+static union TPMNode* 
 handle_src_mem(struct TPMContext *tpm, struct Record *rec)
+// Returns the created or found node (pointer) 
+//  1. detects if it's in mem hash table (tpm->memHT)
+//      1.1 not found: a new addr
+//          a) creates new node
+//              1) init "version" to 0 (the earlest)
+//          b) updates:
+//              1) the mem hash table (tpm->memHT)
+//              2) seqNo hash table (tpm->seqNo2NodeHash)
+//      1.2 found
+//          !!! detects if the value of the mem equals the val of the latest version 
+//          of the same addr, due to if same, it's a valid taint propagation.
+//          1.2.1 the values are same
+//              a) it's valid propagation, do nothing (to handle the destination node)
+//          1.2.2 the values are different
+//              a) creates a new node
+//                  init version as previous version plus one
+//              b) updates its previous version pointer (prev->nextversion points to it)
+//              b) updates same as 1.1 b)
+//  2. updates neighbours: 
+//      2.1 detects if its left neighbour exists
+//          a) yes, updates its leftNBR points to the earliest version of its left adjcent mem addr
+//          b) no, do nothing
+//      2.2 detects if its right neighbour exist, similar to 2.1, and updates it's rightNBR
 {
     // prnt_src_addr(rec);
+
     return 0;
 }
 
-static int 
+static union TPMNode* 
 handle_src_reg(struct TPMContext *tpm, struct Record *rec, struct TPMNode1 *regCntxt[])
 {
     // prnt_src_addr(rec);
     return 0;
 }
 
-static int 
+static union TPMNode* 
 handle_src_temp(struct TPMContext *tpm, struct Record *rec, struct TPMNode1 *tempCntxt[])
 {
     // prnt_src_addr(rec);
     return 0;
 }
 
-static int 
+static union TPMNode* 
 handle_dst_mem(struct TPMContext *tpm, struct Record *rec)
 {
     // prnt_record(rec);
     return 0;
 }
 
-static int 
+static union TPMNode* 
 handle_dst_reg(struct TPMContext *tpm, struct Record *rec, struct TPMNode1 *regCntxt[])
 {
     // prnt_record(rec);
     return 0;
 }
 
-static int 
+static union TPMNode* 
 handle_dst_temp(struct TPMContext *tpm, struct Record *rec, struct TPMNode1 *tempCntxt[])
 {
     // prnt_record(rec);
     return 0;
+}
+
+static struct Transition* 
+create_trans_node(struct Record *rec, u32 s_type, union TPMNode *src, union TPMNode *dst)
+// Returns
+//  pointer of the created transition node 
+//  NULL : error 
+{
+    if(src == NULL || dst == NULL)
+        return NULL;
+
+    struct Transition *t, *tmp;
+
+    t = (struct Transition*)malloc(sizeof(struct Transition) );
+    t->seqNo = rec->ts; // timestamp
+    t->child = dst;
+    t->next = NULL;
+
+    if(s_type & TPM_Type_Memory) {
+        tmp = src->tpmnode2.firstChild;
+    }
+    else if(s_type & TPM_Type_Temprary || s_type & TPM_Type_Register) {
+        tmp = src->tpmnode1.firstChild;
+    }
+
+    while(tmp->next != NULL) { tmp = tmp->next; }    // reaches last child 
+    tmp->next = t;  // links t to the list
+
+    return t;
 }
 
 static void 
