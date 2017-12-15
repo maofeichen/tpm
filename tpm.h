@@ -21,8 +21,13 @@
 
 /* TPM related constants */
 #define MIN_BUF_SZ          8
+
 #define NUM_REG             14  // num of register (global temps)  
 #define MAX_TEMPIDX         128 // need to be adjuested based on XTaint log: the max temp index that Qemu uses 
+
+#define BYTE                1
+#define WORD                2
+#define DWORD               4
 
 /* the following 2 constants need to be adjuested based on statistics of the XTaint log */
 #define mem2NodeHashSize	90000
@@ -38,6 +43,7 @@ struct TPMNode1		// for temp, register addresses
 {
     u32	type;		// indicating the type of the node
     u32	addr;		// mem addr, id of temp or register
+    u32 val;        
     u32	lastUpdateTS;	// the TS (seq#) of last update of the node
     struct Transition *firstChild;  // points to structure that points to the first child
 };
@@ -46,6 +52,7 @@ struct TPMNode2		// for memory address
 {
     u32	type;		// indicating the type of the node
     u32	addr;		// mem addr, id of temp or register
+    u32 val;
     u32	lastUpdateTS;	// the TS (seq#) of last update of the node
     struct Transition *firstChild;  // points to structure that points to the first child
 /* the following fields are only for TPMNode for memory */
@@ -113,7 +120,7 @@ u32
 isPropagationOverwriting(u32 flag);
 
 union TPMNode *
-createTPMNode(u32 type, u32 addr, u32 TS);
+createTPMNode(u32 type, u32 addr, u32 val, u32 TS);
 
 // u32 
 // processOneXTaintRecord(struct TPMContext *tpm, u32 seqNo, u32 size, u32 srcflg, u32 srcaddr, u32 dstflag, u32 dstaddr);
