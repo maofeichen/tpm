@@ -98,37 +98,27 @@ processOneXTaintRecord(struct TPMContext *tpm, struct Record *rec, struct TPMNod
     int type;
 
     //  handle source node
-    if(rec->is_load) { // src is mem addr  
-        handle_src_mem(tpm, rec); 
-    } 
-    else { // src is either reg or temp  
+    if(rec->is_load) { handle_src_mem(tpm, rec); }  // src is mem addr   
+    else 
+    { // src is either reg or temp  
         type = get_type(rec->s_addr);
-        if (type == TPM_Type_Register) { 
-            handle_src_reg(tpm, rec, regCntxt); 
-        }
-        else if (type == TPM_Type_Temprary) { 
-            handle_src_temp(tpm, rec, tempCntxt);
-        }
+        if (type == TPM_Type_Register) { handle_src_reg(tpm, rec, regCntxt); }
+        else if (type == TPM_Type_Temprary) { handle_src_temp(tpm, rec, tempCntxt); }
         else { fprintf(stderr, "error: handle source node\n"); return -1; }
     }
 
     //  hanlde destination node
-    if(rec->is_store) { // dst is mem addr
-        handle_dst_mem(tpm, rec);
-    } 
-    else { // dst is either reg or temp
+    if(rec->is_store) { handle_dst_mem(tpm, rec); } // dst is mem addr
+    else 
+    { // dst is either reg or temp
         type = get_type(rec->d_addr);
-        if(type == TPM_Type_Register) {
-            handle_dst_reg(tpm, rec, regCntxt);
-        }
-        else if(type == TPM_Type_Temprary) {
-            handle_dst_temp(tpm, rec, tempCntxt);
-        }
+        if(type == TPM_Type_Register) { handle_dst_reg(tpm, rec, regCntxt); }
+        else if(type == TPM_Type_Temprary) { handle_dst_temp(tpm, rec, tempCntxt); }
         else { fprintf(stderr, "error: handle destination node\n"); return -1; }
     }
 
     // TODO:
-    //  creates transition node 
+    //  creates transition node, need to deal how bind the transition node pointer 
 
     return 0;
 }
@@ -140,7 +130,7 @@ buildTPM(FILE *taintfp, struct TPMContext *tpm)
  *     <0: error
  */
 {
-    int n = 0, l = 0;
+    int n = 0, l = 0, r = 0;
     struct TPMNode1 *regCntxt[NUM_REG]   = {0}; // points to the latest register node
     struct TPMNode1 *tempCntxt[MAX_TEMPIDX] = {0}; // points to the latest temp node
 
@@ -156,34 +146,34 @@ buildTPM(FILE *taintfp, struct TPMContext *tpm)
             { // mark record, simply skip except for insn mark
                 if(equal_mark(flag, INSN_MARK) ) {
                     // printf("flag: %s\n", flag);
-                    // TODO: 
                     //  clear current context of temp, due to temp are 
                     //  only alive within instruction, if encounter an insn mark
                     //  it crosses insn boundary
                     clear_tempcontext(tempCntxt); 
                 } // else do nothing
-            } else { // data record, creates nodes
+            } 
+            else 
+            { // data record, creates nodes
                 struct Record rec = {0};
                 if(split(line, '\t', &rec) == 0) 
                 {
                     // prnt_record(&rec);
-
                     int i = 0;
-                    if( (i = processOneXTaintRecord(tpm, &rec, regCntxt, tempCntxt) ) >= 0)
-                    {
-                        n += i; // n increases by how many new node create each record
-                    } else { fprintf(stderr, "error: processOneXTaintRecord\n"); return -1; }
-                    n++; 
-                } else { fprintf(stderr, "error: split\n"); return -1; }
+                    // n increases by how many new nodes created 
+                    if( (i = processOneXTaintRecord(tpm, &rec, regCntxt, tempCntxt) ) >= 0) { n += i; } 
+                    else { fprintf(stderr, "error: processOneXTaintRecord\n"); return -1; }
+                    r++; 
+                } 
+                else { fprintf(stderr, "error: split\n"); return -1; }
             }
-        } else { fprintf(stderr, "error: get flag\n"); return -1; }
+        } 
+        else { fprintf(stderr, "error: get flag\n"); return -1; }
 
         l++;
         // printf("%s", line);
     }    
 
-    printf("total lines:\t%d - total data records:\t%d\n", l, n);
-    
+    printf("total lines:\t%d - total data records:\t%d\n", l, r);
     return n;
 }
 
@@ -290,15 +280,20 @@ create_trans_node(struct Record *rec, u32 s_type, union TPMNode *src, union TPMN
     t->child = dst;
     t->next = NULL;
 
-    if(s_type & TPM_Type_Memory) {
+    if(s_type & TPM_Type_Memory) 
+    {
         tmp = src->tpmnode2.firstChild;
     }
-    else if(s_type & TPM_Type_Temprary || s_type & TPM_Type_Register) {
+    else if(s_type & TPM_Type_Temprary || s_type & TPM_Type_Register) 
+    {
         tmp = src->tpmnode1.firstChild;
     }
 
-    while(tmp->next != NULL) { tmp = tmp->next; }    // reaches last child 
-    tmp->next = t;  // links t to the list
+    while(tmp->next != NULL) 
+    { 
+        tmp = tmp->next; 
+    }    // reaches last child 
+    tmp->next = t;  // links t to list end
 
     return t;
 }
@@ -345,7 +340,9 @@ prnt_record(struct Record* rec)
     printf("record: flag: %x src addr: %x\t\t src val: %x\t\t" 
                             "dst addr: %x\t\t dst val: %x\t\t"
                             "size: %d\t seqNo: %d\tis_load: %u is_store: %u\n", 
-            rec->flag, rec->s_addr, rec->s_val, rec->d_addr, rec->d_val, rec->bytesz, rec->ts, rec->is_load, rec->is_store);
+            rec->flag, rec->s_addr, rec->s_val, 
+            rec->d_addr, rec->d_val, 
+            rec->bytesz, rec->ts, rec->is_load, rec->is_store);
 }
 
 static void 
