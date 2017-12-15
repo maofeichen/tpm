@@ -7,6 +7,7 @@
 
 #include "tpm.h"
 #include "util.h"
+#include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -29,10 +30,11 @@ handle_dst_reg(struct TPMContext *tpm, struct Record *rec, struct TPMNode1 *regC
 static union TPMNode* 
 handle_dst_temp(struct TPMContext *tpm, struct Record *rec, struct TPMNode1 *tempCntxt[]);
 
+
+/* Helper functions */
 static struct Transition* 
 create_trans_node(struct Record *rec, u32 s_type, union TPMNode* src, union TPMNode* dst);
 
-/* Helper functions */
 static void 
 init_tpmcontext(struct TPMContext *tpm);
 
@@ -42,6 +44,8 @@ clear_tempcontext(struct TPMNode1 *tempCntxt[] );
 static int 
 get_type(u32 flag);
 
+
+/* misc functions */
 static void 
 prnt_record(struct Record *rec);
 
@@ -137,30 +141,28 @@ buildTPM(FILE *taintfp, struct TPMContext *tpm)
     init_tpmcontext(tpm);
 
     char line[128] = {0};
-    while(fgets(line, sizeof(line), taintfp) ) 
+    while(fgets(line, sizeof(line), taintfp) ) // iterates each line (record) 
     {
         char flag[3] = {0};
         if(get_flag(flag, line) ) 
         {
-            if(is_mark(flag) ) 
-            { // mark record, simply skip except for insn mark
-                if(equal_mark(flag, INSN_MARK) ) {
-                    // printf("flag: %s\n", flag);
-                    //  clear current context of temp, due to temp are 
-                    //  only alive within instruction, if encounter an insn mark
-                    //  it crosses insn boundary
-                    clear_tempcontext(tempCntxt); 
-                } // else do nothing
+            if(is_mark(flag) )  // mark record, simply skip except for insn mark 
+            { 
+                // printf("flag: %s\n", flag);
+                //  clear current context of temp, due to temp are 
+                //  only alive within instruction, if encounter an insn mark
+                //  it crosses insn boundary
+                if(equal_mark(flag, INSN_MARK) ) { clear_tempcontext(tempCntxt); } 
             } 
-            else 
-            { // data record, creates nodes
+            else // data record, creates nodes 
+            { 
                 struct Record rec = {0};
                 if(split(line, '\t', &rec) == 0) 
                 {
                     // prnt_record(&rec);
-                    int i = 0;
                     // n increases by how many new nodes created 
-                    if( (i = processOneXTaintRecord(tpm, &rec, regCntxt, tempCntxt) ) >= 0) { n += i; } 
+                    int i = 0;
+                    if( (i = processOneXTaintRecord(tpm, &rec, regCntxt, tempCntxt) ) >= 0) { n += i; }  
                     else { fprintf(stderr, "error: processOneXTaintRecord\n"); return -1; }
                     r++; 
                 } 
@@ -200,33 +202,36 @@ seqNo2NodeSearch(struct TPMContext *tpm, u32 seqNo)
 
 static union TPMNode* 
 handle_src_mem(struct TPMContext *tpm, struct Record *rec)
-// Returns the created or found node (pointer) 
-//  1. detects if it's in mem hash table (tpm->memHT)
-//      1.1 not found: a new addr
+// Returns 
+//  the created or found node pointer
+// 
+//  1. detects if src's addr is in mem hash table (tpm->memHT)
+//      1.1 not found: new addr
 //          a) creates new node
 //              1) init "version" to 0 (the earlest)
 //          b) updates:
-//              1) the mem hash table (tpm->memHT)
-//              2) seqNo hash table (tpm->seqNo2NodeHash)
+//              1) the mem hash table (tpm->memHT): hash(addr) -> it
+//              2) seqNo hash table (tpm->seqNo2NodeHash): hash(seqNo) -> it
 //      1.2 found
 //          !!! detects if the value of the mem equals the val of the latest version 
-//          of the same addr, due to if same, it's a valid taint propagation.
+//          of the same addr, due to if same, it's a valid taint propagation. (shoudl be)
+//
 //          1.2.1 the values are same
-//              a) it's valid propagation, do nothing (to handle the destination node)
-//          1.2.2 the values are different
+//              a) it's valid propagation, do nothing 
+//          1.2.2 the values are different (this case should not happen, due to its source)
 //              a) creates a new node
 //                  init version as previous version plus one
 //              b) updates its previous version pointer (prev->nextversion points to it)
 //              b) updates same as 1.1 b)
 //  2. updates neighbours: 
-//      2.1 detects if its left neighbour exists
-//          a) yes, updates its leftNBR points to the earliest version of its left adjcent mem addr
+//      2.1 detects if its left neighbour exists (could be 4, 2, 1 bytes)
+//          a) yes, updates its leftNBR points to the earliest version of its left adjcent mem node 
 //          b) no, do nothing
-//      2.2 detects if its right neighbour exist, similar to 2.1, and updates it's rightNBR
+//      2.2 detects if its right neighbour exist, similar to 2.1, and updates it's rightNBR accordingly
 {
     // prnt_src_addr(rec);
-
-    return 0;
+    union TPMNode *tpmnode = NULL;
+    return tpmnode;
 }
 
 static union TPMNode* 
@@ -280,19 +285,11 @@ create_trans_node(struct Record *rec, u32 s_type, union TPMNode *src, union TPMN
     t->child = dst;
     t->next = NULL;
 
-    if(s_type & TPM_Type_Memory) 
-    {
-        tmp = src->tpmnode2.firstChild;
-    }
+    if(s_type & TPM_Type_Memory) { tmp = src->tpmnode2.firstChild; }
     else if(s_type & TPM_Type_Temprary || s_type & TPM_Type_Register) 
-    {
-        tmp = src->tpmnode1.firstChild;
-    }
+    { tmp = src->tpmnode1.firstChild; }
 
-    while(tmp->next != NULL) 
-    { 
-        tmp = tmp->next; 
-    }    // reaches last child 
+    while(tmp->next != NULL) { tmp = tmp->next; }   // reaches last child 
     tmp->next = t;  // links t to list end
 
     return t;
@@ -323,14 +320,8 @@ get_type(u32 addr)
 // Returns:
 //  reg or temp based on the addr 
 {
-    if(addr < G_TEMP_UNKNOWN) 
-    {
-        return TPM_Type_Temprary;
-    }
-    else if(addr <=  G_TEMP_EDI) 
-    {
-        return TPM_Type_Register;
-    } 
+    if(addr < G_TEMP_UNKNOWN) { return TPM_Type_Temprary; }
+    else if(addr <=  G_TEMP_EDI) { return TPM_Type_Register; } 
     else { fprintf(stderr, "error: unkown addr type\n"); return -1; }
 }
 
@@ -339,10 +330,12 @@ prnt_record(struct Record* rec)
 {
     printf("record: flag: %x src addr: %x\t\t src val: %x\t\t" 
                             "dst addr: %x\t\t dst val: %x\t\t"
-                            "size: %d\t seqNo: %d\tis_load: %u is_store: %u\n", 
+                            "size: %d\t seqNo: %d\t" 
+                            "is_load: %u is_store: %u\n", 
             rec->flag, rec->s_addr, rec->s_val, 
-            rec->d_addr, rec->d_val, 
-            rec->bytesz, rec->ts, rec->is_load, rec->is_store);
+                       rec->d_addr, rec->d_val, 
+                       rec->bytesz, rec->ts, 
+                       rec->is_load, rec->is_store);
 }
 
 static void 
