@@ -23,7 +23,9 @@
 #define MIN_BUF_SZ          8
 
 #define NUM_REG             14  // num of register (global temps)  
-#define MAX_TEMPIDX         128 // need to be adjuested based on XTaint log: the max temp index that Qemu uses 
+#define REG_IDX_MASK        0xf
+#define MAX_TEMPIDX         128 // need to be adjuested based on XTaint log: the max temp index that Qemu uses
+
 
 #define BYTE                1
 #define WORD                2

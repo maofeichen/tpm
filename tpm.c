@@ -65,6 +65,9 @@ clear_tempcontext(struct TPMNode1 *tempCntxt[] );
 static int 
 get_type(u32 flag);
 
+static int 
+get_regcntxt_idx(u32 reg);
+
 
 /* print functions */
 static void 
@@ -76,6 +79,8 @@ prnt_src_addr(struct Record *rec);
 static void 
 prnt_mem_node(struct TPMNode2 *n);
 
+static void 
+prnt_nonmem_node(struct TPMNode1 *n);
 
 u32 
 isPropagationOverwriting(u32 flag)
@@ -265,7 +270,7 @@ handle_src_mem(struct TPMContext *tpm, struct Record *rec, union TPMNode* src)
 
     i = has_mem_addr(tpm, src_hn, rec->s_addr);
     if(i == 1) { // found
-        printf("addr: 0x%x found in hash table\n", rec->s_addr);
+        printf("handle src mem: addr: 0x%x found in hash table\n", rec->s_addr);
         return -1; // TODO: hasn't handle the case yet
     }
     else if( i == 0) { // not found
@@ -324,7 +329,25 @@ handle_src_reg(struct TPMContext *tpm, struct Record *rec, struct TPMNode1 *regC
 //          !!! verifies if the value of the reg equals to the one stored in reg context [reg id] 
 //          due to if same, it's a valid taint propagation. (shoudl be)
 {
-    // prnt_src_addr(rec);
+    int id = -1;
+
+    if((id = get_regcntxt_idx(rec->s_addr) ) >= 0) {
+        if(regCntxt[id] == NULL) { // not found
+            printf("reg: %x not found in regCntxt, creates new reg node\n", rec->s_addr);
+            src = createTPMNode(TPM_Type_Register, rec->s_addr, rec->s_val, rec->ts);
+            prnt_nonmem_node(&(src->tpmnode1) );
+
+            regCntxt[id] = &(src->tpmnode1);    // updates reg context
+            printf("reg: %x - id: %d - addr of the node: %p\n", rec->s_addr, id, regCntxt[id]);
+            tpm->seqNo2NodeHash[rec->ts] = src; // updates seqNo hash table
+        } 
+        else { // found
+            printf("handle src reg: found reg in regCntxt\n");
+            return -1;
+        }
+    }
+    else { return -1; } // error
+
     return 0;
 }
 
@@ -540,6 +563,19 @@ get_type(u32 addr)
     else { fprintf(stderr, "error: unkown addr type\n"); return -1; }
 }
 
+static int 
+get_regcntxt_idx(u32 reg)
+// Returns:
+//  idx of the register in regCntxt
+//  <0: error
+{
+    if(reg >= 0xfff0 && reg <= 0xfffd) { return (reg & REG_IDX_MASK); }
+    else {
+        fprintf(stderr, "error: get regcntxt idx: wrong reg\n");
+        return -1;
+    }
+}
+
 static void 
 prnt_record(struct Record* rec)
 {
@@ -570,3 +606,9 @@ prnt_mem_node(struct TPMNode2 *n)
             n->version, n->hitcnt);
 }
 
+static void 
+prnt_nonmem_node(struct TPMNode1 *n)
+{
+     printf("non mem node: type: %u - addr: 0x%x - val: %x - lastUpdateTS: %u\n", 
+            n->type, n->addr, n->val, n->lastUpdateTS);   
+}

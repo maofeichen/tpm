@@ -1,11 +1,14 @@
 #include "tpm.c"
+#include <assert.h>
 
 #define u32 unsigned int
 
 struct MemHT *hh = NULL;
 
 void t_tpmhash(void);
-void t_tpm(void);
+void t_tpm_mem(void);
+void t_regcntxt_mask(void);
+void t_handle_src_reg(void);
 
 
 void t_tpmhash()
@@ -35,7 +38,7 @@ void t_tpmhash()
 	del_all_mem(&hh);
 }
 
-void t_tpm()
+void t_tpm_mem()
 {
 	struct TPMContext* tpm = NULL;
 	union TPMNode *n; 
@@ -75,9 +78,44 @@ void t_tpm()
 	free(tpm);	
 }
 
+void t_regcntxt_mask(void)
+{
+	int id = -1;
+
+	id = get_regcntxt_idx(G_TEMP_ENV);
+	assert(id == 1);
+	printf("pass G_TEMP_ENV\n");
+
+	id = get_regcntxt_idx(G_TEMP_ESP);
+	assert(id == 10);
+	printf("pass G_TEMP_ESP\n");
+
+	id = get_regcntxt_idx(G_TEMP_EDI);
+	assert(id == 13);
+	printf("pass G_TEMP_EDI\n");
+}
+
+void t_handle_src_reg(void)
+{
+	struct TPMNode1 *regCntxt[NUM_REG]   = {0}; 
+	struct TPMContext* tpm = NULL;
+	struct Record rec = {0};
+	union TPMNode* n = NULL;
+
+	rec.s_addr = G_TEMP_ESI;
+	rec.s_val  = 0xbeef;
+	rec.ts 	   = 0;
+
+	tpm = calloc(1, sizeof(struct TPMContext) );
+
+	handle_src_reg(tpm, &rec, regCntxt, n);
+}
+
 int main(int argc, char const *argv[])
 {	
 	// t_tpmhash();
-	t_tpm();
+	// t_tpm();
+	// t_regcntxt_mask();
+	t_handle_src_reg();
 	return 0;
 }
