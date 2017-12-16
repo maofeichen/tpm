@@ -368,7 +368,24 @@ handle_src_temp(struct TPMContext *tpm, struct Record *rec, struct TPMNode1 *tem
 //          !!! verifies if the value of the temp equals to the one stored in temp context [temp id] 
 //          due to if same, it's a valid taint propagation. (shoudl be)
 {
-    // prnt_src_addr(rec);
+    if(rec->s_addr >= 0xfff0 || rec->s_addr >= MAX_TEMPIDX) {
+        fprintf(stderr, "error: temp idx larger than register idx or max temp idx\n");
+        return -1;
+    }
+
+    if(tempCntxt[rec->s_addr] == NULL) { // not found, creates new node
+        printf("temp: %u not found in tempCntxt, creates new temp node\n", rec->s_addr);
+        src = createTPMNode(TPM_Type_Temprary, rec->s_addr, rec->s_val, rec->ts);
+        prnt_nonmem_node(&(src->tpmnode1) );
+
+        tempCntxt[rec->s_addr] = &(src->tpmnode1);    // updates temp context
+        printf("temp: %u - addr of the node: %p\n", rec->s_addr, tempCntxt[rec->s_addr]);
+        tpm->seqNo2NodeHash[rec->ts] = src; // updates seqNo hash table
+    } 
+    else {  // found
+        printf("handle src temp: found temp in tempCntxt\n");
+        return -1;
+    } 
     return 0;
 }
 

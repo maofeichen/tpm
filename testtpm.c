@@ -9,7 +9,7 @@ void t_tpmhash(void);
 void t_tpm_mem(void);
 void t_regcntxt_mask(void);
 void t_handle_src_reg(void);
-
+void t_handle_src_temp(void);
 
 void t_tpmhash()
 {
@@ -109,6 +109,29 @@ void t_handle_src_reg(void)
 	tpm = calloc(1, sizeof(struct TPMContext) );
 
 	handle_src_reg(tpm, &rec, regCntxt, n);
+	free(tpm);	
+}
+
+void t_handle_src_temp(void)
+{
+	struct TPMNode1 *tempCntxt[MAX_TEMPIDX]   = {0}; 
+	struct TPMContext* tpm = NULL;
+	struct Record rec = {0};
+	union TPMNode* n = NULL;
+
+	tpm = calloc(1, sizeof(struct TPMContext) );
+
+	rec.s_addr = G_TEMP_ESI;
+	rec.s_val  = 0xbeef;
+	rec.ts 	   = 0;
+	handle_src_temp(tpm, &rec, tempCntxt, n);
+
+	rec.s_addr = 68;
+	rec.s_val  = 0xbeef;
+	rec.ts 	   = 0;
+	handle_src_temp(tpm, &rec, tempCntxt, n);
+
+	free(tpm);	
 }
 
 int main(int argc, char const *argv[])
@@ -117,5 +140,6 @@ int main(int argc, char const *argv[])
 	// t_tpm();
 	// t_regcntxt_mask();
 	t_handle_src_reg();
+	t_handle_src_temp();
 	return 0;
 }
