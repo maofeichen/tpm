@@ -5,6 +5,8 @@
 struct MemHT *hh = NULL;
 
 void t_tpmhash(void);
+void t_tpm(void);
+
 
 void t_tpmhash()
 {
@@ -33,8 +35,46 @@ void t_tpmhash()
 	del_all_mem(&hh);
 }
 
+void t_tpm()
+{
+	struct TPMContext* tpm = NULL;
+	union TPMNode *n; 
+	struct MemHT *l, *r;
+
+	u32 addr1 = 0xbffff7a0;
+	u32 val1  = 0xbeef;
+	u32 seq1  = 0;
+
+	u32 addr2 = 0xbffff7a4;
+	u32 val2  = 0xbeef;
+	u32 seq2  = 1;
+
+	u32 addr3 = 0xbffff7a8;
+	u32 val3  = 0xbeef;
+	u32 seq3  = 2;
+
+	tpm = calloc(1, sizeof(struct TPMContext) );
+
+	n = createTPMNode(TPM_Type_Memory, addr1, val1, seq2);
+	if(add_mem(&(tpm->mem2NodeHT), addr1, &(n->tpmnode2) ) == 0) { printf("add mem addr success\n"); }
+	else { printf("add mem addr error\n");}
+
+	n = createTPMNode(TPM_Type_Memory, addr3, val3, seq3);
+	if(add_mem(&(tpm->mem2NodeHT), addr3, &(n->tpmnode2) ) == 0) { printf("add mem addr success\n"); }
+	else { printf("add mem addr error\n");}
+
+	count_mem(&(tpm->mem2NodeHT));
+	prnt_mem_ht(&(tpm->mem2NodeHT));
+
+	has_adjacent(tpm, l, r, addr2, 4);
+
+	del_all_mem(&(tpm->mem2NodeHT) );	// clear mem addr hash table
+	free(tpm);	
+}
+
 int main(int argc, char const *argv[])
 {	
-	t_tpmhash();
+	// t_tpmhash();
+	t_tpm();
 	return 0;
 }

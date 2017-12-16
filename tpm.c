@@ -411,17 +411,23 @@ has_left_adjacent(struct TPMContext *tpm, struct MemHT *item, u32 addr)
 
     l_adjcnt = addr - DWORD;    // try 4 bytes first
     item = find_mem( &(tpm->mem2NodeHT), l_adjcnt);
-    if(item != NULL) { return 1; }
-    else // doesn't find 4 bytes left adjacent
-    {
+    if(item != NULL) {
+        printf("has left adjacent: addr: 0x%x\n", item->toMem->addr); 
+        return 1; 
+    }else { // doesn't find 4 bytes left adjacent
         l_adjcnt = addr - WORD; // try 2 bytes 
         item = find_mem( &(tpm->mem2NodeHT), l_adjcnt);
-        if(item != NULL) { return 1; }
-        else 
-        {
+        if(item != NULL) {
+            printf("has left adjacent: addr: 0x%x\n", item->toMem->addr);  
+            return 1; 
+        }
+        else {
             l_adjcnt = addr - BYTE; // try 1 byte
             item = find_mem( &(tpm->mem2NodeHT), l_adjcnt);
-            if(item != NULL) { return 1; }
+            if(item != NULL) {
+                printf("has left adjacent: addr: 0x%x\n", item->toMem->addr);  
+                return 1; 
+            }
             else { return 0 ;} 
         }
     }
@@ -434,12 +440,15 @@ has_right_adjacent(struct TPMContext *tpm, struct MemHT *item,  u32 addr, u32 by
 //  0: otherwise
 //  <0: error
 {
-    u32 r_adjcnt = addr + bytesz - 1;
+    u32 r_adjcnt = addr + bytesz;
     item = NULL;
 
     item = find_mem( &(tpm->mem2NodeHT), r_adjcnt);
     if(item == NULL) { return 0; }
-    else { return 1; }
+    else {
+        printf("has right adjacent: addr: 0x%x\n", item->toMem->addr);   
+        return 1; 
+    }
 }
 
 static int 
