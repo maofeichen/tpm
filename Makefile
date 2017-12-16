@@ -4,7 +4,13 @@ LF	= -g
 
 OBJS	= main.o tpm.o tpmht.o util.o
 
-all	: tpm
+all	: tpm testtpm
+
+testtpm : testtpm.o tpm.o tpmht.o util.o
+	$(CC) $(LF) -o testtpm testtpm.o tpmht.o util.o
+
+testtpm.o : testtpm.c
+	$(CC) $(CF)	-c testtpm.c 
 
 tpm	: $(OBJS)
 	$(CC) $(LF) -o tpm $(OBJS) 
@@ -22,4 +28,4 @@ util.o : util.c
 	$(CC) $(CF) -c util.c
 
 clean	:
-	rm -rf *.o tpm
+	rm -rf *.o tpm testtpm

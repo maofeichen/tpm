@@ -8,8 +8,7 @@ void usage()
 
 int main(int argc, char const *argv[])
 {
-	if(argc <= 1)
-	{
+	if(argc <= 1){
 		usage();
 		exit(1);
 	}
@@ -17,22 +16,19 @@ int main(int argc, char const *argv[])
 	FILE *log = NULL;
 	struct TPMContext* tpm = NULL;
 
-	if((log = fopen(argv[1], "r") ) != NULL) 
-	{
+	if((log = fopen(argv[1], "r") ) != NULL) {
 		printf("open log: %s\n", argv[1]);
 
-		if((tpm = calloc(1, sizeof(struct TPMContext) ) ) == NULL) 
-		{ 
+		if((tpm = calloc(1, sizeof(struct TPMContext) ) ) == NULL) { 
 			fprintf(stderr, "error alloc: TPMContext\n"); 
 		} 
-		else 
-		{
+		else {
 			printf("alloc TPMContext: %zu MB\n", sizeof(struct TPMContext) / (1024*1024) );
 
-			if(buildTPM(log, tpm) < 0) 
-			{ 
+			if(buildTPM(log, tpm) < 0) { 
 				fprintf(stderr, "error build TPM\n");
 			};
+			del_all_mem(&(tpm->mem2NodeHT) );	// clear mem addr hash table
 			free(tpm);	
 		}
 		fclose(log);

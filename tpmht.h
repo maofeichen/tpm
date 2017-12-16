@@ -28,6 +28,9 @@ struct MemHT
     UT_hash_handle hh_mem;  // hash table head, required by uthash
 };
 
+// Returns:
+//	0: success
+//	<0: error
 int
 add_mem(struct MemHT **mem2NodeHT, u32 addr, struct TPMNode2 *toMem);
 

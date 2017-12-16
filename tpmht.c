@@ -1,9 +1,6 @@
 #include "tpmht.h"
 #include <stdio.h>
 
-// Returns:
-//	0: success
-//	<0: error
 int
 add_mem(struct MemHT **mem2NodeHT, u32 addr, struct TPMNode2 *toMem)
 {

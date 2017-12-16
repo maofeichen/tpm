@@ -119,7 +119,7 @@ struct Record
 u32 
 isPropagationOverwriting(u32 flag);
 
-union TPMNode *
+union TPMNode*
 createTPMNode(u32 type, u32 addr, u32 val, u32 TS);
 
 // u32 
