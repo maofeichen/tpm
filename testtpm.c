@@ -40,6 +40,7 @@ void t_tpm()
 	struct TPMContext* tpm = NULL;
 	union TPMNode *n; 
 	struct MemHT *l, *r;
+	int i;
 
 	u32 addr1 = 0xbffff7a0;
 	u32 val1  = 0xbeef;
@@ -66,7 +67,9 @@ void t_tpm()
 	count_mem(&(tpm->mem2NodeHT));
 	prnt_mem_ht(&(tpm->mem2NodeHT));
 
-	has_adjacent(tpm, l, r, addr2, 4);
+	i = has_adjacent(tpm, l, r, addr2, 4);
+	if(i > 0) { printf("addr: 0x%x found adjacent addr\n", addr2); }
+	else { printf("addr: 0x%x not found adjacent addr\n", addr2); }
 
 	del_all_mem(&(tpm->mem2NodeHT) );	// clear mem addr hash table
 	free(tpm);	

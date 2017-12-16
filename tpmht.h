@@ -10,9 +10,6 @@
 
 #define u32	unsigned int
 
-// extern union TPMNode;
-// extern struct TPMNode2;
-
 /* hash tables, according to uthash */
 struct SeqNoHT
 {

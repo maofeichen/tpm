@@ -15,20 +15,20 @@
 static int 
 handle_src_mem(struct TPMContext *tpm, struct Record *rec, union TPMNode* src);
 
-static union TPMNode* 
-handle_src_reg(struct TPMContext *tpm, struct Record *rec, struct TPMNode1 *regCntxt[]);
+static int 
+handle_src_reg(struct TPMContext *tpm, struct Record *rec, struct TPMNode1 *regCntxt[], union TPMNode* src);
 
-static union TPMNode* 
-handle_src_temp(struct TPMContext *tpm, struct Record *rec, struct TPMNode1 *tempCntxt[]);
+static int  
+handle_src_temp(struct TPMContext *tpm, struct Record *rec, struct TPMNode1 *tempCntxt[], union TPMNode* src);
 
-static union TPMNode* 
-handle_dst_mem(struct TPMContext *tpm, struct Record *rec);
+static int 
+handle_dst_mem(struct TPMContext *tpm, struct Record *rec, union TPMNode* dst);
 
-static union TPMNode* 
-handle_dst_reg(struct TPMContext *tpm, struct Record *rec, struct TPMNode1 *regCntxt[]);
+static int 
+handle_dst_reg(struct TPMContext *tpm, struct Record *rec, struct TPMNode1 *regCntxt[], union TPMNode* dst);
 
-static union TPMNode* 
-handle_dst_temp(struct TPMContext *tpm, struct Record *rec, struct TPMNode1 *tempCntxt[]);
+static int 
+handle_dst_temp(struct TPMContext *tpm, struct Record *rec, struct TPMNode1 *tempCntxt[], union TPMNode* dst);
 
 
 /* Helper functions */
@@ -127,26 +127,27 @@ processOneXTaintRecord(struct TPMContext *tpm, struct Record *rec, struct TPMNod
  */
 {
     int type, sc, dc;
-    union TPMNode *src, *dst;
+    union TPMNode *src = NULL, *dst = NULL;
 
     //  handle source node
     if(rec->is_load) { // src is mem addr    
-        if( (sc = handle_src_mem(tpm, rec, src) ) < 0 ) 
-        { fprintf(stderr, "error: handle source mem\n"); }
+        if( (sc = handle_src_mem(tpm, rec, src) ) < 0 ) { 
+            fprintf(stderr, "error: handle source mem\n"); 
+        }
     }  
     else { // src is either reg or temp  
         type = get_type(rec->s_addr);
-        if (type == TPM_Type_Register) { handle_src_reg(tpm, rec, regCntxt); }
-        else if (type == TPM_Type_Temprary) { handle_src_temp(tpm, rec, tempCntxt); }
+        if (type == TPM_Type_Register) { handle_src_reg(tpm, rec, regCntxt, src); }
+        else if (type == TPM_Type_Temprary) { handle_src_temp(tpm, rec, tempCntxt, src); }
         else { fprintf(stderr, "error: handle source node\n"); return -1; }
     }
 
     //  hanlde destination node
-    if(rec->is_store) { handle_dst_mem(tpm, rec); } // dst is mem addr
+    if(rec->is_store) { handle_dst_mem(tpm, rec, dst); } // dst is mem addr
     else { // dst is either reg or temp
         type = get_type(rec->d_addr);
-        if(type == TPM_Type_Register) { handle_dst_reg(tpm, rec, regCntxt); }
-        else if(type == TPM_Type_Temprary) { handle_dst_temp(tpm, rec, tempCntxt); }
+        if(type == TPM_Type_Register) { handle_dst_reg(tpm, rec, regCntxt, dst); }
+        else if(type == TPM_Type_Temprary) { handle_dst_temp(tpm, rec, tempCntxt, dst); }
         else { fprintf(stderr, "error: handle destination node\n"); return -1; }
     }
 
@@ -164,8 +165,8 @@ buildTPM(FILE *taintfp, struct TPMContext *tpm)
  */
 {
     int n = 0, l = 0, r = 0;
-    struct TPMNode1 *regCntxt[NUM_REG]   = {0}; // points to the latest register node
-    struct TPMNode1 *tempCntxt[MAX_TEMPIDX] = {0}; // points to the latest temp node
+    struct TPMNode1 *regCntxt[NUM_REG]   = {0};     // points to the latest register node
+    struct TPMNode1 *tempCntxt[MAX_TEMPIDX] = {0};  // points to the latest temp node
 
     init_tpmcontext(tpm);
 
@@ -175,19 +176,20 @@ buildTPM(FILE *taintfp, struct TPMContext *tpm)
         if(get_flag(flag, line) ) {
             if(is_mark(flag) ) { // mark record, simply skip except for insn mark 
                 // printf("flag: %s\n", flag);
-                //  clear current context of temp, due to temp are 
-                //  only alive within instruction, if encounter an insn mark
-                //  it crosses insn boundary
-                if(equal_mark(flag, INSN_MARK) ) { clear_tempcontext(tempCntxt); } 
+                if(equal_mark(flag, INSN_MARK) ) { 
+                    clear_tempcontext(tempCntxt); /* clear current context of temp, due to temp are 
+                                                    only alive within instruction, if encounter an insn mark  
+                                                    it crosses insn boundary */ 
+                } 
             } 
             else { // data record, creates nodes 
                 struct Record rec = {0};
                 if(split(line, '\t', &rec) == 0) {
                     // prnt_record(&rec);
-                    // n increases by how many new nodes created 
                     int i = 0;
-                    if( (i = processOneXTaintRecord(tpm, &rec, regCntxt, tempCntxt) ) >= 0) 
-                    { n += i; }  
+                    if( (i = processOneXTaintRecord(tpm, &rec, regCntxt, tempCntxt) ) >= 0) { 
+                        n += i; // n increases by how many new nodes created  
+                    }  
                     else { fprintf(stderr, "error: processOneXTaintRecord\n"); return -1; }
                     r++; 
                 } 
@@ -258,13 +260,13 @@ handle_src_mem(struct TPMContext *tpm, struct Record *rec, union TPMNode* src)
 {
     int n, i;
     struct MemHT *src_hn = NULL, *left = NULL, *right = NULL;
-    src = NULL;
 
     prnt_record(rec);
 
     i = has_mem_addr(tpm, src_hn, rec->s_addr);
     if(i == 1) { // found
         printf("addr: 0x%x found in hash table\n", rec->s_addr);
+        return -1; // TODO: hasn't handle the case yet
     }
     else if( i == 0) { // not found
         printf("addr: 0x%x not found in hash table, creates new mem node\n", rec->s_addr);
@@ -273,8 +275,9 @@ handle_src_mem(struct TPMContext *tpm, struct Record *rec, union TPMNode* src)
         prnt_mem_node(&(src->tpmnode2) );
 
         // updates hash table
-        if(add_mem( &(tpm->mem2NodeHT), rec->s_addr, &(src->tpmnode2) ) < 0 )
-        { fprintf(stderr, "error: handle source mem\n");}
+        if(add_mem( &(tpm->mem2NodeHT), rec->s_addr, &(src->tpmnode2) ) < 0 ){ 
+            fprintf(stderr, "error: handle source mem\n"); 
+        }
 
         count_mem(&(tpm->mem2NodeHT) );
         prnt_mem_ht(&(tpm->mem2NodeHT) );
@@ -285,18 +288,17 @@ handle_src_mem(struct TPMContext *tpm, struct Record *rec, union TPMNode* src)
     else { fprintf(stderr, "error: handle source mem\n"); }
 
     // updates adjacent mem node if any
-    if(has_adjacent(tpm, left, right, rec->s_addr, rec->bytesz) > 0) 
-    {
+    if(has_adjacent(tpm, left, right, rec->s_addr, rec->bytesz) > 0) {
         struct TPMNode2 *earliest = NULL;
-        if(left != NULL)
-        {
+        if(left != NULL){
+            // TODO: haven't test
             earliest = left->toMem;
             get_earliest_version(earliest);
             src->tpmnode2.leftNBR = earliest;
         }
 
-        if(right != NULL)
-        {
+        if(right != NULL){
+            // TODO: haven't test
             earliest = right->toMem;
             get_earliest_version(earliest);
             src->tpmnode2.rightNBR = earliest; 
@@ -305,36 +307,64 @@ handle_src_mem(struct TPMContext *tpm, struct Record *rec, union TPMNode* src)
     return 0;
 }
 
-static union TPMNode* 
-handle_src_reg(struct TPMContext *tpm, struct Record *rec, struct TPMNode1 *regCntxt[])
+static int 
+handle_src_reg(struct TPMContext *tpm, struct Record *rec, struct TPMNode1 *regCntxt[], union TPMNode* src)
+// Returns
+//  >=0: num of new nodes creates 
+//  <0: error 
+//  stores the created or found node pointer in src 
+//
+//  1. detects if register is in the register context array (regCntxt)
+//      1.1 not found: new register
+//          a) creates new register node
+//          b) updates:
+//              1) reg context array: regCntxt[reg id] -> it
+//              2) seqNo hash table (tpm->seqNo2NodeHash): hash(seqNo) -> it
+//      1.2 found
+//          !!! verifies if the value of the reg equals to the one stored in reg context [reg id] 
+//          due to if same, it's a valid taint propagation. (shoudl be)
 {
     // prnt_src_addr(rec);
     return 0;
 }
 
-static union TPMNode* 
-handle_src_temp(struct TPMContext *tpm, struct Record *rec, struct TPMNode1 *tempCntxt[])
+static int  
+handle_src_temp(struct TPMContext *tpm, struct Record *rec, struct TPMNode1 *tempCntxt[], union TPMNode* src)
+// Returns
+//  >=0: num of new nodes creates 
+//  <0: error 
+//  stores the created or found node pointer in src 
+//
+//  1. detects if temp is in the temp context array (tempCntxt)
+//      1.1 not found: new temp
+//          a) creates new temp node
+//          b) updates:
+//              1) temp context array: tempCntxt[temp id] -> it
+//              2) seqNo hash table (tpm->seqNo2NodeHash): hash(seqNo) -> it
+//      1.2 found
+//          !!! verifies if the value of the temp equals to the one stored in temp context [temp id] 
+//          due to if same, it's a valid taint propagation. (shoudl be)
 {
     // prnt_src_addr(rec);
     return 0;
 }
 
-static union TPMNode* 
-handle_dst_mem(struct TPMContext *tpm, struct Record *rec)
+static int 
+handle_dst_mem(struct TPMContext *tpm, struct Record *rec, union TPMNode* dst)
 {
     // prnt_record(rec);
     return 0;
 }
 
-static union TPMNode* 
-handle_dst_reg(struct TPMContext *tpm, struct Record *rec, struct TPMNode1 *regCntxt[])
+static int 
+handle_dst_reg(struct TPMContext *tpm, struct Record *rec, struct TPMNode1 *regCntxt[], union TPMNode* dst)
 {
     // prnt_record(rec);
     return 0;
 }
 
-static union TPMNode* 
-handle_dst_temp(struct TPMContext *tpm, struct Record *rec, struct TPMNode1 *tempCntxt[])
+static int 
+handle_dst_temp(struct TPMContext *tpm, struct Record *rec, struct TPMNode1 *tempCntxt[], union TPMNode* dst)
 {
     // prnt_record(rec);
     return 0;
@@ -494,9 +524,10 @@ init_tpmcontext(struct TPMContext *tpm)
 
 static void 
 clear_tempcontext(struct TPMNode1 *tempCntxt[] )
-// TODO
 {
-
+   for(int i = 0; i < MAX_TEMPIDX; i++) {
+    tempCntxt[i] = NULL;
+   } 
 }
 
 static int 
