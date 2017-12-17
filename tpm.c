@@ -55,23 +55,21 @@ has_left_adjacent(struct TPMContext *tpm, struct MemHT *item, u32 addr);
 static bool  
 has_right_adjacent(struct TPMContext *tpm,struct MemHT *item, u32 addr, u32 bytesz);
 
-/* handles version mem nodes */
+/* handles memory node's version */
 union TPMNode *
-create_firstver_memnode(u32 addr, u32 val, u32 ts);
+create_first_version(u32 addr, u32 val, u32 ts);
 
 bool 
-add_nextver_memnode(struct TPMNode2 *front, struct TPMNode2 *next);
+add_next_version(struct TPMNode2 *front, struct TPMNode2 *next);
 
 static int 
-set_mem_version(union TPMNode *tpmnode, u32 ver);
+set_version(union TPMNode *tpmnode, u32 ver);
 
 static u32 
-get_version(struct TPMNode2 *mem_node);
+get_version(struct TPMNode2 *node);
 
-static struct TPMNode2 * 
-get_earliest_version(struct TPMNode2 *mem_node);
-
-
+static int 
+get_earliest_version(struct TPMNode2 **earliest);
 
 /* temp or register nodes related */
 static void 
@@ -313,9 +311,9 @@ handle_src_mem(struct TPMContext *tpm, struct Record *rec, union TPMNode* src)
     }
     else { // not found
         printf("addr: 0x%x not found in hash table, creates new mem node\n", rec->s_addr);
-        src = create_firstver_memnode(rec->s_addr, rec->s_val, rec->ts);
+        src = create_first_version(rec->s_addr, rec->s_val, rec->ts);
         // src = createTPMNode(TPM_Type_Memory, rec->s_addr, rec->s_val, rec->ts);
-        // set_mem_version(src, 0);    // init version
+        // set_version(src, 0);    // init version
         prnt_mem_node(&(src->tpmnode2) );
 
         // updates hash table
@@ -453,13 +451,13 @@ handle_dst_mem(struct TPMContext *tpm, struct Record *rec, union TPMNode* dst)
         if( is_addr_in_ht(tpm, dst_hn, rec->d_addr) ) { 
             dst = createTPMNode(TPM_Type_Memory, rec->d_addr, rec->d_val, rec->ts);
             u32 ver = get_version(dst_hn->toMem);
-            set_mem_version(dst, ver+1); // set version accordingly
-            add_nextver_memnode(dst_hn->toMem, &(dst->tpmnode2) );             
+            set_version(dst, ver+1); // set version accordingly
+            add_next_version(dst_hn->toMem, &(dst->tpmnode2) );             
 
             prnt_mem_node(&(dst->tpmnode2) );
         }
         else { // not found
-            dst = create_firstver_memnode(rec->d_addr, rec->d_val, rec->ts);
+            dst = create_first_version(rec->d_addr, rec->d_val, rec->ts);
         }
 
         // updates mem hash table
@@ -472,7 +470,7 @@ handle_dst_mem(struct TPMContext *tpm, struct Record *rec, union TPMNode* dst)
             return -1;  // TODO
         }
         else { // not found
-            dst = create_firstver_memnode(rec->d_addr, rec->d_val, rec->ts);
+            dst = create_first_version(rec->d_addr, rec->d_val, rec->ts);
         }
 
         // both cases, updates mem hash table
@@ -554,14 +552,18 @@ update_adjacent(struct TPMContext *tpm, union TPMNode *n, struct MemHT *l, struc
         struct TPMNode2 *earliest = NULL;
         if(l != NULL){
             earliest = l->toMem;
-            earliest = get_earliest_version(earliest);
-            n->tpmnode2.leftNBR = earliest;
+            if(get_earliest_version(&earliest) == 0) {
+                n->tpmnode2.leftNBR = earliest;
+            }
+            else { return -1; }
         }
 
         if(r != NULL){
             earliest = r->toMem;
-            earliest = get_earliest_version(earliest);
-            n->tpmnode2.rightNBR = earliest; 
+            if(get_earliest_version(&earliest) == 0) {
+                n->tpmnode2.rightNBR = earliest; 
+            }
+            else { return -1; }
         }
         return 1;
     }
@@ -637,7 +639,7 @@ has_right_adjacent(struct TPMContext *tpm, struct MemHT *item,  u32 addr, u32 by
 }
 
 static int 
-set_mem_version(union TPMNode *tpmnode, u32 ver)
+set_version(union TPMNode *tpmnode, u32 ver)
 // Returns:
 //  0: success
 //  <0: error
@@ -650,18 +652,18 @@ set_mem_version(union TPMNode *tpmnode, u32 ver)
 }
 
 union TPMNode *
-create_firstver_memnode(u32 addr, u32 val, u32 ts)
-// creates first version (0) mem node 
+create_first_version(u32 addr, u32 val, u32 ts)
+// creates first version (0) memory node 
 {
     union TPMNode *n;
     n = createTPMNode(TPM_Type_Memory, addr, val, ts);
-    set_mem_version(n, 0);   
+    set_version(n, 0);   
     n->tpmnode2.nextVersion = &(n->tpmnode2); // init points to itself
     return n; 
 }
 
 bool 
-add_nextver_memnode(struct TPMNode2 *front, struct TPMNode2 *next)
+add_next_version(struct TPMNode2 *front, struct TPMNode2 *next)
 // Returns
 //  true: success
 //  false: error
@@ -669,38 +671,40 @@ add_nextver_memnode(struct TPMNode2 *front, struct TPMNode2 *next)
     if(front == NULL || next == NULL)
         return false;
 
-    // front node next version should points to head mem node (0 ver)
+    // front node nextVersion should points to head mem node (0 ver)
     if(front->nextVersion->version != 0)
         return false; 
 
-    next->nextVersion = front->nextVersion; // now next points to head
-    front->nextVersion = next; // front points to next
-
+    next->nextVersion  = front->nextVersion; // now next points to head
+    front->nextVersion = next;               // front points to next
     return true;
 }
 
 static u32 
-get_version(struct TPMNode2 *mem_node)
+get_version(struct TPMNode2 *node)
 // Returns
 //  the version of the mem node
 {
-    return mem_node->version;
+    return node->version;
 }
 
-static struct TPMNode2 * 
-get_earliest_version(struct TPMNode2 *mem_node)
+static int 
+get_earliest_version(struct TPMNode2 **earliest)
 // Returns:
 //  0: success
 //  <0: error
 //  stores the earliest version in earliest
 {
-    if(mem_node == NULL)
+    if(earliest == NULL) {
+        fprintf(stderr, "error: get earliest version\n");
         return -1;
+    }
 
-    struct TPMNode2 *n = mem_node;
     // circulates the linked list until found 0 version
-    while( n->version != 0) { n = n->nextVersion; }
-    return n;
+    while( (*earliest)->version != 0) { 
+        *earliest = (*earliest)->nextVersion; 
+    }
+    return 0;
 }
 
 

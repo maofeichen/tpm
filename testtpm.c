@@ -155,18 +155,18 @@ void t_mem_version(void)
 	u32 val3  = 0xbee8;
 	u32 seq3  = 2;
 
-	front = create_firstver_memnode(addr1, val1, seq1);
-	set_mem_version(front, 0);
+	front = create_first_version(addr1, val1, seq1);
+	set_version(front, 0);
 
 	next = createTPMNode(TPM_Type_Memory, addr2, val2, seq2);
-	set_mem_version(next, 1);
-	add_nextver_memnode(&(front->tpmnode2), &(next->tpmnode2) );
+	set_version(next, 1);
+	add_next_version(&(front->tpmnode2), &(next->tpmnode2) );
 
 	prnt_all_version(&(front->tpmnode2) );
 
 	third = createTPMNode(TPM_Type_Memory, addr3, val3, seq3);
-	set_mem_version(third, 2);
-	add_nextver_memnode(&(next->tpmnode2), &(third->tpmnode2) );
+	set_version(third, 2);
+	add_next_version(&(next->tpmnode2), &(third->tpmnode2) );
 
 	prnt_all_version(&(front->tpmnode2) );
 }
@@ -201,29 +201,29 @@ void t_has_adjacent()
 
 	tpm = calloc(1, sizeof(struct TPMContext) );
 
-	n1 = create_firstver_memnode(addr1, val1, seq1);
+	n1 = create_first_version(addr1, val1, seq1);
 	if(add_mem_ht(&(tpm->mem2NodeHT), addr1, &(n1->tpmnode2) ) == 0) { printf("add mem addr success\n"); }
 	else { printf("add mem addr error\n");}
 
 	n2 = createTPMNode(TPM_Type_Memory, addr4, val4, seq4);
 	l = find_mem_ht(&(tpm->mem2NodeHT), addr4);
 	ver = get_version(l->toMem);
-    set_mem_version(n2, ver+1); // set version accordingly
+    set_version(n2, ver+1); // set version accordingly
 	if(add_mem_ht(&(tpm->mem2NodeHT), addr4, &(n2->tpmnode2) ) == 0) { printf("add mem addr success\n"); }
 	else { printf("add mem addr error\n");}
-	add_nextver_memnode(&(n1->tpmnode2), &(n2->tpmnode2) );
+	add_next_version(&(n1->tpmnode2), &(n2->tpmnode2) );
 
-	n3 = create_firstver_memnode(addr3, val3, seq3);
+	n3 = create_first_version(addr3, val3, seq3);
 	if(add_mem_ht(&(tpm->mem2NodeHT), addr3, &(n3->tpmnode2) ) == 0) { printf("add mem addr success\n"); }
 	else { printf("add mem addr error\n");}
 
 	n4 = createTPMNode(TPM_Type_Memory, addr5, val5, seq5);
 	r = find_mem_ht(&(tpm->mem2NodeHT), addr5);
 	ver = get_version(r->toMem);
-	set_mem_version(n4, ver+1);
+	set_version(n4, ver+1);
 	if(add_mem_ht(&(tpm->mem2NodeHT), addr5, &(n4->tpmnode2) ) == 0) { printf("add mem addr success\n"); }
 	else { printf("add mem addr error\n");}
-	add_nextver_memnode(&(n3->tpmnode2), &(n4->tpmnode2) );
+	add_next_version(&(n3->tpmnode2), &(n4->tpmnode2) );
 
 	count_mem_ht(&(tpm->mem2NodeHT));
 	print_mem_ht(&(tpm->mem2NodeHT));
@@ -233,7 +233,7 @@ void t_has_adjacent()
 	printf("0xbffff7a8 version: \n");
 	prnt_all_version(n3);
 
-	n5 = create_firstver_memnode(addr2, val2, seq2);
+	n5 = create_first_version(addr2, val2, seq2);
 
 	update_adjacent(tpm, n5, l, r, addr2, 4);
 	printf("leftNBR:\n");
