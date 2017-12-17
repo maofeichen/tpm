@@ -3,10 +3,17 @@
 #include <string.h> //strcmp
 #include <stdlib.h>
 
-// static int split_load(char r[MAX_NUM_FIELD][MAX_FIELD_SZ], struct Record *rec);
-// static int split_store(char r[MAX_NUM_FIELD][MAX_FIELD_SZ], struct Record *rec);
-static int split_mem(char r[MAX_NUM_FIELD][MAX_FIELD_SZ], struct Record *rec);
-static int split_nonmem(char r[MAX_NUM_FIELD][MAX_FIELD_SZ], struct Record *rec);
+// static int 
+// split_load(char r[MAX_NUM_FIELD][MAX_FIELD_SZ], struct Record *rec);
+
+// static int 
+// split_store(char r[MAX_NUM_FIELD][MAX_FIELD_SZ], struct Record *rec);
+
+static int 
+split_mem(char r[MAX_NUM_FIELD][MAX_FIELD_SZ], struct Record *rec);
+
+static int 
+split_nonmem(char r[MAX_NUM_FIELD][MAX_FIELD_SZ], struct Record *rec);
 
 bool
 get_flag(char *flag, char *rec)
@@ -82,8 +89,9 @@ split(char *s, char c, struct Record *rec)
 	char flag[3] = {0};
 	if(get_flag(flag, s) ) 
 	{
-		if(equal_mark(flag, TCG_QEMU_LD) || equal_mark(flag, TCG_QEMU_ST))	// split mem  
-		{ split_mem(r, rec); } 
+		if(equal_mark(flag, TCG_QEMU_LD) || equal_mark(flag, TCG_QEMU_ST) )	{ 
+			split_mem(r, rec); // split mem 
+		} 
 		else { split_nonmem(r, rec); } // others
 	} 
 	else { fprintf(stderr, "error: get flag\n"); return -1; }

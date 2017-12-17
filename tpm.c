@@ -11,7 +11,11 @@
 #include <stdlib.h>
 #include <string.h>
 
-/* handle each case of source and destination to process a record */
+/* TPMContext related */
+static void 
+init_tpmcontext(struct TPMContext *tpm);
+
+/* handles different cases of source and destination when processing a record */
 static int 
 handle_src_mem(struct TPMContext *tpm, struct Record *rec, union TPMNode* src);
 
@@ -30,16 +34,15 @@ handle_dst_reg(struct TPMContext *tpm, struct Record *rec, struct TPMNode1 *regC
 static int 
 handle_dst_temp(struct TPMContext *tpm, struct Record *rec, struct TPMNode1 *tempCntxt[], union TPMNode* dst);
 
-
-/* Helper functions */
-static struct Transition* 
+/* transition node related */
+static struct Transition *
 create_trans_node(struct Record *rec, u32 s_type, union TPMNode* src, union TPMNode* dst);
 
-
-/* for handling mem node */
+/* mem addr hash table related*/
 static int 
 has_mem_addr(struct TPMContext *tpm, struct MemHT *item, u32 addr);
 
+/* handles adjacent mem nodes */
 static int 
 update_adjacent(struct TPMContext *tpm, union TPMNode *n, struct MemHT *l, struct MemHT *r, u32 addr, u32 bytesz);
 
@@ -52,6 +55,7 @@ has_left_adjacent(struct TPMContext *tpm, struct MemHT *item, u32 addr);
 static int 
 has_right_adjacent(struct TPMContext *tpm,struct MemHT *item, u32 addr, u32 bytesz);
 
+/* handles version mem nodes */
 union TPMNode *
 create_firstver_memnode(u32 addr, u32 val, u32 ts);
 
@@ -68,10 +72,8 @@ static struct TPMNode2 *
 get_earliest_version(struct TPMNode2 *mem_node);
 
 
-/* misc function */
-static void 
-init_tpmcontext(struct TPMContext *tpm);
 
+/* temp or register nodes related */
 static void 
 clear_tempcontext(struct TPMNode1 *tempCntxt[] );
 
@@ -254,6 +256,19 @@ void
 delTPM(struct TPMContext *tpm)
 {
 
+}
+
+static void 
+init_tpmcontext(struct TPMContext *tpm)
+{
+    tpm->nodeNum        = 0;
+    tpm->memAddrNum     = 0;
+    tpm->tempVarNum     = 0;
+    tpm->mem2NodeHT     = NULL;
+    // tpm->seqNo2NodeHT   = NULL;
+    tpm->minBufferSz    = MIN_BUF_SZ;
+    tpm->taintedBufNum  = 0;
+    tpm->taintedbuf     = NULL;
 }
 
 static int  
@@ -488,7 +503,7 @@ handle_dst_temp(struct TPMContext *tpm, struct Record *rec, struct TPMNode1 *tem
     return 0;
 }
 
-static struct Transition* 
+static struct Transition *
 create_trans_node(struct Record *rec, u32 s_type, union TPMNode *src, union TPMNode *dst)
 // Returns
 //  pointer of the created transition node 
@@ -537,7 +552,7 @@ update_adjacent(struct TPMContext *tpm, union TPMNode *n, struct MemHT *l, struc
 {
     if(tpm == NULL || n == NULL)
         return -1;
-    
+
     if(has_adjacent(tpm, l, r, addr, bytesz) > 0) {
         struct TPMNode2 *earliest = NULL;
         if(l != NULL){
@@ -697,18 +712,6 @@ get_earliest_version(struct TPMNode2 *mem_node)
     return n;
 }
 
-static void 
-init_tpmcontext(struct TPMContext *tpm)
-{
-    tpm->nodeNum        = 0;
-    tpm->memAddrNum     = 0;
-    tpm->tempVarNum     = 0;
-    tpm->mem2NodeHT     = NULL;
-    // tpm->seqNo2NodeHT   = NULL;
-    tpm->minBufferSz    = MIN_BUF_SZ;
-    tpm->taintedBufNum  = 0;
-    tpm->taintedbuf     = NULL;
-}
 
 static void 
 clear_tempcontext(struct TPMNode1 *tempCntxt[] )

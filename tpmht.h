@@ -35,7 +35,7 @@ struct MemHT*
 find_mem(struct MemHT **mem2NodeHT, u32 addr);
 
 void
-del_all_mem(struct MemHT **mem2NodeHT);
+del_mem_ht(struct MemHT **mem2NodeHT);
 
 void 
 count_mem(struct MemHT **mem2NodeHT);

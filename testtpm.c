@@ -37,7 +37,7 @@ void t_tpmhash()
 
 	count_mem(&hh);
 	prnt_mem_ht(&hh);
-	del_all_mem(&hh);
+	del_mem_ht(&hh);
 }
 
 void t_tpm_mem()
@@ -76,7 +76,7 @@ void t_tpm_mem()
 	if(i > 0) { printf("addr: 0x%x found adjacent addr\n", addr2); }
 	else { printf("addr: 0x%x not found adjacent addr\n", addr2); }
 
-	del_all_mem(&(tpm->mem2NodeHT) );	// clear mem addr hash table
+	del_mem_ht(&(tpm->mem2NodeHT) );	// clear mem addr hash table
 	free(tpm);	
 }
 
@@ -241,46 +241,12 @@ void t_has_adjacent()
     printf("rightNBR:\n");
     prnt_mem_node(n5->tpmnode2.rightNBR);
 
-	// i = has_adjacent(tpm, l, r, addr2, 4);
-	// if(i > 0) { 
-	// 	printf("addr: 0x%x found adjacent addr\n", addr2);
-	//     struct TPMNode2 *earliest = NULL;
- //        if(l != NULL){
- //            // TODO: haven't test
- //            earliest = l->toMem;
- //            // printf("before get earliest:\n");
- //            // prnt_mem_node(earliest);
- //            earliest = get_earliest_version(earliest);
- //            // printf("after get earliest:\n");
- //            // prnt_mem_node(earliest);
- //            n5->tpmnode2.leftNBR = earliest;
- //            printf("leftNBR:\n");
-	// 		prnt_mem_node(n5->tpmnode2.leftNBR);
- //        }
-
- //        if(r != NULL){
- //            // TODO: haven't test
- //            earliest = r->toMem;
- //            earliest = get_earliest_version(earliest);
- //            n5->tpmnode2.rightNBR = earliest;
- //            printf("rightNBR:\n");
- //            prnt_mem_node(n5->tpmnode2.rightNBR);
- //        }	
-
- //        printf("0xbffff7a0 version: \n");
-	// 	prnt_all_version(n1);
-	// 	printf("0xbffff7a8 version: \n");
-	// 	prnt_all_version(n3);
-
-	// }
-	// else { printf("addr: 0x%x not found adjacent addr\n", addr2); }
-
     printf("0xbffff7a0 version: \n");
 	prnt_all_version(n1);
 	printf("0xbffff7a8 version: \n");
 	prnt_all_version(n3);
 
-	del_all_mem(&(tpm->mem2NodeHT) );	// clear mem addr hash table
+	del_mem_ht(&(tpm->mem2NodeHT) );	// clear mem addr hash table
 	free(tpm);	
 }
 
