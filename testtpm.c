@@ -162,13 +162,13 @@ void t_mem_version(void)
 	set_version(next, 1);
 	add_next_version(&(front->tpmnode2), &(next->tpmnode2) );
 
-	prnt_all_version(&(front->tpmnode2) );
+	print_version(&(front->tpmnode2) );
 
 	third = createTPMNode(TPM_Type_Memory, addr3, val3, seq3);
 	set_version(third, 2);
 	add_next_version(&(next->tpmnode2), &(third->tpmnode2) );
 
-	prnt_all_version(&(front->tpmnode2) );
+	print_version(&(front->tpmnode2) );
 }
 
 void t_has_adjacent()
@@ -229,22 +229,22 @@ void t_has_adjacent()
 	print_mem_ht(&(tpm->mem2NodeHT));
 
 	printf("0xbffff7a0 version: \n");
-	prnt_all_version(n1);
+	print_version(n1);
 	printf("0xbffff7a8 version: \n");
-	prnt_all_version(n3);
+	print_version(n3);
 
 	n5 = create_first_version(addr2, val2, seq2);
 
 	update_adjacent(tpm, n5, l, r, addr2, 4);
 	printf("leftNBR:\n");
-	prnt_mem_node(n5->tpmnode2.leftNBR);
+	print_mem_node(n5->tpmnode2.leftNBR);
     printf("rightNBR:\n");
-    prnt_mem_node(n5->tpmnode2.rightNBR);
+    print_mem_node(n5->tpmnode2.rightNBR);
 
     printf("0xbffff7a0 version: \n");
-	prnt_all_version(n1);
+	print_version(n1);
 	printf("0xbffff7a8 version: \n");
-	prnt_all_version(n3);
+	print_version(n3);
 
 	del_mem_ht(&(tpm->mem2NodeHT) );	// clear mem addr hash table
 	free(tpm);	

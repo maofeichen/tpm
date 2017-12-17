@@ -71,7 +71,7 @@ get_version(struct TPMNode2 *node);
 static int 
 get_earliest_version(struct TPMNode2 **earliest);
 
-/* temp or register nodes related */
+/* temp or register nodes */
 static void 
 clear_tempcontext(struct TPMNode1 *tempCntxt[] );
 
@@ -81,22 +81,21 @@ get_type(u32 flag);
 static int 
 get_regcntxt_idx(u32 reg);
 
-
 /* print functions */
 static void 
-prnt_record(struct Record *rec);
+print_record(struct Record *rec);
 
 static void 
-prnt_src_addr(struct Record *rec);
+print_src_addr(struct Record *rec);
 
 static void 
-prnt_mem_node(struct TPMNode2 *n);
+print_mem_node(struct TPMNode2 *n);
 
 static void 
-prnt_nonmem_node(struct TPMNode1 *n);
+print_nonmem_node(struct TPMNode1 *n);
 
 static void 
-prnt_all_version(struct TPMNode2 *head);
+print_version(struct TPMNode2 *head);
 
 u32 
 isPropagationOverwriting(u32 flag)
@@ -150,35 +149,49 @@ processOneXTaintRecord(struct TPMContext *tpm, struct Record *rec, struct TPMNod
  *  3) creates transition between source to destination
  */
 {
-    int type, sc, dc;
+    int type, sc = 0, dc = 0;
     union TPMNode *src = NULL, *dst = NULL;
 
     //  handle source node
     if(rec->is_load) { // src is mem addr    
-        if( (sc = handle_src_mem(tpm, rec, src) ) < 0 ) { 
-            fprintf(stderr, "error: handle source mem\n"); 
-        }
+        if( (sc = handle_src_mem(tpm, rec, src) ) >= 0 ) {}
+        else { return -1; }
     }  
     else { // src is either reg or temp  
         type = get_type(rec->s_addr);
-        if (type == TPM_Type_Register) { handle_src_reg(tpm, rec, regCntxt, src); }
-        else if (type == TPM_Type_Temprary) { handle_src_temp(tpm, rec, tempCntxt, src); }
-        else { fprintf(stderr, "error: handle source node\n"); return -1; }
+        if (type == TPM_Type_Register) { 
+            if( (sc = handle_src_reg(tpm, rec, regCntxt, src) ) >= 0 ) {}
+            else { return -1; } 
+        }
+        else if (type == TPM_Type_Temprary) { 
+            if((sc = handle_src_temp(tpm, rec, tempCntxt, src)) >= 0) {}
+            else { return -1; } 
+        }
+        else { return -1; }
     }
 
     //  hanlde destination node
-    if(rec->is_store) { handle_dst_mem(tpm, rec, dst); } // dst is mem addr
+    if(rec->is_store) { // dst is mem addr 
+        if((dc =  handle_dst_mem(tpm, rec, dst) ) >= 0) {}
+        else { return -1; } 
+    } 
     else { // dst is either reg or temp
         type = get_type(rec->d_addr);
-        if(type == TPM_Type_Register) { handle_dst_reg(tpm, rec, regCntxt, dst); }
-        else if(type == TPM_Type_Temprary) { handle_dst_temp(tpm, rec, tempCntxt, dst); }
-        else { fprintf(stderr, "error: handle destination node\n"); return -1; }
+        if(type == TPM_Type_Register) { 
+            if((dc = handle_dst_reg(tpm, rec, regCntxt, dst) ) >= 0) {}
+            else { return -1; } 
+        }
+        else if(type == TPM_Type_Temprary) { 
+            if((dc = handle_dst_temp(tpm, rec, tempCntxt, dst) ) >= 0) {}
+            else { return -1; } 
+        }
+        else { return -1; }
     }
 
     // TODO:
     //  creates transition node, need to deal how bind the transition node pointer 
 
-    return 0;
+    return sc+dc;
 }
 
 u32 
@@ -209,7 +222,7 @@ buildTPM(FILE *taintfp, struct TPMContext *tpm)
             else { // data record, creates nodes 
                 struct Record rec = {0};
                 if(split(line, '\t', &rec) == 0) {
-                    // prnt_record(&rec);
+                    // print_record(&rec);
                     int i = 0;
                     if( (i = processOneXTaintRecord(tpm, &rec, regCntxt, tempCntxt) ) >= 0) { 
                         n += i; // n increases by how many new nodes created  
@@ -303,7 +316,7 @@ handle_src_mem(struct TPMContext *tpm, struct Record *rec, union TPMNode* src)
     int n, i;
     struct MemHT *src_hn = NULL, *left = NULL, *right = NULL;
 
-    prnt_record(rec);
+    print_record(rec);
 
     if(is_addr_in_ht(tpm, src_hn, rec->s_addr) ) {
         printf("handle src mem: addr: 0x%x found in hash table\n", rec->s_addr);
@@ -314,7 +327,7 @@ handle_src_mem(struct TPMContext *tpm, struct Record *rec, union TPMNode* src)
         src = create_first_version(rec->s_addr, rec->s_val, rec->ts);
         // src = createTPMNode(TPM_Type_Memory, rec->s_addr, rec->s_val, rec->ts);
         // set_version(src, 0);    // init version
-        prnt_mem_node(&(src->tpmnode2) );
+        print_mem_node(&(src->tpmnode2) );
 
         // updates hash table
         if(add_mem_ht( &(tpm->mem2NodeHT), rec->s_addr, &(src->tpmnode2) ) < 0 ){ 
@@ -357,7 +370,7 @@ handle_src_reg(struct TPMContext *tpm, struct Record *rec, struct TPMNode1 *regC
         if(regCntxt[id] == NULL) { // not found
             printf("reg: %x not found in regCntxt, creates new reg node\n", rec->s_addr);
             src = createTPMNode(TPM_Type_Register, rec->s_addr, rec->s_val, rec->ts);
-            prnt_nonmem_node(&(src->tpmnode1) );
+            print_nonmem_node(&(src->tpmnode1) );
 
             regCntxt[id] = &(src->tpmnode1);    // updates reg context
             printf("reg: %x - id: %d - addr of the node: %p\n", rec->s_addr, id, regCntxt[id]);
@@ -398,7 +411,7 @@ handle_src_temp(struct TPMContext *tpm, struct Record *rec, struct TPMNode1 *tem
     if(tempCntxt[rec->s_addr] == NULL) { // not found, creates new node
         printf("temp: %u not found in tempCntxt, creates new temp node\n", rec->s_addr);
         src = createTPMNode(TPM_Type_Temprary, rec->s_addr, rec->s_val, rec->ts);
-        prnt_nonmem_node(&(src->tpmnode1) );
+        print_nonmem_node(&(src->tpmnode1) );
 
         tempCntxt[rec->s_addr] = &(src->tpmnode1);    // updates temp context
         printf("temp: %u - addr of the node: %p\n", rec->s_addr, tempCntxt[rec->s_addr]);
@@ -454,7 +467,7 @@ handle_dst_mem(struct TPMContext *tpm, struct Record *rec, union TPMNode* dst)
             set_version(dst, ver+1); // set version accordingly
             add_next_version(dst_hn->toMem, &(dst->tpmnode2) );             
 
-            prnt_mem_node(&(dst->tpmnode2) );
+            print_mem_node(&(dst->tpmnode2) );
         }
         else { // not found
             dst = create_first_version(rec->d_addr, rec->d_val, rec->ts);
@@ -486,14 +499,14 @@ handle_dst_mem(struct TPMContext *tpm, struct Record *rec, union TPMNode* dst)
 static int 
 handle_dst_reg(struct TPMContext *tpm, struct Record *rec, struct TPMNode1 *regCntxt[], union TPMNode* dst)
 {
-    // prnt_record(rec);
+    // print_record(rec);
     return 0;
 }
 
 static int 
 handle_dst_temp(struct TPMContext *tpm, struct Record *rec, struct TPMNode1 *tempCntxt[], union TPMNode* dst)
 {
-    // prnt_record(rec);
+    // print_record(rec);
     return 0;
 }
 
@@ -740,7 +753,7 @@ get_regcntxt_idx(u32 reg)
 }
 
 static void 
-prnt_record(struct Record* rec)
+print_record(struct Record* rec)
 {
     printf("record: flag: %x src addr: %x\t\t src val: %x\t\t" 
                             "dst addr: %x\t\t dst val: %x\t\t"
@@ -753,13 +766,13 @@ prnt_record(struct Record* rec)
 }
 
 static void 
-prnt_src_addr(struct Record *rec)
+print_src_addr(struct Record *rec)
 {
     printf("source addr: %x - seqNo: %d\n", rec->s_addr, rec->ts);
 }
 
 static void 
-prnt_mem_node(struct TPMNode2 *n)
+print_mem_node(struct TPMNode2 *n)
 {
     printf("mem node: type: %u - addr: 0x%x - val: %x - lastUpdateTS: %u"
             " - firstChild: %p - leftNBR: %p - rightNBR: %p - nextVersion: %p"
@@ -770,21 +783,21 @@ prnt_mem_node(struct TPMNode2 *n)
 }
 
 static void 
-prnt_nonmem_node(struct TPMNode1 *n)
+print_nonmem_node(struct TPMNode1 *n)
 {
      printf("non mem node: type: %u - addr: 0x%x - val: %x - lastUpdateTS: %u\n", 
             n->type, n->addr, n->val, n->lastUpdateTS);   
 }
 
 static void 
-prnt_all_version(struct TPMNode2 *head)
+print_version(struct TPMNode2 *head)
 {
     if(head == NULL)
         return;
 
     do{
         // printf("version: %u\n", head->version);
-        prnt_mem_node(head);
+        print_mem_node(head);
         head = head->nextVersion;
     } while(head == NULL || head->version != 0);
 }
