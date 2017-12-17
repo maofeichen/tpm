@@ -12,6 +12,7 @@ void t_handle_src_reg(void);
 void t_handle_src_temp(void);
 void t_mem_version(void);
 void t_has_adjacent(void);
+void t_trans(void);
 
 void t_tpmhash()
 {
@@ -250,6 +251,45 @@ void t_has_adjacent()
 	free(tpm);	
 }
 
+void t_trans(void)
+{
+	struct TPMContext* tpm = NULL;
+	union TPMNode *n1, *n2, *n3; 
+	struct MemHT *l, *r;
+	int i;
+	u32 ver; 
+
+	u32 addr1 = 0xbffff7a0;
+	u32 val1  = 0xbeef;
+	u32 seq1  = 0;
+
+	u32 addr2 = 0xbffff7a4;
+	u32 val2  = 0xbeef;
+	u32 seq2  = 3;
+
+	u32 addr3 = 0xbffff7a8;
+	u32 val3  = 0xbeef;
+	u32 seq3  = 4;
+
+	tpm = calloc(1, sizeof(struct TPMContext) );
+
+	n1 = create_first_version(addr1, val1, seq1);
+	n2 = create_first_version(addr2, val2, seq2);
+	create_trans_node(seq2, TPM_Type_Memory, n1, n2);
+
+	printf("trasn source:\n");
+	print_mem_node(&(n1->tpmnode2) );
+	printf("trans destination:\n");
+	print_transition(n1);
+
+	n3 = create_first_version(addr3, val3, seq3);
+	create_trans_node(seq3, TPM_Type_Memory, n1, n3);
+	printf("trans destination:\n");
+	print_transition(n1);
+
+	free(tpm);
+}
+
 int main(int argc, char const *argv[])
 {	
 	// t_tpmhash();
@@ -258,6 +298,7 @@ int main(int argc, char const *argv[])
 	// t_handle_src_reg();
 	// t_handle_src_temp();
 	// t_mem_version();
-	t_has_adjacent();
+	// t_has_adjacent();
+	t_trans();
 	return 0;
 }

@@ -36,7 +36,7 @@ handle_dst_temp(struct TPMContext *tpm, struct Record *rec, struct TPMNode1 *tem
 
 /* transition node */
 static struct Transition *
-create_trans_node(struct Record *rec, u32 s_type, union TPMNode* src, union TPMNode* dst);
+create_trans_node(u32 ts, u32 s_type, union TPMNode* src, union TPMNode* dst);
 
 /* mem addr hash table */
 static bool  
@@ -97,6 +97,9 @@ print_nonmem_node(struct TPMNode1 *n);
 static void 
 print_version(struct TPMNode2 *head);
 
+static void 
+print_transition(union TPMNode *head);
+
 u32 
 isPropagationOverwriting(u32 flag)
 /* return:
@@ -144,28 +147,31 @@ processOneXTaintRecord(struct TPMContext *tpm, struct Record *rec, struct TPMNod
 /* return:
  * 	>=0 : success and num of nodes creates
  *     <0: error
- *  1) handle source
- *  2) handle destination
- *  3) creates transition between source to destination
+ *  1. handle source
+ *  2. handle destination
+ *  3. creates transition between source to destination
  */
 {
-    int type, sc = 0, dc = 0;
+    int type, s_type, sc = 0, dc = 0;
     union TPMNode *src = NULL, *dst = NULL;
 
     //  handle source node
     if(rec->is_load) { // src is mem addr    
         if( (sc = handle_src_mem(tpm, rec, src) ) >= 0 ) {}
         else { return -1; }
+        s_type = TPM_Type_Memory;
     }  
     else { // src is either reg or temp  
         type = get_type(rec->s_addr);
         if (type == TPM_Type_Register) { 
             if( (sc = handle_src_reg(tpm, rec, regCntxt, src) ) >= 0 ) {}
-            else { return -1; } 
+            else { return -1; }
+            s_type = type; 
         }
         else if (type == TPM_Type_Temprary) { 
             if((sc = handle_src_temp(tpm, rec, tempCntxt, src)) >= 0) {}
-            else { return -1; } 
+            else { return -1; }
+            s_type = type; 
         }
         else { return -1; }
     }
@@ -188,8 +194,9 @@ processOneXTaintRecord(struct TPMContext *tpm, struct Record *rec, struct TPMNod
         else { return -1; }
     }
 
-    // TODO:
-    //  creates transition node, need to deal how bind the transition node pointer 
+    //  creates transition node, need to deal how bind the transition node pointer
+    if(create_trans_node(rec->ts, s_type, src, dst) != NULL) {}
+    else { return -1; } 
 
     return sc+dc;
 }
@@ -502,37 +509,141 @@ handle_dst_mem(struct TPMContext *tpm, struct Record *rec, union TPMNode* dst)
 
 static int 
 handle_dst_reg(struct TPMContext *tpm, struct Record *rec, struct TPMNode1 *regCntxt[], union TPMNode* dst)
+// Returns
+//  >=0 success, and number of new nodes creates
+//  <-0 error
+//  the created node stores in dst
+//  1 determines if it's in TPM: regCntxt has its register id
+//  1.1 No
+//      a) creates a new node
+//      b) updates the register context: regCntxt[reg_id] -> created node
+//      c) updates the seqNo hash table
+//  1.2 Yes: determines if its overwrite or "addition" operation
+//  1.2.1 overwrite (mov)
+//      a) creates a new node
+//      b) updates the register context: regCntxt[reg_id] -> created node
+//      c) updates the seqNo hash table
+//  1.2.2 "addtion" (add, xor, etc)
+//      a) verifies that the value of register and the one found in the regCntxt should be same
+//      b) updates the seqNo hash table
 {
-    // print_record(rec);
-    return 0;
+    int id = -1, n = 0;
+
+    print_record(rec);
+
+    if((id = get_regcntxt_idx(rec->d_addr) ) >= 0) {
+        if(regCntxt[id] == NULL){ // not in tpm
+            dst = createTPMNode(TPM_Type_Register, rec->d_addr, rec->d_val, rec->ts);
+            regCntxt[id] = &(dst->tpmnode1);
+            // TODO: update the seqNo hash table
+            n++;
+        }
+        else { // in tpm
+            if(isPropagationOverwriting(rec->flag) ) { // overwrite
+                dst = createTPMNode(TPM_Type_Register, rec->d_addr, rec->d_val, rec->ts);
+                regCntxt[id] = &(dst->tpmnode1);
+                // TODO: update the seqNo hash table
+                n++;
+            } 
+            else { // non overwrite
+                printf("handle dst reg: non overwrite hit\n");
+                // TODO: update the seqNo hash table                                       
+                return -1;
+            }
+        }
+    }
+    else { return -1; }
+
+    return n;
 }
 
 static int 
 handle_dst_temp(struct TPMContext *tpm, struct Record *rec, struct TPMNode1 *tempCntxt[], union TPMNode* dst)
+// Returns
+//  >=0 success, and number of new nodes creates
+//  <-0 error
+//  the created node stores in dst
+//  1 determines if it's in TPM: tempCntxt has its temp id
+//  1.1 No
+//      a) creates a new node
+//      b) updates the temp context: tempCntxt[temp_id] -> created node
+//      c) updates the seqNo hash table
+//  1.2 Yes: determines if its overwrite or "addition" operation
+//  1.2.1 overwrite (mov)
+//      a) creates a new node
+//      b) updates the temp context: tempCntxt[temp_id] -> created node
+//      c) updates the seqNo hash table
+//  1.2.2 "addtion" (add, xor, etc)
+//      a) verifies that the value of temp and the one found in the tempCntxt should be same
+//      b) updates the seqNo hash table
 {
-    // print_record(rec);
-    return 0;
+    int n = 0;
+
+    print_record(rec);
+
+    if(rec->d_addr >= 0xfff0 || rec->d_addr >= MAX_TEMPIDX) {
+        fprintf(stderr, "error: temp idx larger than register idx or max temp idx\n");
+        return -1;       
+    }
+
+    if(tempCntxt[rec->d_addr] == NULL) { // Not in TPM
+        dst = createTPMNode(TPM_Type_Temprary, rec->d_addr, rec->d_val, rec->ts);
+        tempCntxt[rec->d_addr] = &(dst->tpmnode1);
+        // TODO: update the seqNo hash table
+        n++;
+    }
+    else { // in TPM
+        if(isPropagationOverwriting(rec->flag) ) { // overwrite
+            dst = createTPMNode(TPM_Type_Temprary, rec->d_addr, rec->d_val, rec->ts);
+            tempCntxt[rec->d_addr] = &(dst->tpmnode1);
+            // TODO: update the seqNo hash table
+            n++;
+        }
+        else { // non overwrite
+                printf("handle dst temp: non overwrite hit\n");
+                // TODO: update the seqNo hash table                                       
+                return -1;
+        }
+    }
+    return n;
 }
 
 static struct Transition *
-create_trans_node(struct Record *rec, u32 s_type, union TPMNode *src, union TPMNode *dst)
+create_trans_node(u32 ts, u32 s_type, union TPMNode *src, union TPMNode *dst)
 // Returns
 //  pointer of the created transition node 
 //  NULL : error 
 {
-    if(src == NULL || dst == NULL)
+    if(src == NULL || dst == NULL) {
+        fprintf(stderr, "error: create trans node: src: %p - dst: %p\n", src, dst);
         return NULL;
+    }
 
     struct Transition *t, *tmp;
 
     t = (struct Transition*)malloc(sizeof(struct Transition) );
-    t->seqNo = rec->ts; // timestamp
+    t->seqNo = ts; // timestamp
     t->child = dst;
     t->next = NULL;
 
-    if(s_type & TPM_Type_Memory) { tmp = src->tpmnode2.firstChild; }
-    else if(s_type & TPM_Type_Temprary || s_type & TPM_Type_Register) 
-    { tmp = src->tpmnode1.firstChild; }
+    if(s_type & TPM_Type_Memory) { 
+        if(src->tpmnode2.firstChild == NULL) { // no trans node
+            src->tpmnode2.firstChild = t;
+            return t;
+        } 
+        else { tmp = src->tpmnode2.firstChild; }
+    }
+    else if(s_type & TPM_Type_Temprary || s_type & TPM_Type_Register) {
+        if(src->tpmnode1.firstChild == NULL) {
+            src->tpmnode1.firstChild = t;
+            return t;
+        }
+        else { tmp = src->tpmnode1.firstChild; } 
+    }
+    else {
+        fprintf(stderr, "error: create trans node: unkown src type\n"); 
+        return NULL; 
+    }
 
     while(tmp->next != NULL) { tmp = tmp->next; }   // reaches last child 
     tmp->next = t;  // links t to list end
@@ -804,4 +915,23 @@ print_version(struct TPMNode2 *head)
         print_mem_node(head);
         head = head->nextVersion;
     } while(head == NULL || head->version != 0);
+}
+
+static void 
+print_transition(union TPMNode *head)
+{
+    struct Transition *t = head->tpmnode1.firstChild; 
+
+    while(t != NULL) {
+       if(t->child->tpmnode1.type == TPM_Type_Memory) {
+        print_mem_node(&(t->child->tpmnode2) );
+       } 
+       else if(t->child->tpmnode1.type == TPM_Type_Register 
+               || t->child->tpmnode1.type == TPM_Type_Temprary){
+        print_nonmem_node(&(t->child->tpmnode1) );
+       }
+       else { fprintf(stderr, "error: print trans: unkown type\n"); break; }
+
+       t = t->next;
+    }
 }
