@@ -34,25 +34,25 @@ handle_dst_reg(struct TPMContext *tpm, struct Record *rec, struct TPMNode1 *regC
 static int 
 handle_dst_temp(struct TPMContext *tpm, struct Record *rec, struct TPMNode1 *tempCntxt[], union TPMNode* dst);
 
-/* transition node related */
+/* transition node */
 static struct Transition *
 create_trans_node(struct Record *rec, u32 s_type, union TPMNode* src, union TPMNode* dst);
 
-/* mem addr hash table related*/
-static int 
-has_mem_addr(struct TPMContext *tpm, struct MemHT *item, u32 addr);
+/* mem addr hash table */
+static bool  
+is_addr_in_ht(struct TPMContext *tpm, struct MemHT *item, u32 addr);
 
-/* handles adjacent mem nodes */
+/* handles adjacent memory nodes */
 static int 
 update_adjacent(struct TPMContext *tpm, union TPMNode *n, struct MemHT *l, struct MemHT *r, u32 addr, u32 bytesz);
 
-static int 
+static bool 
 has_adjacent(struct TPMContext *tpm, struct MemHT *l, struct MemHT *r, u32 addr, u32 bytesz);
 
-static int 
+static bool 
 has_left_adjacent(struct TPMContext *tpm, struct MemHT *item, u32 addr);
 
-static int 
+static bool  
 has_right_adjacent(struct TPMContext *tpm,struct MemHT *item, u32 addr, u32 bytesz);
 
 /* handles version mem nodes */
@@ -307,12 +307,11 @@ handle_src_mem(struct TPMContext *tpm, struct Record *rec, union TPMNode* src)
 
     prnt_record(rec);
 
-    i = has_mem_addr(tpm, src_hn, rec->s_addr);
-    if(i == 1) { // found
+    if(is_addr_in_ht(tpm, src_hn, rec->s_addr) ) {
         printf("handle src mem: addr: 0x%x found in hash table\n", rec->s_addr);
         return -1; // TODO: hasn't handle the case yet
     }
-    else if( i == 0) { // not found
+    else { // not found
         printf("addr: 0x%x not found in hash table, creates new mem node\n", rec->s_addr);
         src = create_firstver_memnode(rec->s_addr, rec->s_val, rec->ts);
         // src = createTPMNode(TPM_Type_Memory, rec->s_addr, rec->s_val, rec->ts);
@@ -320,17 +319,16 @@ handle_src_mem(struct TPMContext *tpm, struct Record *rec, union TPMNode* src)
         prnt_mem_node(&(src->tpmnode2) );
 
         // updates hash table
-        if(add_mem( &(tpm->mem2NodeHT), rec->s_addr, &(src->tpmnode2) ) < 0 ){ 
+        if(add_mem_ht( &(tpm->mem2NodeHT), rec->s_addr, &(src->tpmnode2) ) < 0 ){ 
             fprintf(stderr, "error: handle source mem\n"); 
         }
 
-        count_mem(&(tpm->mem2NodeHT) );
-        prnt_mem_ht(&(tpm->mem2NodeHT) );
+        count_mem_ht(&(tpm->mem2NodeHT) );
+        print_mem_ht(&(tpm->mem2NodeHT) );
 
         tpm->seqNo2NodeHash[rec->ts] = src; // updates seqNo hash table
 
     } 
-    else { fprintf(stderr, "error: handle source mem\n"); }
 
     // updates adjacent mem node if any
     if(update_adjacent(tpm, src, left, right, rec->s_addr, rec->bytesz) < 0) { return -1; }
@@ -451,8 +449,8 @@ handle_dst_mem(struct TPMContext *tpm, struct Record *rec, union TPMNode* dst)
     struct MemHT *dst_hn = NULL, *left = NULL, *right = NULL;
 
     if(isPropagationOverwriting(rec->flag) ) { // overwrite
-        i = has_mem_addr(tpm, dst_hn, rec->d_addr);
-        if(i == 1) { // found
+
+        if( is_addr_in_ht(tpm, dst_hn, rec->d_addr) ) { 
             dst = createTPMNode(TPM_Type_Memory, rec->d_addr, rec->d_val, rec->ts);
             u32 ver = get_version(dst_hn->toMem);
             set_mem_version(dst, ver+1); // set version accordingly
@@ -460,27 +458,25 @@ handle_dst_mem(struct TPMContext *tpm, struct Record *rec, union TPMNode* dst)
 
             prnt_mem_node(&(dst->tpmnode2) );
         }
-        else if (i == 0) { // not found
+        else { // not found
             dst = create_firstver_memnode(rec->d_addr, rec->d_val, rec->ts);
         }
-        else { fprintf(stderr, "error: handle destination mem\n"); }
 
         // updates mem hash table
-        if(add_mem( &(tpm->mem2NodeHT), rec->d_addr, &(dst->tpmnode2) ) < 0) { return -1; }
+        if(add_mem_ht( &(tpm->mem2NodeHT), rec->d_addr, &(dst->tpmnode2) ) < 0) { return -1; }
     } 
     else {  // non overwring
         printf("handle destination mem: non overwring\n");
-        i = has_mem_addr(tpm, dst_hn, rec->d_addr);
-        if(i == 1) { // found
+        if(is_addr_in_ht(tpm, dst_hn, rec->d_addr) ) {
             printf("handle dst mem - non overwriting - TODO: verifies if values are same\n");
             return -1;  // TODO
         }
-        else if(i == 0) { // not found
+        else { // not found
             dst = create_firstver_memnode(rec->d_addr, rec->d_val, rec->ts);
         }
 
         // both cases, updates mem hash table
-        if(add_mem( &(tpm->mem2NodeHT), rec->d_addr, &(dst->tpmnode2) ) < 0) { return -1; }
+        if(add_mem_ht( &(tpm->mem2NodeHT), rec->d_addr, &(dst->tpmnode2) ) < 0) { return -1; }
     }
 
     // updates adjacent mem node if any
@@ -529,16 +525,15 @@ create_trans_node(struct Record *rec, u32 s_type, union TPMNode *src, union TPMN
     return t;
 }
 
-static int 
-has_mem_addr(struct TPMContext *tpm, struct MemHT *item, u32 addr)
+static bool  
+is_addr_in_ht(struct TPMContext *tpm, struct MemHT *item, u32 addr)
 // Returns:
-//  1: if has mem node
-//  0: if not found 
-//  <0: error
+//  t: if has mem node
+//  f: if not found 
 //      found item stored in *item
 {   
     item = NULL;
-    item = find_mem( &(tpm->mem2NodeHT), addr);
+    item = find_mem_ht( &(tpm->mem2NodeHT), addr);
     if(item != NULL) { return 1; }
     else { return 0; }
 }
@@ -550,99 +545,95 @@ update_adjacent(struct TPMContext *tpm, union TPMNode *n, struct MemHT *l, struc
 //  0: no update
 //  <0: error
 {
-    if(tpm == NULL || n == NULL)
+    if(tpm == NULL || n == NULL) {
+        fprintf(stderr, "error: update adjacent - tpm: %p - n: %p\n", tpm, n);
         return -1;
+    }
 
-    if(has_adjacent(tpm, l, r, addr, bytesz) > 0) {
+    if(has_adjacent(tpm, l, r, addr, bytesz) ) {
         struct TPMNode2 *earliest = NULL;
         if(l != NULL){
-            // TODO: haven't test
             earliest = l->toMem;
             earliest = get_earliest_version(earliest);
             n->tpmnode2.leftNBR = earliest;
         }
 
         if(r != NULL){
-            // TODO: haven't test
             earliest = r->toMem;
             earliest = get_earliest_version(earliest);
             n->tpmnode2.rightNBR = earliest; 
         }
-
         return 1;
     }
     else { return 0; }
 }
 
-static int 
+static bool 
 has_adjacent(struct TPMContext *tpm, struct MemHT *l, struct MemHT *r, u32 addr, u32 bytesz)
 // Returns:
 //  1: if has either left or right adjacent mem node
 //  0: otherwise
-//  <0: error
 {
-    l = NULL;
-    r = NULL;
+    bool rl = false, rr = false;
 
-    int rl = 0, rr = 0;
-
+    l = NULL, r = NULL;
     rl = has_left_adjacent(tpm, l, addr);
     rr = has_right_adjacent(tpm, r, addr, bytesz);
 
-    if(rl < 0 || rr < 0) { return -1; }
-    else { return rl | rr; } 
+    if( rl || rr ) {
+        return true;
+    } 
+    else { return false; }
 }
 
-static int 
+static bool 
 has_left_adjacent(struct TPMContext *tpm, struct MemHT *item, u32 addr)
 // Returns:
-//  1: if has left adjacent mem node
-//  0: otherwise
-//  <0: error
+//  t: if has left adjacent mem node
+//  f: otherwise
 {
     item = NULL;
     u32 l_adjcnt;
 
     l_adjcnt = addr - DWORD;    // try 4 bytes first
-    item = find_mem( &(tpm->mem2NodeHT), l_adjcnt);
+    item = find_mem_ht( &(tpm->mem2NodeHT), l_adjcnt);
     if(item != NULL) {
         printf("has left adjacent: addr: 0x%x\n", item->toMem->addr); 
-        return 1; 
+        return true; 
     }else { // doesn't find 4 bytes left adjacent
         l_adjcnt = addr - WORD; // try 2 bytes 
-        item = find_mem( &(tpm->mem2NodeHT), l_adjcnt);
+        item = find_mem_ht( &(tpm->mem2NodeHT), l_adjcnt);
         if(item != NULL) {
             printf("has left adjacent: addr: 0x%x\n", item->toMem->addr);  
-            return 1; 
+            return true; 
         }
         else {
             l_adjcnt = addr - BYTE; // try 1 byte
-            item = find_mem( &(tpm->mem2NodeHT), l_adjcnt);
+            item = find_mem_ht( &(tpm->mem2NodeHT), l_adjcnt);
             if(item != NULL) {
                 printf("has left adjacent: addr: 0x%x\n", item->toMem->addr);  
-                return 1; 
+                return true; 
             }
-            else { return 0 ;} 
+            else { return false; } 
         }
     }
 }
 
-static int 
+static bool 
 has_right_adjacent(struct TPMContext *tpm, struct MemHT *item,  u32 addr, u32 bytesz)
 // Returns:
-//  1: if has right adjacent mem node
-//  0: otherwise
-//  <0: error
+//  t: if has right adjacent mem node
+//  f: otherwise
 {
     u32 r_adjcnt = addr + bytesz;
     item = NULL;
 
-    item = find_mem( &(tpm->mem2NodeHT), r_adjcnt);
-    if(item == NULL) { return 0; }
-    else {
+    item = find_mem_ht( &(tpm->mem2NodeHT), r_adjcnt);
+    if(item != NULL) { 
         printf("has right adjacent: addr: 0x%x\n", item->toMem->addr);   
-        return 1; 
+        return true; 
     }
+    else { return false; }
 }
 
 static int 

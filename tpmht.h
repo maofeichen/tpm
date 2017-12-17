@@ -29,17 +29,17 @@ struct MemHT
 //	0: success
 //	<0: error
 int
-add_mem(struct MemHT **mem2NodeHT, u32 addr, struct TPMNode2 *toMem);
+add_mem_ht(struct MemHT **mem2NodeHT, u32 addr, struct TPMNode2 *toMem);
 
 struct MemHT* 
-find_mem(struct MemHT **mem2NodeHT, u32 addr);
+find_mem_ht(struct MemHT **mem2NodeHT, u32 addr);
 
 void
 del_mem_ht(struct MemHT **mem2NodeHT);
 
 void 
-count_mem(struct MemHT **mem2NodeHT);
+count_mem_ht(struct MemHT **mem2NodeHT);
 
 void 
-prnt_mem_ht(struct MemHT **mem2NodeHT);
+print_mem_ht(struct MemHT **mem2NodeHT);
 #endif

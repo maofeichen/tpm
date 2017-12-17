@@ -24,19 +24,19 @@ void t_tpmhash()
 
 	n = createTPMNode(TPM_Type_Memory, addr, val, seq);
 
-	s = find_mem(&hh, addr);
+	s = find_mem_ht(&hh, addr);
 	if(s == NULL) { printf("addr: 0x%x not in hash table\n", addr); }
 	else { printf("addr: 0x%x in hash table\n", addr); }
 
-	if(add_mem(&hh, addr, &(n->tpmnode2) ) == 0) { printf("add mem addr success\n"); }
+	if(add_mem_ht(&hh, addr, &(n->tpmnode2) ) == 0) { printf("add mem addr success\n"); }
 	else { printf("add mem addr error\n");}
 
-	s = find_mem(&hh, addr);
+	s = find_mem_ht(&hh, addr);
 	if(s == NULL) { printf("addr: 0x%x not in hash table\n", addr); }
 	else { printf("addr: 0x%x in hash table\n", addr); }
 
-	count_mem(&hh);
-	prnt_mem_ht(&hh);
+	count_mem_ht(&hh);
+	print_mem_ht(&hh);
 	del_mem_ht(&hh);
 }
 
@@ -62,18 +62,18 @@ void t_tpm_mem()
 	tpm = calloc(1, sizeof(struct TPMContext) );
 
 	n = createTPMNode(TPM_Type_Memory, addr1, val1, seq2);
-	if(add_mem(&(tpm->mem2NodeHT), addr1, &(n->tpmnode2) ) == 0) { printf("add mem addr success\n"); }
+	if(add_mem_ht(&(tpm->mem2NodeHT), addr1, &(n->tpmnode2) ) == 0) { printf("add mem addr success\n"); }
 	else { printf("add mem addr error\n");}
 
 	n = createTPMNode(TPM_Type_Memory, addr3, val3, seq3);
-	if(add_mem(&(tpm->mem2NodeHT), addr3, &(n->tpmnode2) ) == 0) { printf("add mem addr success\n"); }
+	if(add_mem_ht(&(tpm->mem2NodeHT), addr3, &(n->tpmnode2) ) == 0) { printf("add mem addr success\n"); }
 	else { printf("add mem addr error\n");}
 
-	count_mem(&(tpm->mem2NodeHT));
-	prnt_mem_ht(&(tpm->mem2NodeHT));
+	count_mem_ht(&(tpm->mem2NodeHT));
+	print_mem_ht(&(tpm->mem2NodeHT));
 
-	i = has_adjacent(tpm, l, r, addr2, 4);
-	if(i > 0) { printf("addr: 0x%x found adjacent addr\n", addr2); }
+	// i = has_adjacent(tpm, l, r, addr2, 4);
+	if(has_adjacent(tpm, l, r, addr2, 4)) { printf("addr: 0x%x found adjacent addr\n", addr2); }
 	else { printf("addr: 0x%x not found adjacent addr\n", addr2); }
 
 	del_mem_ht(&(tpm->mem2NodeHT) );	// clear mem addr hash table
@@ -202,31 +202,31 @@ void t_has_adjacent()
 	tpm = calloc(1, sizeof(struct TPMContext) );
 
 	n1 = create_firstver_memnode(addr1, val1, seq1);
-	if(add_mem(&(tpm->mem2NodeHT), addr1, &(n1->tpmnode2) ) == 0) { printf("add mem addr success\n"); }
+	if(add_mem_ht(&(tpm->mem2NodeHT), addr1, &(n1->tpmnode2) ) == 0) { printf("add mem addr success\n"); }
 	else { printf("add mem addr error\n");}
 
 	n2 = createTPMNode(TPM_Type_Memory, addr4, val4, seq4);
-	l = find_mem(&(tpm->mem2NodeHT), addr4);
+	l = find_mem_ht(&(tpm->mem2NodeHT), addr4);
 	ver = get_version(l->toMem);
     set_mem_version(n2, ver+1); // set version accordingly
-	if(add_mem(&(tpm->mem2NodeHT), addr4, &(n2->tpmnode2) ) == 0) { printf("add mem addr success\n"); }
+	if(add_mem_ht(&(tpm->mem2NodeHT), addr4, &(n2->tpmnode2) ) == 0) { printf("add mem addr success\n"); }
 	else { printf("add mem addr error\n");}
 	add_nextver_memnode(&(n1->tpmnode2), &(n2->tpmnode2) );
 
 	n3 = create_firstver_memnode(addr3, val3, seq3);
-	if(add_mem(&(tpm->mem2NodeHT), addr3, &(n3->tpmnode2) ) == 0) { printf("add mem addr success\n"); }
+	if(add_mem_ht(&(tpm->mem2NodeHT), addr3, &(n3->tpmnode2) ) == 0) { printf("add mem addr success\n"); }
 	else { printf("add mem addr error\n");}
 
 	n4 = createTPMNode(TPM_Type_Memory, addr5, val5, seq5);
-	r = find_mem(&(tpm->mem2NodeHT), addr5);
+	r = find_mem_ht(&(tpm->mem2NodeHT), addr5);
 	ver = get_version(r->toMem);
 	set_mem_version(n4, ver+1);
-	if(add_mem(&(tpm->mem2NodeHT), addr5, &(n4->tpmnode2) ) == 0) { printf("add mem addr success\n"); }
+	if(add_mem_ht(&(tpm->mem2NodeHT), addr5, &(n4->tpmnode2) ) == 0) { printf("add mem addr success\n"); }
 	else { printf("add mem addr error\n");}
 	add_nextver_memnode(&(n3->tpmnode2), &(n4->tpmnode2) );
 
-	count_mem(&(tpm->mem2NodeHT));
-	prnt_mem_ht(&(tpm->mem2NodeHT));
+	count_mem_ht(&(tpm->mem2NodeHT));
+	print_mem_ht(&(tpm->mem2NodeHT));
 
 	printf("0xbffff7a0 version: \n");
 	prnt_all_version(n1);
@@ -253,7 +253,7 @@ void t_has_adjacent()
 int main(int argc, char const *argv[])
 {	
 	// t_tpmhash();
-	// t_tpm();
+	// t_tpm_mem();
 	// t_regcntxt_mask();
 	// t_handle_src_reg();
 	// t_handle_src_temp();

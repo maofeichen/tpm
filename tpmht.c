@@ -2,30 +2,28 @@
 #include <stdio.h>
 
 int
-add_mem(struct MemHT **mem2NodeHT, u32 addr, struct TPMNode2 *toMem)
+add_mem_ht(struct MemHT **mem2NodeHT, u32 addr, struct TPMNode2 *toMem)
 {
+	struct MemHT *s;
+
 	if(mem2NodeHT == NULL || toMem == NULL)
 		return -1;
 
-	struct MemHT *s;
-
-	s = find_mem(mem2NodeHT, addr);
-	if(s == NULL) 
-	{	// if not found, creates new 
+	s = find_mem_ht(mem2NodeHT, addr);
+	if(s == NULL) {	// if not found, creates new 
 		s = (struct MemHT*)malloc(sizeof(struct MemHT) );
 		s->addr = addr;
 		HASH_ADD(hh_mem, *mem2NodeHT, addr, 4, s);
 		s->toMem = toMem;
-	} else 
-	{	// if found, updates 
+	} else {	// if found, updates 
 		s->toMem = toMem;
 	}
 
 	return 0;
 }
 
-struct MemHT* 
-find_mem(struct MemHT **mem2NodeHT, u32 addr)
+struct MemHT *
+find_mem_ht(struct MemHT **mem2NodeHT, u32 addr)
 {
 	struct MemHT *s;
 	HASH_FIND(hh_mem, *mem2NodeHT, &addr, 4, s);
@@ -43,7 +41,7 @@ del_mem_ht(struct MemHT **mem2NodeHT)
 }
 
 void 
-count_mem(struct MemHT **mem2NodeHT)
+count_mem_ht(struct MemHT **mem2NodeHT)
 {
 	u32 num;
 	num = HASH_CNT(hh_mem, *mem2NodeHT);
@@ -51,7 +49,7 @@ count_mem(struct MemHT **mem2NodeHT)
 }
 
 void 
-prnt_mem_ht(struct MemHT **mem2NodeHT)
+print_mem_ht(struct MemHT **mem2NodeHT)
 {
 	struct MemHT *s;
 	for(s = *mem2NodeHT; s != NULL; s = s->hh_mem.next) {
