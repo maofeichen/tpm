@@ -11,6 +11,7 @@ void t_regcntxt_mask(void);
 void t_handle_src_reg(void);
 void t_handle_src_temp(void);
 void t_mem_version(void);
+void t_has_adjacent(void);
 
 void t_tpmhash()
 {
@@ -161,13 +162,126 @@ void t_mem_version(void)
 	set_mem_version(next, 1);
 	add_nextver_memnode(&(front->tpmnode2), &(next->tpmnode2) );
 
-	prnt_all_version(front);
+	prnt_all_version(&(front->tpmnode2) );
 
 	third = createTPMNode(TPM_Type_Memory, addr3, val3, seq3);
 	set_mem_version(third, 2);
 	add_nextver_memnode(&(next->tpmnode2), &(third->tpmnode2) );
 
-	prnt_all_version(front);
+	prnt_all_version(&(front->tpmnode2) );
+}
+
+void t_has_adjacent()
+{
+	struct TPMContext* tpm = NULL;
+	union TPMNode *n1, *n2, *n3, *n4, *n5; 
+	struct MemHT *l, *r;
+	int i;
+	u32 ver; 
+
+	u32 addr1 = 0xbffff7a0;
+	u32 val1  = 0xbeef;
+	u32 seq1  = 0;
+
+	u32 addr4 = 0xbffff7a0;
+	u32 val4  = 0xbeef0;
+	u32 seq4  = 1; 
+
+	u32 addr2 = 0xbffff7a4;
+	u32 val2  = 0xbeef;
+	u32 seq2  = 3;
+
+	u32 addr3 = 0xbffff7a8;
+	u32 val3  = 0xbeef;
+	u32 seq3  = 4;
+
+	u32 addr5 = 0xbffff7a8;
+	u32 val5  = 0xbfee0;
+	u32 seq5  = 5;
+
+	tpm = calloc(1, sizeof(struct TPMContext) );
+
+	n1 = create_firstver_memnode(addr1, val1, seq1);
+	if(add_mem(&(tpm->mem2NodeHT), addr1, &(n1->tpmnode2) ) == 0) { printf("add mem addr success\n"); }
+	else { printf("add mem addr error\n");}
+
+	n2 = createTPMNode(TPM_Type_Memory, addr4, val4, seq4);
+	l = find_mem(&(tpm->mem2NodeHT), addr4);
+	ver = get_version(l->toMem);
+    set_mem_version(n2, ver+1); // set version accordingly
+	if(add_mem(&(tpm->mem2NodeHT), addr4, &(n2->tpmnode2) ) == 0) { printf("add mem addr success\n"); }
+	else { printf("add mem addr error\n");}
+	add_nextver_memnode(&(n1->tpmnode2), &(n2->tpmnode2) );
+
+	n3 = create_firstver_memnode(addr3, val3, seq3);
+	if(add_mem(&(tpm->mem2NodeHT), addr3, &(n3->tpmnode2) ) == 0) { printf("add mem addr success\n"); }
+	else { printf("add mem addr error\n");}
+
+	n4 = createTPMNode(TPM_Type_Memory, addr5, val5, seq5);
+	r = find_mem(&(tpm->mem2NodeHT), addr5);
+	ver = get_version(r->toMem);
+	set_mem_version(n4, ver+1);
+	if(add_mem(&(tpm->mem2NodeHT), addr5, &(n4->tpmnode2) ) == 0) { printf("add mem addr success\n"); }
+	else { printf("add mem addr error\n");}
+	add_nextver_memnode(&(n3->tpmnode2), &(n4->tpmnode2) );
+
+	count_mem(&(tpm->mem2NodeHT));
+	prnt_mem_ht(&(tpm->mem2NodeHT));
+
+	printf("0xbffff7a0 version: \n");
+	prnt_all_version(n1);
+	printf("0xbffff7a8 version: \n");
+	prnt_all_version(n3);
+
+	n5 = create_firstver_memnode(addr2, val2, seq2);
+
+	update_adjacent(tpm, n5, l, r, addr2, 4);
+	printf("leftNBR:\n");
+	prnt_mem_node(n5->tpmnode2.leftNBR);
+    printf("rightNBR:\n");
+    prnt_mem_node(n5->tpmnode2.rightNBR);
+
+	// i = has_adjacent(tpm, l, r, addr2, 4);
+	// if(i > 0) { 
+	// 	printf("addr: 0x%x found adjacent addr\n", addr2);
+	//     struct TPMNode2 *earliest = NULL;
+ //        if(l != NULL){
+ //            // TODO: haven't test
+ //            earliest = l->toMem;
+ //            // printf("before get earliest:\n");
+ //            // prnt_mem_node(earliest);
+ //            earliest = get_earliest_version(earliest);
+ //            // printf("after get earliest:\n");
+ //            // prnt_mem_node(earliest);
+ //            n5->tpmnode2.leftNBR = earliest;
+ //            printf("leftNBR:\n");
+	// 		prnt_mem_node(n5->tpmnode2.leftNBR);
+ //        }
+
+ //        if(r != NULL){
+ //            // TODO: haven't test
+ //            earliest = r->toMem;
+ //            earliest = get_earliest_version(earliest);
+ //            n5->tpmnode2.rightNBR = earliest;
+ //            printf("rightNBR:\n");
+ //            prnt_mem_node(n5->tpmnode2.rightNBR);
+ //        }	
+
+ //        printf("0xbffff7a0 version: \n");
+	// 	prnt_all_version(n1);
+	// 	printf("0xbffff7a8 version: \n");
+	// 	prnt_all_version(n3);
+
+	// }
+	// else { printf("addr: 0x%x not found adjacent addr\n", addr2); }
+
+    printf("0xbffff7a0 version: \n");
+	prnt_all_version(n1);
+	printf("0xbffff7a8 version: \n");
+	prnt_all_version(n3);
+
+	del_all_mem(&(tpm->mem2NodeHT) );	// clear mem addr hash table
+	free(tpm);	
 }
 
 int main(int argc, char const *argv[])
@@ -177,6 +291,7 @@ int main(int argc, char const *argv[])
 	// t_regcntxt_mask();
 	// t_handle_src_reg();
 	// t_handle_src_temp();
-	t_mem_version();
+	// t_mem_version();
+	t_has_adjacent();
 	return 0;
 }

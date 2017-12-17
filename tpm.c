@@ -41,6 +41,9 @@ static int
 has_mem_addr(struct TPMContext *tpm, struct MemHT *item, u32 addr);
 
 static int 
+update_adjacent(struct TPMContext *tpm, union TPMNode *n, struct MemHT *l, struct MemHT *r, u32 addr, u32 bytesz);
+
+static int 
 has_adjacent(struct TPMContext *tpm, struct MemHT *l, struct MemHT *r, u32 addr, u32 bytesz);
 
 static int 
@@ -61,7 +64,7 @@ set_mem_version(union TPMNode *tpmnode, u32 ver);
 static u32 
 get_version(struct TPMNode2 *mem_node);
 
-static int  
+static struct TPMNode2 * 
 get_earliest_version(struct TPMNode2 *mem_node);
 
 
@@ -296,8 +299,9 @@ handle_src_mem(struct TPMContext *tpm, struct Record *rec, union TPMNode* src)
     }
     else if( i == 0) { // not found
         printf("addr: 0x%x not found in hash table, creates new mem node\n", rec->s_addr);
-        src = createTPMNode(TPM_Type_Memory, rec->s_addr, rec->s_val, rec->ts);
-        set_mem_version(src, 0);    // init version
+        src = create_firstver_memnode(rec->s_addr, rec->s_val, rec->ts);
+        // src = createTPMNode(TPM_Type_Memory, rec->s_addr, rec->s_val, rec->ts);
+        // set_mem_version(src, 0);    // init version
         prnt_mem_node(&(src->tpmnode2) );
 
         // updates hash table
@@ -314,22 +318,8 @@ handle_src_mem(struct TPMContext *tpm, struct Record *rec, union TPMNode* src)
     else { fprintf(stderr, "error: handle source mem\n"); }
 
     // updates adjacent mem node if any
-    if(has_adjacent(tpm, left, right, rec->s_addr, rec->bytesz) > 0) {
-        struct TPMNode2 *earliest = NULL;
-        if(left != NULL){
-            // TODO: haven't test
-            earliest = left->toMem;
-            get_earliest_version(earliest);
-            src->tpmnode2.leftNBR = earliest;
-        }
+    if(update_adjacent(tpm, src, left, right, rec->s_addr, rec->bytesz) < 0) { return -1; }
 
-        if(right != NULL){
-            // TODO: haven't test
-            earliest = right->toMem;
-            get_earliest_version(earliest);
-            src->tpmnode2.rightNBR = earliest; 
-        }
-    }
     return 0;
 }
 
@@ -419,12 +409,13 @@ handle_dst_mem(struct TPMContext *tpm, struct Record *rec, union TPMNode* dst)
 //
 //  1. detects if it's a overwrite or "addition" operation
 //      1.1 overwrite operation (mov)
-//          1) always creates a new node
-//          2) detects if its addr is in mem hash table
+//          1) detects if its addr is in mem hash table
 //              a) yes
+//                  - creates a new node
 //                  - set the version accordingly
 //                  - attach it to the version list 
 //              b) no: a new addr
+//                  - creates a new node
 //                  - init version to 0
 //          3) updates the mem hash table: hash(addr) -> it
 //      1.2 "addition" operation (add, xor...)
@@ -442,34 +433,43 @@ handle_dst_mem(struct TPMContext *tpm, struct Record *rec, union TPMNode* dst)
 //      2.2 detects if its right neighbour exist, similar to 2.1, and updates it's rightNBR accordingly
 {
     int i;
-    struct MemHT *dst_hn = NULL;
-
-    prnt_record(rec);
+    struct MemHT *dst_hn = NULL, *left = NULL, *right = NULL;
 
     if(isPropagationOverwriting(rec->flag) ) { // overwrite
-        dst = createTPMNode(TPM_Type_Memory, rec->d_addr, rec->d_val, rec->ts);
-
         i = has_mem_addr(tpm, dst_hn, rec->d_addr);
         if(i == 1) { // found
+            dst = createTPMNode(TPM_Type_Memory, rec->d_addr, rec->d_val, rec->ts);
             u32 ver = get_version(dst_hn->toMem);
             set_mem_version(dst, ver+1); // set version accordingly
-            prnt_mem_node(&(dst->tpmnode2) );
-             
+            add_nextver_memnode(dst_hn->toMem, &(dst->tpmnode2) );             
 
+            prnt_mem_node(&(dst->tpmnode2) );
         }
         else if (i == 0) { // not found
-
+            dst = create_firstver_memnode(rec->d_addr, rec->d_val, rec->ts);
         }
         else { fprintf(stderr, "error: handle destination mem\n"); }
 
         // updates mem hash table
-        if(add_mem( &(tpm->mem2NodeHT), rec->d_addr, &(dst->tpmnode2) ) < 0) {
-            return -1; 
-        }
+        if(add_mem( &(tpm->mem2NodeHT), rec->d_addr, &(dst->tpmnode2) ) < 0) { return -1; }
     } 
     else {  // non overwring
+        printf("handle destination mem: non overwring\n");
+        i = has_mem_addr(tpm, dst_hn, rec->d_addr);
+        if(i == 1) { // found
+            printf("handle dst mem - non overwriting - TODO: verifies if values are same\n");
+            return -1;  // TODO
+        }
+        else if(i == 0) { // not found
+            dst = create_firstver_memnode(rec->d_addr, rec->d_val, rec->ts);
+        }
 
+        // both cases, updates mem hash table
+        if(add_mem( &(tpm->mem2NodeHT), rec->d_addr, &(dst->tpmnode2) ) < 0) { return -1; }
     }
+
+    // updates adjacent mem node if any
+    if(update_adjacent(tpm, dst, left, right, rec->s_addr, rec->bytesz) < 0) { return -1; }
 
     return 0;
 }
@@ -525,6 +525,37 @@ has_mem_addr(struct TPMContext *tpm, struct MemHT *item, u32 addr)
     item = NULL;
     item = find_mem( &(tpm->mem2NodeHT), addr);
     if(item != NULL) { return 1; }
+    else { return 0; }
+}
+
+static int 
+update_adjacent(struct TPMContext *tpm, union TPMNode *n, struct MemHT *l, struct MemHT *r, u32 addr, u32 bytesz)
+// Returns:
+//  >0: if has any update
+//  0: no update
+//  <0: error
+{
+    if(tpm == NULL || n == NULL)
+        return -1;
+    
+    if(has_adjacent(tpm, l, r, addr, bytesz) > 0) {
+        struct TPMNode2 *earliest = NULL;
+        if(l != NULL){
+            // TODO: haven't test
+            earliest = l->toMem;
+            earliest = get_earliest_version(earliest);
+            n->tpmnode2.leftNBR = earliest;
+        }
+
+        if(r != NULL){
+            // TODO: haven't test
+            earliest = r->toMem;
+            earliest = get_earliest_version(earliest);
+            n->tpmnode2.rightNBR = earliest; 
+        }
+
+        return 1;
+    }
     else { return 0; }
 }
 
@@ -619,7 +650,8 @@ create_firstver_memnode(u32 addr, u32 val, u32 ts)
     union TPMNode *n;
     n = createTPMNode(TPM_Type_Memory, addr, val, ts);
     set_mem_version(n, 0);   
-    n->tpmnode2.nextVersion = &(n->tpmnode2); // init points to itself 
+    n->tpmnode2.nextVersion = &(n->tpmnode2); // init points to itself
+    return n; 
 }
 
 bool 
@@ -649,8 +681,8 @@ get_version(struct TPMNode2 *mem_node)
     return mem_node->version;
 }
 
-static int  
-get_earliest_version(struct TPMNode2 * mem_node)
+static struct TPMNode2 * 
+get_earliest_version(struct TPMNode2 *mem_node)
 // Returns:
 //  0: success
 //  <0: error
@@ -659,9 +691,10 @@ get_earliest_version(struct TPMNode2 * mem_node)
     if(mem_node == NULL)
         return -1;
 
+    struct TPMNode2 *n = mem_node;
     // circulates the linked list until found 0 version
-    while( mem_node->version != 0) { mem_node = mem_node->nextVersion; }
-    return 0;
+    while( n->version != 0) { n = n->nextVersion; }
+    return n;
 }
 
 static void 
