@@ -10,6 +10,7 @@ void t_tpm_mem(void);
 void t_regcntxt_mask(void);
 void t_handle_src_reg(void);
 void t_handle_src_temp(void);
+void t_mem_version(void);
 
 void t_tpmhash()
 {
@@ -134,12 +135,48 @@ void t_handle_src_temp(void)
 	free(tpm);	
 }
 
+void t_mem_version(void)
+{
+	struct TPMContext* tpm = NULL;
+	union TPMNode *front, *next, *third; 
+	struct MemHT *l, *r;
+	int i;
+
+	u32 addr1 = 0xbffff7a0;
+	u32 val1  = 0xbee0;
+	u32 seq1  = 0;
+
+	u32 addr2 = 0xbffff7a0;
+	u32 val2  = 0xbee4;
+	u32 seq2  = 1;
+
+	u32 addr3 = 0xbffff7a0;
+	u32 val3  = 0xbee8;
+	u32 seq3  = 2;
+
+	front = create_firstver_memnode(addr1, val1, seq1);
+	set_mem_version(front, 0);
+
+	next = createTPMNode(TPM_Type_Memory, addr2, val2, seq2);
+	set_mem_version(next, 1);
+	add_nextver_memnode(&(front->tpmnode2), &(next->tpmnode2) );
+
+	prnt_all_version(front);
+
+	third = createTPMNode(TPM_Type_Memory, addr3, val3, seq3);
+	set_mem_version(third, 2);
+	add_nextver_memnode(&(next->tpmnode2), &(third->tpmnode2) );
+
+	prnt_all_version(front);
+}
+
 int main(int argc, char const *argv[])
 {	
 	// t_tpmhash();
 	// t_tpm();
 	// t_regcntxt_mask();
-	t_handle_src_reg();
-	t_handle_src_temp();
+	// t_handle_src_reg();
+	// t_handle_src_temp();
+	t_mem_version();
 	return 0;
 }

@@ -49,13 +49,23 @@ has_left_adjacent(struct TPMContext *tpm, struct MemHT *item, u32 addr);
 static int 
 has_right_adjacent(struct TPMContext *tpm,struct MemHT *item, u32 addr, u32 bytesz);
 
+union TPMNode *
+create_firstver_memnode(u32 addr, u32 val, u32 ts);
+
+bool 
+add_nextver_memnode(struct TPMNode2 *front, struct TPMNode2 *next);
+
 static int 
 set_mem_version(union TPMNode *tpmnode, u32 ver);
 
+static u32 
+get_version(struct TPMNode2 *mem_node);
+
 static int  
-get_earliest_version(struct TPMNode2 * mem_node);
+get_earliest_version(struct TPMNode2 *mem_node);
 
 
+/* misc function */
 static void 
 init_tpmcontext(struct TPMContext *tpm);
 
@@ -82,6 +92,9 @@ prnt_mem_node(struct TPMNode2 *n);
 static void 
 prnt_nonmem_node(struct TPMNode1 *n);
 
+static void 
+prnt_all_version(struct TPMNode2 *head);
+
 u32 
 isPropagationOverwriting(u32 flag)
 /* return:
@@ -91,7 +104,7 @@ isPropagationOverwriting(u32 flag)
 {
   /* to be added */
   
-  return 0;
+  return 1;
 }
 
 union TPMNode *
@@ -129,6 +142,9 @@ processOneXTaintRecord(struct TPMContext *tpm, struct Record *rec, struct TPMNod
 /* return:
  * 	>=0 : success and num of nodes creates
  *     <0: error
+ *  1) handle source
+ *  2) handle destination
+ *  3) creates transition between source to destination
  */
 {
     int type, sc, dc;
@@ -231,6 +247,11 @@ seqNo2NodeSearch(struct TPMContext *tpm, u32 seqNo)
     return tpmnode;
 }
 
+void 
+delTPM(struct TPMContext *tpm)
+{
+
+}
 
 static int  
 handle_src_mem(struct TPMContext *tpm, struct Record *rec, union TPMNode* src)
@@ -391,8 +412,65 @@ handle_src_temp(struct TPMContext *tpm, struct Record *rec, struct TPMNode1 *tem
 
 static int 
 handle_dst_mem(struct TPMContext *tpm, struct Record *rec, union TPMNode* dst)
+// Returns
+//  >=0: num of new nodes creates 
+//  <0: error 
+//  stores the created or found node pointer in dst 
+//
+//  1. detects if it's a overwrite or "addition" operation
+//      1.1 overwrite operation (mov)
+//          1) always creates a new node
+//          2) detects if its addr is in mem hash table
+//              a) yes
+//                  - set the version accordingly
+//                  - attach it to the version list 
+//              b) no: a new addr
+//                  - init version to 0
+//          3) updates the mem hash table: hash(addr) -> it
+//      1.2 "addition" operation (add, xor...)
+//          1) detects if its addr is in the mem hash table
+//              a) yes
+//                  !!! verifies if the value equals the val of the latest version
+//              b) no
+//                  - creates a new node
+//                  - init version number
+//                  - updates the mem hash table: hash(addr) -> it
+//  2. updates neighbours: 
+//      2.1 detects if its left neighbour exists (could be 4, 2, 1 bytes)
+//          a) yes, updates its leftNBR points to the earliest version of its left adjcent mem node 
+//          b) no, do nothing
+//      2.2 detects if its right neighbour exist, similar to 2.1, and updates it's rightNBR accordingly
 {
-    // prnt_record(rec);
+    int i;
+    struct MemHT *dst_hn = NULL;
+
+    prnt_record(rec);
+
+    if(isPropagationOverwriting(rec->flag) ) { // overwrite
+        dst = createTPMNode(TPM_Type_Memory, rec->d_addr, rec->d_val, rec->ts);
+
+        i = has_mem_addr(tpm, dst_hn, rec->d_addr);
+        if(i == 1) { // found
+            u32 ver = get_version(dst_hn->toMem);
+            set_mem_version(dst, ver+1); // set version accordingly
+            prnt_mem_node(&(dst->tpmnode2) );
+             
+
+        }
+        else if (i == 0) { // not found
+
+        }
+        else { fprintf(stderr, "error: handle destination mem\n"); }
+
+        // updates mem hash table
+        if(add_mem( &(tpm->mem2NodeHT), rec->d_addr, &(dst->tpmnode2) ) < 0) {
+            return -1; 
+        }
+    } 
+    else {  // non overwring
+
+    }
+
     return 0;
 }
 
@@ -534,6 +612,43 @@ set_mem_version(union TPMNode *tpmnode, u32 ver)
     return 0; 
 }
 
+union TPMNode *
+create_firstver_memnode(u32 addr, u32 val, u32 ts)
+// creates first version (0) mem node 
+{
+    union TPMNode *n;
+    n = createTPMNode(TPM_Type_Memory, addr, val, ts);
+    set_mem_version(n, 0);   
+    n->tpmnode2.nextVersion = &(n->tpmnode2); // init points to itself 
+}
+
+bool 
+add_nextver_memnode(struct TPMNode2 *front, struct TPMNode2 *next)
+// Returns
+//  true: success
+//  false: error
+{
+    if(front == NULL || next == NULL)
+        return false;
+
+    // front node next version should points to head mem node (0 ver)
+    if(front->nextVersion->version != 0)
+        return false; 
+
+    next->nextVersion = front->nextVersion; // now next points to head
+    front->nextVersion = next; // front points to next
+
+    return true;
+}
+
+static u32 
+get_version(struct TPMNode2 *mem_node)
+// Returns
+//  the version of the mem node
+{
+    return mem_node->version;
+}
+
 static int  
 get_earliest_version(struct TPMNode2 * mem_node)
 // Returns:
@@ -628,4 +743,17 @@ prnt_nonmem_node(struct TPMNode1 *n)
 {
      printf("non mem node: type: %u - addr: 0x%x - val: %x - lastUpdateTS: %u\n", 
             n->type, n->addr, n->val, n->lastUpdateTS);   
+}
+
+static void 
+prnt_all_version(struct TPMNode2 *head)
+{
+    if(head == NULL)
+        return;
+
+    do{
+        // printf("version: %u\n", head->version);
+        prnt_mem_node(head);
+        head = head->nextVersion;
+    } while(head == NULL || head->version != 0);
 }

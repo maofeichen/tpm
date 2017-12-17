@@ -15,6 +15,41 @@
 #define RET_INSN_SEC        	"19"	
 
 /* Qemu IR */
+#define TCG_SHL 				"36"
+#define TCG_SHR 				"37"
+#define TCG_SAR 				"38"
+#define TCG_ROTL 				"39"
+#define TCG_ROTR 				"3a"
+
+#define TCG_ADD_i32 			0x3b
+#define TCG_SUB_i32 0x3c
+#define TCG_MUL_i32 0x3d
+#define TCG_DIV_i32 0x3e
+#define TCG_DIVU_i32 0x3f
+#define TCG_REM_i32 0x40
+#define TCG_REMU_i32 0x41
+#define TCG_MUL2_i32 0x42
+#define TCG_DIV2_i32 0x43
+#define TCG_DIVU2_i32 0x44
+
+#define TCG_AND_i32 0x45
+#define TCG_OR_i32 0x46
+#define TCG_XOR_i32 0x47
+#define TCG_NOT_i32 0x48
+#define TCG_NEG_i32 0x49
+
+#define TCG_EXT8S_i32 0x4a
+#define TCG_EXT16S_i32 0x4b
+#define TCG_EXT8U_i32 0x4c
+#define TCG_EXT16U_i32 0x4d
+#define TCG_BSWAP16_i32 0x4e
+#define TCG_BSWAP32_i32 0x4f
+
+#define TCG_DEPOSIT_i32 0x50
+#define TCG_MOV_i32 0x51
+
+#define TCG_SETCOND_i32 0x62
+
 #define TCG_DEPOSIT		   		"4a"
 
 #define TCG_QEMU_LD         	"52"

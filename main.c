@@ -29,7 +29,7 @@ int main(int argc, char const *argv[])
 				fprintf(stderr, "error build TPM\n");
 			};
 			del_all_mem(&(tpm->mem2NodeHT) );	// clear mem addr hash table
-			free(tpm);	
+			free(tpm); // TODO: merge in delTPM()
 		}
 		fclose(log);
 	} 
