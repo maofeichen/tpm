@@ -113,7 +113,9 @@ struct Record
     u32 bytesz;
     u32 ts;     // time stamp (seqNo)
     u32 is_load;
+    u32 is_loadptr;
     u32 is_store;
+    u32 is_storeptr;
 };
 
 /* TPM function prototypes */

@@ -93,6 +93,12 @@ static void
 print_src_addr(struct Record *rec);
 
 static void 
+print_src(struct Record *rec);
+
+static void 
+print_dst(struct Record *rec);
+
+static void 
 print_mem_node(struct TPMNode2 *n);
 
 static void 
@@ -159,8 +165,8 @@ processOneXTaintRecord(struct TPMContext *tpm, struct Record *rec, struct TPMNod
     int type, s_type, sc = 0, dc = 0;
     union TPMNode *src = NULL, *dst = NULL;
 
-    printf("processing rec:\n\t");
-    print_record(rec);
+    // printf("--------------------\nprocessing record:\n");
+    // print_record(rec);
 
     //  handle source node
     if(rec->is_load) { // src is mem addr    
@@ -184,7 +190,7 @@ processOneXTaintRecord(struct TPMContext *tpm, struct Record *rec, struct TPMNod
     }
 
     //  hanlde destination node
-    if(rec->is_store) { // dst is mem addr 
+    if(rec->is_store || rec->is_storeptr) { // dst is mem addr (include store ptr) 
         if((dc =  handle_dst_mem(tpm, rec, &dst) ) >= 0) {}
         else { return -1; } 
     } 
@@ -245,9 +251,16 @@ buildTPM(FILE *taintfp, struct TPMContext *tpm)
                     // }
                     // else {} // skip
 
+                    /* DBG: print all load/store pointer records */
+                    // if(rec.flag >= 0x56 && rec.flag < 0x5a 
+                    //     || (rec.flag >= 0x5e && rec.flag <= 0x61) ) {
+                    //     print_record(&rec);
+                    // }
+
                     // n increases by how many new nodes created 
                     if( (i = processOneXTaintRecord(tpm, &rec, regCntxt, tempCntxt) ) >= 0) { n += i; }  
                     else { return -1; }
+
                     r++; 
                 } 
                 else { return -1; }
@@ -335,7 +348,8 @@ handle_src_mem(struct TPMContext *tpm, struct Record *rec, union TPMNode **src)
     int n = 0;
     struct MemHT *src_hn = NULL, *left = NULL, *right = NULL;
 
-    print_record(rec);
+    // printf("handle src mem: ");
+    // print_src(rec);
 
     if(is_addr_in_ht(tpm, &src_hn, rec->s_addr) ) {
         printf("handle src mem: addr: 0x%x found in hash table\n", rec->s_addr);
@@ -399,7 +413,8 @@ handle_src_reg(struct TPMContext *tpm, struct Record *rec, struct TPMNode1 *regC
 {
     int id = -1, n = 0;
 
-    print_record(rec);
+    // printf("handle src reg: ");
+    // print_src(rec);
 
     if((id = get_regcntxt_idx(rec->s_addr) ) >= 0) {
         if(regCntxt[id] == NULL) { // not found
@@ -451,7 +466,8 @@ handle_src_temp(struct TPMContext *tpm, struct Record *rec, struct TPMNode1 *tem
 //          due to if same, it's a valid taint propagation. (shoudl be)
 {   int n = 0;
 
-    print_record(rec);
+    // printf("handle src temp: ");
+    // print_src(rec);
 
     if(rec->s_addr >= 0xfff0 || rec->s_addr >= MAX_TEMPIDX) {
         fprintf(stderr, "error: temp idx larger than register idx or max temp idx\n");
@@ -470,13 +486,18 @@ handle_src_temp(struct TPMContext *tpm, struct Record *rec, struct TPMNode1 *tem
     } 
     else {  // found
         printf("handle src temp: found temp in tempCntxt\n");
-        if(is_equal_value(rec->s_val, tempCntxt[rec->s_addr] ) ) {
-            *src = tempCntxt[rec->s_addr];
-        }
-        else {
-            fprintf(stderr, "error: handle src temp: values are not matched\n"); 
-            return -1; 
-        }
+
+        // disable the sanity check
+        // if(is_equal_value(rec->s_val, tempCntxt[rec->s_addr] ) ) {
+        //     *src = tempCntxt[rec->s_addr];
+        // }
+        // else {
+        //     fprintf(stderr, "error: handle src temp: values are not matched\n"); 
+        //     return -1; 
+        // }
+
+        *src = tempCntxt[rec->s_addr];
+        print_nonmem_node(tempCntxt[rec->s_addr]);        
     } 
     return n;
 }
@@ -517,7 +538,8 @@ handle_dst_mem(struct TPMContext *tpm, struct Record *rec, union TPMNode **dst)
     u32 version = 0;
     struct MemHT *dst_hn = NULL, *left = NULL, *right = NULL;
 
-    print_record(rec); 
+    // printf("handle dst mem: ");
+    // print_dst(rec);
 
     if(isPropagationOverwriting(rec->flag) ) { // overwrite
         if( is_addr_in_ht(tpm, &dst_hn, rec->d_addr) ) { 
@@ -585,7 +607,8 @@ handle_dst_reg(struct TPMContext *tpm, struct Record *rec, struct TPMNode1 *regC
 {
     int id = -1, n = 0;
 
-    print_record(rec);
+    // printf("handle dst reg: ");
+    // print_dst(rec);
 
     if((id = get_regcntxt_idx(rec->d_addr) ) >= 0) {
         if(regCntxt[id] == NULL){ // not in tpm
@@ -635,7 +658,8 @@ handle_dst_temp(struct TPMContext *tpm, struct Record *rec, struct TPMNode1 *tem
 {
     int n = 0;
 
-    print_record(rec);
+    // printf("handle dst temp: ");
+    // print_dst(rec);
 
     if(rec->d_addr >= 0xfff0 || rec->d_addr >= MAX_TEMPIDX) {
         fprintf(stderr, "error: temp idx larger than register idx or max temp idx\n");
@@ -920,7 +944,7 @@ get_type(u32 addr)
 {
     if(addr < G_TEMP_UNKNOWN) { return TPM_Type_Temprary; }
     else if(addr <=  G_TEMP_EDI) { return TPM_Type_Register; } 
-    else { fprintf(stderr, "error: unkown addr type\n"); return -1; }
+    else { fprintf(stderr, "error: unkown addr type: addr: %u\n", addr); return -1; }
 }
 
 static int 
@@ -939,28 +963,40 @@ get_regcntxt_idx(u32 reg)
 static void 
 print_record(struct Record* rec)
 {
-    printf("record: flag: %x src addr: %x\t\t src val: %x\t\t" 
-                            "dst addr: %x\t\t dst val: %x\t\t"
-                            "size: %d\t seqNo: %d\t" 
-                            "is_load: %u is_store: %u\n", 
+    printf("flag:%-2x s_addr:%-8x s_val:%-8x" 
+                    " d_addr:%-8x d_val:%-8x"
+                    " size:%-2d seqNo:%-16u" 
+                    " load:%-1u store:%-1u loadptr:%-1u storeptr:%-1u\n", 
             rec->flag, rec->s_addr, rec->s_val, 
                        rec->d_addr, rec->d_val, 
                        rec->bytesz, rec->ts, 
-                       rec->is_load, rec->is_store);
+                       rec->is_load, rec->is_store, rec->is_loadptr, rec->is_storeptr);
 }
 
 static void 
 print_src_addr(struct Record *rec)
 {
-    printf("source addr: %x - seqNo: %d\n", rec->s_addr, rec->ts);
+    printf("s_addr:%-8x seqNo:%-16u\n", rec->s_addr, rec->ts);
+}
+
+static void 
+print_src(struct Record *rec)
+{
+    printf("flag:%-2x s_addr:%-8x s_val:%-8x\n", rec->flag, rec->s_addr, rec->s_val);
+}
+
+static void 
+print_dst(struct Record *rec)
+{
+    printf("flag:%-2x d_addr:%-8x d_val:%-8x\n", rec->flag, rec->d_addr, rec->d_val);
 }
 
 static void 
 print_mem_node(struct TPMNode2 *n)
 {
-    printf("mem node: type: %u - addr: 0x%x - val: %x - lastUpdateTS: %u"
-            " - firstChild: %p - leftNBR: %p - rightNBR: %p - nextVersion: %p"
-            " - version: %u - hitcnt: %u \n", 
+    printf("mem: type:%-1u addr:0x%-8x val:%-8x lastUpdateTS:%-16u"
+            " firstChild:%-8p leftNBR:%-8p rightNBR:%-8p nextVersion:%-8p"
+            " version:%-9u hitcnt:%-8u\n", 
             n->type, n->addr, n->val, n->lastUpdateTS, 
             n->firstChild, n->leftNBR, n->rightNBR, n->nextVersion,
             n->version, n->hitcnt);
@@ -969,7 +1005,7 @@ print_mem_node(struct TPMNode2 *n)
 static void 
 print_nonmem_node(struct TPMNode1 *n)
 {
-     printf("non mem node: type: %u - addr: 0x%x - val: %x - lastUpdateTS: %u\n", 
+     printf("non-mem: type:%-1u addr:0x%-8x val:%-8x lastUpdateTS:%-16u\n", 
             n->type, n->addr, n->val, n->lastUpdateTS);   
 }
 

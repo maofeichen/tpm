@@ -36,6 +36,11 @@ bool is_load(char *flag);
 bool is_store(char *flag);
 
 // Returns:
+//	t: if it's a store ptr IR
+//	f: otherwise
+bool is_storeptr(char *flag);
+
+// Returns:
 //	0: success
 //	<0: error
 //	given a single record line, and separator, splits it into rec as
