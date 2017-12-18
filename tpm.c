@@ -118,9 +118,48 @@ isPropagationOverwriting(u32 flag)
  */
 {
   /* to be added */
-  
-  return 1;
+  switch(flag) {
+    case TCG_LD_i32:
+    case TCG_ST_i32:
+    case TCG_LD_POINTER_i32:
+    case TCG_ST_POINTER_i32: 
+    case TCG_NOT_i32:
+    case TCG_NEG_i32:
+    case TCG_EXT8S_i32:
+    case TCG_EXT16S_i32:
+    case TCG_EXT8U_i32:
+    case TCG_EXT16U_i32:
+    case TCG_BSWAP16_i32:
+    case TCG_BSWAP32_i32:
+    case TCG_SHL_i32:
+    case TCG_SHR_i32:
+    case TCG_SAR_i32:
+    case TCG_ROTL_i32:
+    case TCG_ROTR_i32:
+    case TCG_MOV_i32:
+        return 1;
+    case TCG_ADD_i32:
+    case TCG_SUB_i32:
+    case TCG_MUL_i32:
+    case TCG_DIV_i32:
+    case TCG_DIVU_i32:
+    case TCG_REM_i32:
+    case TCG_REMU_i32:
+    case TCG_MUL2_i32:
+    case TCG_DIV2_i32:
+    case TCG_DIVU2_i32:
+    case TCG_AND_i32:
+    case TCG_OR_i32:
+    case TCG_XOR_i32:
+    case TCG_DEPOSIT_i32:
+    case TCG_SETCOND_i32:
+        return 0;
+    default:
+        fprintf(stderr, "unkown Qemu IR enode:%-2u\n", flag);
+        return -1; 
+  }
 }
+
 
 union TPMNode *
 createTPMNode(u32 type, u32 addr, u32 val, u32 TS)
