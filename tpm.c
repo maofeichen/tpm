@@ -138,6 +138,7 @@ isPropagationOverwriting(u32 flag)
     case TCG_ROTL_i32:
     case TCG_ROTR_i32:
     case TCG_MOV_i32:
+    case TCG_DEPOSIT_i32:
         return 1;
     case TCG_ADD_i32:
     case TCG_SUB_i32:
@@ -152,7 +153,6 @@ isPropagationOverwriting(u32 flag)
     case TCG_AND_i32:
     case TCG_OR_i32:
     case TCG_XOR_i32:
-    case TCG_DEPOSIT_i32:
     case TCG_SETCOND_i32:
         return 0;
     default:
@@ -464,19 +464,19 @@ handle_src_reg(struct TPMContext *tpm, struct Record *rec, struct TPMNode1 *regC
 //  stores the created or found node pointer in src 
 //
 //  1. detects if register is in the register context array (regCntxt)
-//      1.1 not found: new register
-//          a) creates new register node
-//          b) updates:
-//              1) reg context array: regCntxt[reg id] -> it
-//              2) seqNo hash table (tpm->seqNo2NodeHash): hash(seqNo) -> it
-//      1.2 found
-//          !!! verifies if the value of the reg equals to the one stored in reg context [reg id] 
-//          due to if same, it's a valid taint propagation. (shoudl be)
+//  1.1 not found: new register
+//      a) creates new register node
+//      b) updates:
+//         1) reg context array: regCntxt[reg id] -> it
+//         2) seqNo hash table (tpm->seqNo2NodeHash): hash(seqNo) -> it
+//  1.2 found
+//      !!! verifies if the value of the reg equals to the one stored in reg context [reg id] 
+//      due to if same, it's a valid taint propagation. (shoudl be)
 {
     int id = -1, n = 0;
 
 #ifdef DEBUG
-    printf("handle src reg: ");
+    printf("\thandle src reg: ");
     print_src(rec);
 #endif       
 
@@ -686,7 +686,7 @@ handle_dst_reg(struct TPMContext *tpm, struct Record *rec, struct TPMNode1 *regC
     int id = -1, n = 0;
 
 #ifdef DEBUG
-    printf("handle dst reg: ");
+    printf("\thandle dst reg:");
     print_dst(rec);
 #endif      
 
@@ -706,10 +706,19 @@ handle_dst_reg(struct TPMContext *tpm, struct Record *rec, struct TPMNode1 *regC
             } 
             else { // non overwrite
 #ifdef DEBUG
-                printf("handle dst reg: non overwrite hit\n");
-#endif                     
+                printf("\thandle dst reg: non overwrite hit\n");
+#endif         
+                /* disable the sanity check */ 
+                // if(is_equal_value(rec->d_val, regCntxt[id]) ) {
+                //     *dst = regCntxt[id];
+                // }
+                // else {
+                //     fprintf(stderr, "error: values are not equal\n");
+                //     print_nonmem_node(regCntxt[id]);
+                //     return -1;
+                // }           
+                *dst = regCntxt[id]; 
                 // TODO: update the seqNo hash table                                       
-                return -1;
             }
         }
     }
@@ -741,7 +750,7 @@ handle_dst_temp(struct TPMContext *tpm, struct Record *rec, struct TPMNode1 *tem
     int n = 0;
 
 #ifdef DEBUG
-    printf("handle dst temp: ");
+    printf("\thandle dst temp: ");
     print_dst(rec);
 #endif                     
 
@@ -765,10 +774,19 @@ handle_dst_temp(struct TPMContext *tpm, struct Record *rec, struct TPMNode1 *tem
         }
         else { // non overwrite
 #ifdef DEBUG
-                printf("handle dst temp: non overwrite hit\n");
-#endif                                
+                printf("\thandle dst temp: non overwrite hit\n");
+#endif                             
+                /* disable the sanity check */ 
+                // if(is_equal_value(rec->d_val, tempCntxt[rec->d_addr]) ) {
+                //     *dst = tempCntxt[rec->d_addr];
+                // }
+                // else {
+                //     fprintf(stderr, "error: values are not equal\n");
+                //     print_nonmem_node(tempCntxt[rec->d_addr]);
+                //     return -1;
+                // }
+                *dst = tempCntxt[rec->d_addr];
                 // TODO: update the seqNo hash table                                       
-                return -1;
         }
     }
     return n;
