@@ -112,6 +112,8 @@ struct Record
     u32 d_val;
     u32 bytesz;
     u32 ts;     // time stamp (seqNo)
+    u32 s_ts;   // src time stamp
+    u32 d_ts;   // dst time stamp
     u32 is_load;
     u32 is_loadptr;
     u32 is_store;

@@ -1079,11 +1079,11 @@ print_record(struct Record* rec)
 {
     printf("flag:%-2x s_addr:%-8x s_val:%-8x" 
                     " d_addr:%-8x d_val:%-8x"
-                    " size:%-2d seqNo:%-16u" 
+                    " size:%-2d seqNo:%-8u s_seqNo:%-8u d_seqNo:%-8u" 
                     " load:%-1u store:%-1u loadptr:%-1u storeptr:%-1u\n", 
             rec->flag, rec->s_addr, rec->s_val, 
                        rec->d_addr, rec->d_val, 
-                       rec->bytesz, rec->ts, 
+                       rec->bytesz, rec->ts, rec->s_ts, rec->d_ts, 
                        rec->is_load, rec->is_store, rec->is_loadptr, rec->is_storeptr);
 }
 

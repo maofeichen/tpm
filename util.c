@@ -66,6 +66,18 @@ bool is_storeptr(char *flag)
 	return equal_mark(flag, TCG_QEMU_ST_POINTER);
 }
 
+u32 get_src_ts(u32 ts)
+{
+	return ts * 2;
+}
+
+// Returns:
+//	dst ts given the record ts
+u32 get_dst_ts(u32 ts)
+{
+	return ts * 2 + 1;
+}
+
 int 
 split(char *s, char c, struct Record *rec)
 {
@@ -130,6 +142,8 @@ split_mem(char r[MAX_NUM_FIELD][MAX_FIELD_SZ], struct Record *rec)
 	u32 bitsz	= strtoul(r[6], NULL, 10);	// 6th str: mem size
 	rec->bytesz	= bitsz / 8;
 	rec->ts 	= strtoul(r[7], NULL, 10);	// 7th str: seqNo
+	rec->s_ts   = get_src_ts(rec->ts);
+	rec->d_ts 	= get_dst_ts(rec->ts);
 
 	if(is_load(r[0]) ) { rec->is_load = 1; }
 	else if(is_store(r[0]) ) { rec->is_store = 1; }
@@ -156,5 +170,7 @@ split_nonmem(char r[MAX_NUM_FIELD][MAX_FIELD_SZ], struct Record *rec)
 	rec->d_val	= strtoul(r[5], NULL, 16);	// 5th str: dst val
 	// rec->bytesz	= 0;
 	rec->ts 	= strtoul(r[6], NULL, 10);	// 6th str: seqNo
+	rec->s_ts   = get_src_ts(rec->ts);
+	rec->d_ts 	= get_dst_ts(rec->ts);
 	return 0;
 }

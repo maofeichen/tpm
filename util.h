@@ -43,6 +43,14 @@ bool is_store(char *flag);
 bool is_storeptr(char *flag);
 
 // Returns:
+//	src ts give the records ts
+u32 get_src_ts(u32 ts);
+
+// Returns:
+//	dst ts given the record ts
+u32 get_dst_ts(u32 ts);
+
+// Returns:
 //	0: success
 //	<0: error
 //	given a single record line, and separator, splits it into rec as
