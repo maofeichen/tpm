@@ -285,7 +285,9 @@ buildTPM(FILE *taintfp, struct TPMContext *tpm)
             else { // data record, creates nodes 
                 struct Record rec = {0};
                 if(split(line, '\t', &rec) == 0) {
-                    // print_record(&rec);
+#ifdef DEBUG
+                    print_record(&rec);
+#endif
                     // if(rec.s_addr != rec.d_addr) {
                     //     // n increases by how many new nodes created 
                     //     if( (i = processOneXTaintRecord(tpm, &rec, regCntxt, tempCntxt) ) >= 0) { n += i; }  
@@ -299,9 +301,9 @@ buildTPM(FILE *taintfp, struct TPMContext *tpm)
                     //     print_record(&rec);
                     // }
 
-                    // n increases by how many new nodes created 
-                    if( (i = processOneXTaintRecord(tpm, &rec, regCntxt, tempCntxt) ) >= 0) { n += i; }  
-                    else { return -1; }
+                    /* n increases by how many new nodes created */ 
+                    // if( (i = processOneXTaintRecord(tpm, &rec, regCntxt, tempCntxt) ) >= 0) { n += i; }  
+                    // else { return -1; }
 
                     r++; 
                 } 

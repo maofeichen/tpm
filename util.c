@@ -50,6 +50,11 @@ is_load(char *flag)
 	return equal_mark(flag, TCG_QEMU_LD);
 }
 
+bool is_loadptr(char *flag)
+{
+	return equal_mark(flag, TCG_QEMU_LD_POINTER);
+}
+
 bool 
 is_store(char *flag)
 {
@@ -95,7 +100,8 @@ split(char *s, char c, struct Record *rec)
 	if(get_flag(flag, s) ) 
 	{
 		if(equal_mark(flag, TCG_QEMU_LD) 
-		   || equal_mark(flag, TCG_QEMU_ST) 
+		   || equal_mark(flag, TCG_QEMU_ST)
+		   || equal_mark(flag, TCG_QEMU_LD_POINTER) 
 		   || equal_mark(flag, TCG_QEMU_ST_POINTER) )	{ 
 			split_mem(r, rec); // split mem 
 		} 
@@ -127,6 +133,7 @@ split_mem(char r[MAX_NUM_FIELD][MAX_FIELD_SZ], struct Record *rec)
 
 	if(is_load(r[0]) ) { rec->is_load = 1; }
 	else if(is_store(r[0]) ) { rec->is_store = 1; }
+	else if(is_loadptr(r[0]) ) { rec->is_loadptr = 1; }
 	else if(is_storeptr(r[0]) ) { rec->is_storeptr = 1; } // add store ptr
 
 	return 0;

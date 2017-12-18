@@ -30,6 +30,8 @@ bool is_mark(char *flag);
 //	f: otherwise
 bool is_load(char *flag);
 
+bool is_loadptr(char *flag);
+
 // Returns:
 //	t: if it's a store IR
 //	f: otherwise
