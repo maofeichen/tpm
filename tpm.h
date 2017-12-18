@@ -33,7 +33,7 @@
 
 /* the following 2 constants need to be adjuested based on statistics of the XTaint log */
 #define mem2NodeHashSize	90000
-#define seqNo2NodeHashSize	20000000
+#define seqNo2NodeHashSize	50000000
 
 #define TPM_Type_Register	0x00000001
 #define TPM_Type_Temprary	0x00000002
@@ -120,7 +120,7 @@ struct Record
 
 /* TPM function prototypes */
 
-u32 
+int 
 isPropagationOverwriting(u32 flag);
 
 union TPMNode*
@@ -128,10 +128,10 @@ createTPMNode(u32 type, u32 addr, u32 val, u32 TS);
 
 // u32 
 // processOneXTaintRecord(struct TPMContext *tpm, u32 seqNo, u32 size, u32 srcflg, u32 srcaddr, u32 dstflag, u32 dstaddr);
-u32
+int 
 processOneXTaintRecord(struct TPMContext *tpm, struct Record *rec, struct TPMNode1 *regCntxt[], struct TPMNode1 *tempCntxt[]);
 
-u32 
+int
 buildTPM(FILE *taintfp, struct TPMContext *tpm);
 
 struct TPMNode2 *

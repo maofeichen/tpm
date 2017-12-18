@@ -10,7 +10,7 @@ int main(int argc, char const *argv[])
 {
 	FILE *log = NULL;
 	struct TPMContext* tpm = NULL;
-	unsigned int n;
+	int n;
 
 	if(argc <= 1){
 		usage();
@@ -24,7 +24,7 @@ int main(int argc, char const *argv[])
 			printf("alloc TPMContext: %zu MB\n", sizeof(struct TPMContext) / (1024*1024) );
 
 			if( (n = buildTPM(log, tpm) ) >= 0) {
-				printf("build TPM successful, number of nodes created: %u\n", n);
+				printf("build TPM successful, number of nodes created:%d\n", n);
 			}
 			else { fprintf(stderr, "error build TPM\n"); }
 

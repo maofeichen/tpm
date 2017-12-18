@@ -110,11 +110,12 @@ print_version(struct TPMNode2 *head);
 static void 
 print_transition(union TPMNode *head);
 
-u32 
+int 
 isPropagationOverwriting(u32 flag)
 /* return:
  * 	0: not overwriting
- *  non-0: overwriting
+ *  1: overwriting
+ *  <0: error
  */
 {
   /* to be added */
@@ -156,7 +157,7 @@ isPropagationOverwriting(u32 flag)
         return 0;
     default:
         fprintf(stderr, "unkown Qemu IR enode:%-2u\n", flag);
-        return -1; 
+        return 1; 
   }
 }
 
@@ -191,7 +192,7 @@ createTPMNode(u32 type, u32 addr, u32 val, u32 TS)
 
 // u32 
 // processOneXTaintRecord(struct TPMContext *tpm, u32 seqNo, u32 size, u32 srcflg, u32 srcaddr, u32 dstflag, u32 dstaddr)
-u32
+int 
 processOneXTaintRecord(struct TPMContext *tpm, struct Record *rec, struct TPMNode1 *regCntxt[], struct TPMNode1 *tempCntxt[])
 /* return:
  * 	>=0 : success and num of nodes creates
@@ -255,7 +256,7 @@ processOneXTaintRecord(struct TPMContext *tpm, struct Record *rec, struct TPMNod
     return sc+dc;
 }
 
-u32 
+int 
 buildTPM(FILE *taintfp, struct TPMContext *tpm)
 /* return:
  * 	>=0: number of TPM nodes created;
@@ -324,17 +325,30 @@ mem2NodeSearch(struct TPMContext *tpm, u32 memaddr)
  *  non-NULL: points to the latest version of the TPM node that has the memaddr
  */
 {
+    struct MemHT *item        = NULL;
     struct TPMNode2 *tpmnode2 = NULL;
-    
-    return tpmnode2;
+   
+    item = find_mem_ht(&(tpm->mem2NodeHT), memaddr);
+    if(item == NULL) { return NULL; }
+    else {
+        tpmnode2 = item->toMem;
+        return tpmnode2;
+    } 
 }
 
 union TPMNode *
 seqNo2NodeSearch(struct TPMContext *tpm, u32 seqNo)
 {
     union TPMNode *tpmnode = NULL;
-    
-    return tpmnode;
+
+    if(seqNo >= seqNo2NodeHashSize) {
+        fprintf(stderr, "error: seqNo2NodeSearch: seqNo exceeds hash table size\n");
+        return NULL;
+    }
+    else {
+        tpmnode = tpm->seqNo2NodeHash[seqNo];
+        return tpmnode;
+    }
 }
 
 void delTPM(struct TPMContext *tpm)
@@ -568,29 +582,29 @@ handle_dst_mem(struct TPMContext *tpm, struct Record *rec, union TPMNode **dst)
 //  stores the created or found node pointer in dst 
 //
 //  1. detects if it's a overwrite or "addition" operation
-//      1.1 overwrite operation (mov)
-//          1) detects if its addr is in mem hash table
-//              a) yes
-//                  - creates a new node
-//                  - set the version accordingly
-//                  - attach it to the version list 
-//              b) no: a new addr
-//                  - creates a new node
-//                  - init version to 0
-//          3) updates the mem hash table: hash(addr) -> it
-//      1.2 "addition" operation (add, xor...)
-//          1) detects if its addr is in the mem hash table
-//              a) yes
-//                  !!! verifies if the value equals the val of the latest version
-//              b) no
-//                  - creates a new node
-//                  - init version number
-//                  - updates the mem hash table: hash(addr) -> it
+//  1.1 overwrite operation (mov)
+//      1) detects if its addr is in mem hash table
+//         a) yes
+//            - creates a new node
+//            - set the version accordingly
+//            - attach it to the version list 
+//         b) no: a new addr
+//            - creates a new node
+//            - init version to 0
+//      2) updates the mem hash table: hash(addr) -> it
+//  1.2 "addition" operation (add, xor...)
+//      1) detects if its addr is in the mem hash table
+//         a) yes
+//            !!! verifies if the value equals the val of the latest version
+//         b) no
+//            - creates a new node
+//            - init version number
+//            - updates the mem hash table: hash(addr) -> it
 //  2. updates neighbours: 
-//      2.1 detects if its left neighbour exists (could be 4, 2, 1 bytes)
-//          a) yes, updates its leftNBR points to the earliest version of its left adjcent mem node 
-//          b) no, do nothing
-//      2.2 detects if its right neighbour exist, similar to 2.1, and updates it's rightNBR accordingly
+//  2.1 detects if its left neighbour exists (could be 4, 2, 1 bytes)
+//      a) yes, updates its leftNBR points to the earliest version of its left adjcent mem node 
+//      b) no, do nothing
+//  2.2 detects if its right neighbour exist, similar to 2.1, and updates it's rightNBR accordingly
 {
     int n = 0;
     u32 version = 0;

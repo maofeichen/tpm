@@ -1,6 +1,6 @@
 CC	= gcc
-CF	= -Wall -g -std=c11 
-LF	= -g 
+CF	= -Wall -g -std=c11 -DDEBUG 
+LF	= -g -DDEBUG 
 
 OBJS	= main.o tpm.o tpmht.o util.o
 
