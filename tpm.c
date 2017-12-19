@@ -662,7 +662,7 @@ handle_dst_mem(struct TPMContext *tpm, struct Record *rec, union TPMNode **dst)
     }
 
     // updates adjacent mem node if any
-    if(update_adjacent(tpm, *dst, &left, &right, rec->s_addr, rec->bytesz) >= 0) {}
+    if(update_adjacent(tpm, *dst, &left, &right, rec->d_addr, rec->bytesz) >= 0) {}
     else { return -1; }
 
     return n;
@@ -877,6 +877,7 @@ update_adjacent(struct TPMContext *tpm, union TPMNode *n, struct MemHT **l, stru
     }
 
     bool is_left = false;
+    struct TPMNode2 *self = NULL;
 
     if(has_adjacent(tpm, l, r, addr, bytesz) ) {
         struct TPMNode2 *earliest = NULL;
@@ -884,16 +885,31 @@ update_adjacent(struct TPMContext *tpm, union TPMNode *n, struct MemHT **l, stru
             earliest = (*l)->toMem;
             if(get_earliest_version(&earliest) == 0) {
                 is_left = true;
-                link_adjacent(&(n->tpmnode2), earliest, is_left);
+                link_adjacent(&(n->tpmnode2), earliest, is_left);   // update the self leftNBR
+
+                self = &(n->tpmnode2);
+                if(get_earliest_version(&self) == 0) {
+                    is_left = false;
+                    link_adjacent(earliest, self, is_left); // updates the target rightNBR 
+                }
+                else { return -1; }
             }
             else { return -1; }
+
+
         }
 
         if(*r != NULL){
             earliest = (*r)->toMem;
             if(get_earliest_version(&earliest) == 0) {
                 is_left = false;
-                link_adjacent(&(n->tpmnode2), earliest, is_left);
+                link_adjacent(&(n->tpmnode2), earliest, is_left); // updates the self rightNBR
+
+                self = &(n->tpmnode2);
+                if(get_earliest_version(&self) == 0) {
+                    is_left = true;
+                    link_adjacent(earliest, self, is_left); // updates the target leftNBR
+                }
             }
             else { return -1; }
         }

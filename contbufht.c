@@ -58,7 +58,7 @@ print_buf_ht(struct ContBufHT **contbufHT)
 {
 	struct ContBufHT *s;
 	for(s = *contbufHT; s != NULL; s = s->hh_cont.next) {
-		printf("begin addr:0x%-8x end addr:0x%-8x minseq:%u maxseq:%u\n", 
-				s->baddr, s->eaddr, s->minseq, s->maxseq);	
+		printf("begin:0x%-8x end:0x%-8x sz:%-4u minseq:%-6u maxseq:%-6u diffseq:%u\n", 
+				s->baddr, s->eaddr, s->eaddr-s->baddr, s->minseq, s->maxseq, s->maxseq-s->minseq);	
 	}
 }
