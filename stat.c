@@ -1,6 +1,5 @@
 #include "stat.h"
 
-
 static u32 
 get_out_degree(union TPMNode *t);
 
@@ -77,37 +76,91 @@ print_ver_ht(struct AddrHT **addrHT)
 }
 
 void 
-get_cont_buf(struct TPMNode2 *node)
+get_cont_buf(struct TPMNode2 *node, u32 *baddr, u32 *eaddr, u32 *minseq, u32 *maxseq)
 {
 	struct TPMNode2 *b, *e;
-	u32 baddr, eaddr;
+	*minseq = 100000;
+	*maxseq = 0;
 
 	b = e = node;
 	while(b->leftNBR != NULL) {
+		u32 seq = b->lastUpdateTS;
+
+		if(*minseq > seq)
+			*minseq = seq;
+
+		if(*maxseq < seq)
+			*maxseq = seq;
+
 		b = b->leftNBR;
 	}
-	baddr = b->addr;
+	*baddr = b->addr;
 
 	while(e->rightNBR != NULL) {
+		u32 seq = e->lastUpdateTS;
+		if(*minseq > seq)
+			*minseq = seq;
+
+		if(*maxseq < seq)
+			*maxseq = seq;
+
 		e = e->rightNBR;
 	}
-	eaddr = e->addr;
+	*eaddr = e->addr + 4;
 
-	if(baddr != eaddr)
-		printf("begin addr:0x%-8x end addr:0x%-8x\n", baddr, eaddr);	
+	// if((*eaddr - *baddr) >= 8)
+	// 	printf("begin addr:0x%-8x end addr:0x%-8x minseq:%u maxseq:%u\n", *baddr, *eaddr, *minseq, *maxseq);	
 }
 
 void 
 compute_cont_buf(struct TPMContext *tpm)
 {
+	struct ContBufHT *bufHT = NULL, *s;
+	u32 baddr, eaddr, minseq, maxseq;
+
 	for(int i = 0; i < seqNo2NodeHashSize; i++) {
 		if(tpm->seqNo2NodeHash[i] != NULL) {
 			union TPMNode *t = tpm->seqNo2NodeHash[i];
 			if(t->tpmnode1.type == TPM_Type_Memory) {
-				get_cont_buf(&(t->tpmnode2) );
+				get_cont_buf(&(t->tpmnode2), &baddr, &eaddr, &minseq, &maxseq );
+				if( (eaddr - baddr) >= 8) {
+					s = find_buf_ht(&bufHT, baddr);
+					if(s == NULL) {
+						if(add_buf_ht(&bufHT, baddr, eaddr, minseq, maxseq) >= 0) {}
+						else { fprintf(stderr, "error: add buf ht\n"); return; }
+					}
+					else {
+						if(s->eaddr < eaddr) {
+							s->eaddr = eaddr;
+							s->minseq = minseq;
+							s->maxseq = maxseq;		
+						}
+					}
+				}
 			}
 		}
 	}
+
+	u32 minsz = BIG_NUM, maxsz = 0, totalsz = 0;
+	u32 num = HASH_CNT(hh_cont, bufHT);
+	printf("total continuous buffers(>=8):%u\n", num);
+
+	struct ContBufHT *t;
+	for(t = bufHT; t != NULL; t = t->hh_cont.next) {
+		u32 sz = t->eaddr - t->baddr;
+		if(minsz > sz)
+			minsz = sz;
+
+		if(maxsz < sz)
+			maxsz = sz;
+
+		totalsz += sz;
+	}
+	printf("continuous buffers: min sz:%-2u bytes avg sz:%-2u bytes max sz:%-2u bytes\n", minsz, totalsz/num, maxsz);
+	// count_buf_ht(&bufHT);
+	printf("--------------------\n");
+	print_buf_ht(&bufHT);
+	del_buf_ht(&bufHT);
 }
 
 void compute_version(struct TPMContext *tpm, u32 type)

@@ -3,6 +3,7 @@
 
 #include "tpm.h"
 #include "uthash.h"
+#include "contbufht.h"
 
 #ifndef STAT
 #define STAT
@@ -18,7 +19,7 @@ struct AddrHT
 };
 
 /* continuous buf */
-void get_cont_buf(struct TPMNode2 *node);
+void get_cont_buf(struct TPMNode2 *node, u32 *baddr, u32 *eaddr, u32 *minseq, u32 *maxseq);
 void compute_cont_buf(struct TPMContext *tpm);
 
 /* version */
