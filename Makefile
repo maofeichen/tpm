@@ -4,11 +4,11 @@ CC	= gcc
 CF	= -Wall -g -std=c11 
 LF	= -g 
 
-OBJS	= main.o tpm.o tpmht.o util.o stat.o contbufht.o 
+OBJS	= main.o tpm.o tpmht.o util.o stat.o versionht.o contbufht.o 
 
 all	: tpm testtpm
 
-testtpm : testtpm.o tpm.o tpmht.o util.o contbufht.o
+testtpm : testtpm.o tpm.o tpmht.o util.o
 	$(CC) $(LF) -o testtpm testtpm.o tpmht.o util.o
 
 testtpm.o : testtpm.c
@@ -34,6 +34,9 @@ stat.o : stat.c
 
 contbufht.o : contbufht.c
 	$(CC) $(CF) -c contbufht.c
+
+versionht.o: versionht.c
+	$(CC) $(CF) -c versionht.c
 
 clean	:
 	rm -rf *.o tpm testtpm

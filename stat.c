@@ -3,86 +3,24 @@
 static u32 
 get_out_degree(union TPMNode *t);
 
-/* version hash table */
-static int
-add_ver_ht(struct AddrHT **addrHT, u32 addr);
-
-static struct AddrHT *
-find_ver_ht(struct AddrHT **addrHT, u32 addr);
-
-static void
-del_ver_ht(struct AddrHT **addrHT);
-
-static void 
-count_ver_ht(struct AddrHT **addrHT);
-
-static void 
-print_ver_ht(struct AddrHT **addrHT);
-
-static int
-add_ver_ht(struct AddrHT **addrHT, u32 addr)
-{
-	struct AddrHT *s;
-
-	if(addrHT == NULL)
-		return -1;
-
-	s = find_ver_ht(addrHT, addr);
-	if(s == NULL) {	// if not found, creates new 
-		s = (struct AddrHT*)malloc(sizeof(struct AddrHT) );
-		s->addr = addr;
-		HASH_ADD(hh_ver, *addrHT, addr, 4, s);
-		s->ver = 1;
-	} else {	// if found, updates 
-		s->ver = s->ver+1;
-	}
-
-	return 0;
-}
-
-static struct AddrHT *
-find_ver_ht(struct AddrHT **addrHT, u32 addr)
-{
-	struct AddrHT *s;
-	HASH_FIND(hh_ver, *addrHT, &addr, 4, s);
-	return s;	
-}
-
-static void
-del_ver_ht(struct AddrHT **addrHT)
-{
-	struct AddrHT *curr, *tmp;
-	HASH_ITER(hh_ver, *addrHT, curr, tmp) {
-		HASH_DELETE(hh_ver, *addrHT, curr);
-		free(curr);
-	}
-}
-
-static void 
-count_ver_ht(struct AddrHT **addrHT)
-{
-	u32 num;
-	num = HASH_CNT(hh_ver, *addrHT);
-	printf("total: %u mem addr in hash table\n", num);
-}
-
-static void 
-print_ver_ht(struct AddrHT **addrHT)
-{
-	struct AddrHT *s;
-	for(s = *addrHT; s != NULL; s = s->hh_ver.next) {
-		printf("addr:%-8x ver:%u\n", s->addr, s->ver);
-	}
-}
+static union TPMNode *
+get_firstnode_in_ht(struct TPMContext *tpm, u32 type);
 
 void 
 get_cont_buf(struct TPMNode2 *node, u32 *baddr, u32 *eaddr, u32 *minseq, u32 *maxseq)
+// Computes 
+//	- baddr
+//	- eaddr
+//	- minseq
+//	- maxseq
+//	given a memory node
 {
 	struct TPMNode2 *b, *e;
-	*minseq = 100000;
+	*minseq = node->lastUpdateTS;
 	*maxseq = 0;
 
 	b = e = node;
+
 	while(b->leftNBR != NULL) {
 		u32 seq = b->lastUpdateTS;
 
@@ -106,7 +44,7 @@ get_cont_buf(struct TPMNode2 *node, u32 *baddr, u32 *eaddr, u32 *minseq, u32 *ma
 
 		e = e->rightNBR;
 	}
-	*eaddr = e->addr + 4;
+	*eaddr = e->addr + 4;	// assume end addr always 4 bytes
 
 	// if((*eaddr - *baddr) >= 8)
 	// 	printf("begin addr:0x%-8x end addr:0x%-8x minseq:%u maxseq:%u\n", *baddr, *eaddr, *minseq, *maxseq);	
@@ -123,7 +61,7 @@ compute_cont_buf(struct TPMContext *tpm)
 			union TPMNode *t = tpm->seqNo2NodeHash[i];
 			if(t->tpmnode1.type == TPM_Type_Memory) {
 				get_cont_buf(&(t->tpmnode2), &baddr, &eaddr, &minseq, &maxseq );
-				if( (eaddr - baddr) >= 8) {
+				if( (eaddr - baddr) >= MIN_BUF_SZ) {
 					s = find_buf_ht(&bufHT, baddr);
 					if(s == NULL) {
 						if(add_buf_ht(&bufHT, baddr, eaddr, minseq, maxseq) >= 0) {}
@@ -141,10 +79,11 @@ compute_cont_buf(struct TPMContext *tpm)
 		}
 	}
 
-	u32 minsz = BIG_NUM, maxsz = 0, totalsz = 0;
+	u32 minsz, maxsz = 0, totalsz = 0;
 	u32 num = HASH_CNT(hh_cont, bufHT);
 	printf("total continuous buffers(>=8):%u\n", num);
 
+	minsz = bufHT->eaddr - bufHT->baddr;
 	struct ContBufHT *t;
 	for(t = bufHT; t != NULL; t = t->hh_cont.next) {
 		u32 sz = t->eaddr - t->baddr;
@@ -168,8 +107,9 @@ void compute_version(struct TPMContext *tpm, u32 type)
 	struct AddrHT *addrHT = NULL;
 	struct AddrHT *s;
 
-	u32 min = BIG_NUM, max = 0, total = 0;
+	u32 min, max = 0, total = 0;
 	int i = 0, n = 0; 
+
 	for(; i < seqNo2NodeHashSize; i++) {
 		if(tpm->seqNo2NodeHash[i] != NULL) {
 			union TPMNode *t = tpm->seqNo2NodeHash[i];
@@ -191,6 +131,7 @@ void compute_version(struct TPMContext *tpm, u32 type)
 		}
 	}
 
+	min = addrHT->ver;
 	for(s = addrHT; s != NULL; s = s->hh_ver.next) {
 		// printf("mem: addr:%-8x ver:%u\n", s->addr, s->ver);
 		if(min > s->ver)
@@ -226,8 +167,10 @@ void compute_version_all(struct TPMContext *tpm)
 	struct AddrHT *addrHT = NULL;
 	struct AddrHT *s;
 
-	u32 min = BIG_NUM, max = 0, total = 0;
-	int i = 0, n = 0; 
+	u32 min, max = 0, total = 0;
+	int i = 0, n = 0;
+
+	// search all nodes and get versions 
 	for(; i < seqNo2NodeHashSize; i++) {
 		if(tpm->seqNo2NodeHash[i] != NULL) {
 			union TPMNode *t = tpm->seqNo2NodeHash[i];
@@ -247,6 +190,7 @@ void compute_version_all(struct TPMContext *tpm)
 		}
 	}
 
+	min = addrHT->ver;
 	for(s = addrHT; s != NULL; s = s->hh_ver.next) {
 		// printf("mem: addr:%-8x ver:%u\n", s->addr, s->ver);
 		if(min > s->ver)
@@ -266,8 +210,11 @@ void compute_version_all(struct TPMContext *tpm)
 void 
 compute_outd(struct TPMContext *tpm, u32 type)
 {
-	u32 num = 0, min = BIG_NUM, max = 0, total = 0;
+	u32 num = 0, min, max = 0, total = 0;
 	int i = 0;
+
+	union TPMnode *n = get_firstnode_in_ht(tpm, type);
+	min = get_out_degree(n);
 
 	for(; i < seqNo2NodeHashSize; i++) {
 		if(tpm->seqNo2NodeHash[i] != NULL) {
@@ -306,8 +253,11 @@ compute_outd(struct TPMContext *tpm, u32 type)
 void 
 compute_outd_all(struct TPMContext *tpm)
 {
-	u32 num = 0, min = BIG_NUM, max = 0, total = 0;
+	u32 num = 0, min, max = 0, total = 0;
 	int i = 0;
+
+	union TPMnode *n = get_firstnode_in_ht(tpm, 0);
+	min = get_out_degree(n);
 
 	for(; i < seqNo2NodeHashSize; i++) {
 		if(tpm->seqNo2NodeHash[i] != NULL) {
@@ -364,4 +314,29 @@ get_out_degree(union TPMNode *t)
 	}
 	// printf("outdegree:%-2u\n", n);
 	return n;
+}
+
+static union TPMNode *
+get_firstnode_in_ht(struct TPMContext *tpm, u32 type)
+// Returns:
+//	first node in hashtalbe based on type, if type is 0, then all types
+{
+	union TPMNode *n = NULL;
+
+	if(type != 0) {
+		for(int i = 0; i < seqNo2NodeHashSize; i++) {
+			if(tpm->seqNo2NodeHash[i] != NULL) {
+				n = tpm->seqNo2NodeHash[i];
+				if(n->tpmnode1.type == type) {
+					return n;
+				}
+			}
+		}
+	} else {
+		for(int i = 0; i < seqNo2NodeHashSize; i++) {
+			if(tpm->seqNo2NodeHash[i] != NULL) {
+				return tpm->seqNo2NodeHash[i]; 
+			}
+		}
+	}
 }
