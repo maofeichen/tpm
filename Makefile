@@ -1,8 +1,10 @@
 CC	= gcc
-CF	= -Wall -g -std=c11 -DDEBUG 
-LF	= -g -DDEBUG 
+# CF	= -Wall -g -std=c11 -DDEBUG 
+# LF	= -g -DDEBUG 
+CF	= -Wall -g -std=c11 
+LF	= -g 
 
-OBJS	= main.o tpm.o tpmht.o util.o
+OBJS	= main.o tpm.o tpmht.o util.o stat.o
 
 all	: tpm testtpm
 
@@ -26,6 +28,9 @@ tpmht.o : tpmht.c
 
 util.o : util.c
 	$(CC) $(CF) -c util.c
+
+stat.o : stat.c
+	$(CC) $(CF) -c stat.c
 
 clean	:
 	rm -rf *.o tpm testtpm

@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include "stat.h"
 #include "tpm.h"
 
 void usage()
@@ -28,6 +29,9 @@ int main(int argc, char const *argv[])
 			}
 			else { fprintf(stderr, "error build TPM\n"); }
 
+#ifdef STAT
+			stat(tpm);
+#endif 
 			printf("del TPM\n");
 			del_mem_ht(&(tpm->mem2NodeHT) );	// clear mem addr hash table
 			free(tpm); // TODO: merge in delTPM()
