@@ -59,6 +59,9 @@ has_left_adjacent(struct TPMContext *tpm, struct MemHT **item, u32 addr);
 static bool  
 has_right_adjacent(struct TPMContext *tpm,struct MemHT **item, u32 addr, u32 bytesz);
 
+static bool 
+link_adjacent(struct TPMNode2 *linker, struct TPMNode2 *linkee, bool is_left);
+
 /* handles memory node's version */
 union TPMNode *
 create_first_version(u32 addr, u32 val, u32 ts);
@@ -873,12 +876,15 @@ update_adjacent(struct TPMContext *tpm, union TPMNode *n, struct MemHT **l, stru
         return -1;
     }
 
+    bool is_left = false;
+
     if(has_adjacent(tpm, l, r, addr, bytesz) ) {
         struct TPMNode2 *earliest = NULL;
         if(*l != NULL){
             earliest = (*l)->toMem;
             if(get_earliest_version(&earliest) == 0) {
-                n->tpmnode2.leftNBR = earliest;
+                is_left = true;
+                link_adjacent(&(n->tpmnode2), earliest, is_left);
             }
             else { return -1; }
         }
@@ -886,7 +892,8 @@ update_adjacent(struct TPMContext *tpm, union TPMNode *n, struct MemHT **l, stru
         if(*r != NULL){
             earliest = (*r)->toMem;
             if(get_earliest_version(&earliest) == 0) {
-                n->tpmnode2.rightNBR = earliest; 
+                is_left = false;
+                link_adjacent(&(n->tpmnode2), earliest, is_left);
             }
             else { return -1; }
         }
@@ -968,6 +975,24 @@ has_right_adjacent(struct TPMContext *tpm, struct MemHT **item,  u32 addr, u32 b
         return true; 
     }
     else { return false; }
+}
+
+static bool 
+link_adjacent(struct TPMNode2 *linker, struct TPMNode2 *linkee, bool is_left)
+// Returns:
+//  true: success
+//  false: error
+//  links the linkee to the linker's leftNBR or rightNBR based on is_left
+{
+    if(linker == NULL || linkee == NULL) {
+        fprintf(stderr, "error: link adjacent: linker:%p linkee:%p\n", linker, linkee);
+        return false;
+    }
+
+    if(is_left) { linker->leftNBR = linkee; }
+    else { linker->rightNBR = linkee; }
+
+    return true;
 }
 
 static int 
