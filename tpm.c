@@ -48,16 +48,16 @@ is_addr_in_ht(struct TPMContext *tpm, struct MemHT **item, u32 addr);
 
 /* handles adjacent memory nodes */
 static int 
-update_adjacent(struct TPMContext *tpm, union TPMNode *n, struct MemHT *l, struct MemHT *r, u32 addr, u32 bytesz);
+update_adjacent(struct TPMContext *tpm, union TPMNode *n, struct MemHT **l, struct MemHT **r, u32 addr, u32 bytesz);
 
 static bool 
-has_adjacent(struct TPMContext *tpm, struct MemHT *l, struct MemHT *r, u32 addr, u32 bytesz);
+has_adjacent(struct TPMContext *tpm, struct MemHT **l, struct MemHT **r, u32 addr, u32 bytesz);
 
 static bool 
-has_left_adjacent(struct TPMContext *tpm, struct MemHT *item, u32 addr);
+has_left_adjacent(struct TPMContext *tpm, struct MemHT **item, u32 addr);
 
 static bool  
-has_right_adjacent(struct TPMContext *tpm,struct MemHT *item, u32 addr, u32 bytesz);
+has_right_adjacent(struct TPMContext *tpm,struct MemHT **item, u32 addr, u32 bytesz);
 
 /* handles memory node's version */
 union TPMNode *
@@ -448,7 +448,7 @@ handle_src_mem(struct TPMContext *tpm, struct Record *rec, union TPMNode **src)
     } 
 
     // updates adjacent mem node if any
-    if(update_adjacent(tpm, *src, left, right, rec->s_addr, rec->bytesz) >= 0) {}
+    if(update_adjacent(tpm, *src, &left, &right, rec->s_addr, rec->bytesz) >= 0) {}
     else { return -1; }
 
     return n;
@@ -659,7 +659,7 @@ handle_dst_mem(struct TPMContext *tpm, struct Record *rec, union TPMNode **dst)
     }
 
     // updates adjacent mem node if any
-    if(update_adjacent(tpm, *dst, left, right, rec->s_addr, rec->bytesz) >= 0) {}
+    if(update_adjacent(tpm, *dst, &left, &right, rec->s_addr, rec->bytesz) >= 0) {}
     else { return -1; }
 
     return n;
@@ -862,7 +862,7 @@ is_addr_in_ht(struct TPMContext *tpm, struct MemHT **item, u32 addr)
 }
 
 static int 
-update_adjacent(struct TPMContext *tpm, union TPMNode *n, struct MemHT *l, struct MemHT *r, u32 addr, u32 bytesz)
+update_adjacent(struct TPMContext *tpm, union TPMNode *n, struct MemHT **l, struct MemHT **r, u32 addr, u32 bytesz)
 // Returns:
 //  >0: if has any update
 //  0: no update
@@ -875,16 +875,16 @@ update_adjacent(struct TPMContext *tpm, union TPMNode *n, struct MemHT *l, struc
 
     if(has_adjacent(tpm, l, r, addr, bytesz) ) {
         struct TPMNode2 *earliest = NULL;
-        if(l != NULL){
-            earliest = l->toMem;
+        if(*l != NULL){
+            earliest = (*l)->toMem;
             if(get_earliest_version(&earliest) == 0) {
                 n->tpmnode2.leftNBR = earliest;
             }
             else { return -1; }
         }
 
-        if(r != NULL){
-            earliest = r->toMem;
+        if(*r != NULL){
+            earliest = (*r)->toMem;
             if(get_earliest_version(&earliest) == 0) {
                 n->tpmnode2.rightNBR = earliest; 
             }
@@ -896,14 +896,13 @@ update_adjacent(struct TPMContext *tpm, union TPMNode *n, struct MemHT *l, struc
 }
 
 static bool 
-has_adjacent(struct TPMContext *tpm, struct MemHT *l, struct MemHT *r, u32 addr, u32 bytesz)
+has_adjacent(struct TPMContext *tpm, struct MemHT **l, struct MemHT **r, u32 addr, u32 bytesz)
 // Returns:
 //  1: if has either left or right adjacent mem node
 //  0: otherwise
 {
     bool rl = false, rr = false;
 
-    l = NULL, r = NULL;
     rl = has_left_adjacent(tpm, l, addr);
     rr = has_right_adjacent(tpm, r, addr, bytesz);
 
@@ -914,36 +913,36 @@ has_adjacent(struct TPMContext *tpm, struct MemHT *l, struct MemHT *r, u32 addr,
 }
 
 static bool 
-has_left_adjacent(struct TPMContext *tpm, struct MemHT *item, u32 addr)
+has_left_adjacent(struct TPMContext *tpm, struct MemHT **item, u32 addr)
 // Returns:
 //  t: if has left adjacent mem node
 //  f: otherwise
 {
-    item = NULL;
+    *item = NULL;
     u32 l_adjcnt;
 
     l_adjcnt = addr - DWORD;    // try 4 bytes first
-    item = find_mem_ht( &(tpm->mem2NodeHT), l_adjcnt);
-    if(item != NULL) {
+    *item = find_mem_ht( &(tpm->mem2NodeHT), l_adjcnt);
+    if(*item != NULL) {
 #ifdef DEBUG
-        printf("has left adjacent: addr: 0x%x\n", item->toMem->addr); 
+        printf("has left adjacent: addr: 0x%x\n", *item->toMem->addr); 
 #endif                                
         return true; 
     }else { // doesn't find 4 bytes left adjacent
         l_adjcnt = addr - WORD; // try 2 bytes 
-        item = find_mem_ht( &(tpm->mem2NodeHT), l_adjcnt);
-        if(item != NULL) {
+        *item = find_mem_ht( &(tpm->mem2NodeHT), l_adjcnt);
+        if(*item != NULL) {
 #ifdef DEBUG
-            printf("has left adjacent: addr: 0x%x\n", item->toMem->addr);  
+            printf("has left adjacent: addr: 0x%x\n", (*item)->toMem->addr);  
 #endif                                
             return true; 
         }
         else {
             l_adjcnt = addr - BYTE; // try 1 byte
-            item = find_mem_ht( &(tpm->mem2NodeHT), l_adjcnt);
-            if(item != NULL) {
+            *item = find_mem_ht( &(tpm->mem2NodeHT), l_adjcnt);
+            if(*item != NULL) {
 #ifdef DEBUG
-                printf("has left adjacent: addr: 0x%x\n", item->toMem->addr);  
+                printf("has left adjacent: addr: 0x%x\n", (*item)->toMem->addr);  
 #endif                                               
                 return true; 
             }
@@ -953,18 +952,18 @@ has_left_adjacent(struct TPMContext *tpm, struct MemHT *item, u32 addr)
 }
 
 static bool 
-has_right_adjacent(struct TPMContext *tpm, struct MemHT *item,  u32 addr, u32 bytesz)
+has_right_adjacent(struct TPMContext *tpm, struct MemHT **item,  u32 addr, u32 bytesz)
 // Returns:
 //  t: if has right adjacent mem node
 //  f: otherwise
 {
     u32 r_adjcnt = addr + bytesz;
-    item = NULL;
+    *item = NULL;
 
-    item = find_mem_ht( &(tpm->mem2NodeHT), r_adjcnt);
-    if(item != NULL) {
+    *item = find_mem_ht( &(tpm->mem2NodeHT), r_adjcnt);
+    if(*item != NULL) {
 #ifdef DEBUG
-        printf("has right adjacent: addr: 0x%x\n", item->toMem->addr);   
+        printf("has right adjacent: addr: 0x%x\n", (*item)->toMem->addr);   
 #endif                                                   
         return true; 
     }

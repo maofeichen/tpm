@@ -17,6 +17,10 @@ struct AddrHT
     UT_hash_handle hh_ver;  // hash table head, required by uthash
 };
 
+/* continuous buf */
+void get_cont_buf(struct TPMNode2 *node);
+void compute_cont_buf(struct TPMContext *tpm);
+
 /* version */
 void compute_version(struct TPMContext *tpm, u32 type);
 void compute_version_all(struct TPMContext *tpm);

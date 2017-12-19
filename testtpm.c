@@ -73,8 +73,7 @@ void t_tpm_mem()
 	count_mem_ht(&(tpm->mem2NodeHT));
 	print_mem_ht(&(tpm->mem2NodeHT));
 
-	// i = has_adjacent(tpm, l, r, addr2, 4);
-	if(has_adjacent(tpm, l, r, addr2, 4)) { printf("addr: 0x%x found adjacent addr\n", addr2); }
+	if(has_adjacent(tpm, &l, &r, addr2, 4)) { printf("addr: 0x%x found adjacent addr\n", addr2); }
 	else { printf("addr: 0x%x not found adjacent addr\n", addr2); }
 
 	del_mem_ht(&(tpm->mem2NodeHT) );	// clear mem addr hash table
@@ -236,7 +235,7 @@ void t_has_adjacent()
 
 	n5 = create_first_version(addr2, val2, seq2);
 
-	update_adjacent(tpm, n5, l, r, addr2, 4);
+	update_adjacent(tpm, n5, &l, &r, addr2, 4);
 	printf("leftNBR:\n");
 	print_mem_node(n5->tpmnode2.leftNBR);
     printf("rightNBR:\n");

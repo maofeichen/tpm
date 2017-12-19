@@ -76,6 +76,40 @@ print_ver_ht(struct AddrHT **addrHT)
 	}
 }
 
+void 
+get_cont_buf(struct TPMNode2 *node)
+{
+	struct TPMNode2 *b, *e;
+	u32 baddr, eaddr;
+
+	b = e = node;
+	while(b->leftNBR != NULL) {
+		b = b->leftNBR;
+	}
+	baddr = b->addr;
+
+	while(e->rightNBR != NULL) {
+		e = e->rightNBR;
+	}
+	eaddr = e->addr;
+
+	if(baddr != eaddr)
+		printf("begin addr:0x%-8x end addr:0x%-8x\n", baddr, eaddr);	
+}
+
+void 
+compute_cont_buf(struct TPMContext *tpm)
+{
+	for(int i = 0; i < seqNo2NodeHashSize; i++) {
+		if(tpm->seqNo2NodeHash[i] != NULL) {
+			union TPMNode *t = tpm->seqNo2NodeHash[i];
+			if(t->tpmnode1.type == TPM_Type_Memory) {
+				get_cont_buf(&(t->tpmnode2) );
+			}
+		}
+	}
+}
+
 void compute_version(struct TPMContext *tpm, u32 type)
 {
 	struct AddrHT *addrHT = NULL;
@@ -119,13 +153,13 @@ void compute_version(struct TPMContext *tpm, u32 type)
 
 	switch(type){
 		case TPM_Type_Memory:
-			printf("mem  version: min:%-4u avg:%-4u max:%-4u\n", min, total/n, max);
+			printf("mem  version: min:%-8u avg:%-8u max:%-8u\n", min, total/n, max);
 			break;
 		case TPM_Type_Register:
-			printf("reg  version: min:%-4u avg:%-4u max:%-4u\n", min, total/n, max);
+			printf("reg  version: min:%-8u avg:%-8u max:%-8u\n", min, total/n, max);
 			break;	
 		case TPM_Type_Temprary:
-			printf("temp version: min:%-4u avg:%-4u max:%-4u\n", min, total/n, max);
+			printf("temp version: min:%-8u avg:%-8u max:%-8u\n", min, total/n, max);
 			break;
 		default:
 			fprintf(stderr, "unkown type\n");
@@ -172,7 +206,7 @@ void compute_version_all(struct TPMContext *tpm)
 	}
 	n = HASH_CNT(hh_ver, addrHT);
 	// print_ver_ht(&addrHT);
-	printf("all  version: min:%-4u avg:%-4u max:%-4u\n", min, total/n, max);
+	printf("all  version: min:%-8u avg:%-8u max:%-8u\n", min, total/n, max);
 	del_ver_ht(&addrHT);	
 }
 
@@ -202,13 +236,13 @@ compute_outd(struct TPMContext *tpm, u32 type)
 
 	switch(type){
 		case TPM_Type_Memory:
-			printf("mem  outdegree: min:%u avg:%u max:%u\n", min, total/num, max);
+			printf("mem  outdegree: min:%-4u avg:%-4u max:%-4u\n", min, total/num, max);
 			break;
 		case TPM_Type_Register:
-			printf("reg  outdegree: min:%u avg:%u max:%u\n", min, total/num, max);
+			printf("reg  outdegree: min:%-4u avg:%-4u max:%-4u\n", min, total/num, max);
 			break;	
 		case TPM_Type_Temprary:
-			printf("temp outdegree: min:%u avg:%u max:%u\n", min, total/num, max);
+			printf("temp outdegree: min:%-4u avg:%-4u max:%-4u\n", min, total/num, max);
 			break;
 		default:
 			fprintf(stderr, "unkown type\n");
@@ -236,7 +270,7 @@ compute_outd_all(struct TPMContext *tpm)
 			num++;
 		}
 	}
-	printf("all  outdegree: min:%u avg:%u max:%u\n", min, total/num, max);
+	printf("all  outdegree: min:%-4u avg:%-4u max:%-4u\n", min, total/num, max);
 }
 
 void 
@@ -263,6 +297,7 @@ stat(struct TPMContext *tpm)
 	compute_version(tpm, TPM_Type_Register);
 	compute_version(tpm, TPM_Type_Temprary);
 	printf("--------------------\n");
+	compute_cont_buf(tpm);
 }
 
 static u32  
