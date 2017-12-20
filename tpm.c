@@ -102,9 +102,6 @@ static void
 print_dst(struct Record *rec);
 
 static void 
-print_mem_node(struct TPMNode2 *n);
-
-static void 
 print_nonmem_node(struct TPMNode1 *n);
 
 static void 
@@ -1143,7 +1140,7 @@ print_dst(struct Record *rec)
     printf("flag:%-2x d_addr:%-8x d_val:%-8x\n", rec->flag, rec->d_addr, rec->d_val);
 }
 
-static void 
+void 
 print_mem_node(struct TPMNode2 *n)
 {
     printf("mem: type:%-1u addr:0x%-8x val:%-8x lastUpdateTS:%-16u"

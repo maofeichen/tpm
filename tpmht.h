@@ -25,6 +25,8 @@ struct MemHT
     UT_hash_handle hh_mem;  // hash table head, required by uthash
 };
 
+typedef struct MemHT MemHT;
+
 // Returns:
 //	0: success
 //	<0: error

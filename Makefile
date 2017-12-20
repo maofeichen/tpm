@@ -4,7 +4,8 @@ CC	= gcc
 CF	= -Wall -g -std=c11 
 LF	= -g 
 
-OBJS	= main.o tpm.o tpmht.o util.o stat.o versionht.o contbufht.o 
+OBJS	= main.o tpm.o tpmht.o util.o stat.o versionht.o contbufht.o \
+			avalanche.o 
 
 all	: tpm testtpm
 
@@ -37,6 +38,9 @@ contbufht.o : contbufht.c
 
 versionht.o: versionht.c
 	$(CC) $(CF) -c versionht.c
+
+avalanche.o: avalanche.c
+	$(CC) $(CF) -c avalanche.c
 
 clean	:
 	rm -rf *.o tpm testtpm

@@ -6,8 +6,8 @@
 #include "versionht.h"
 #include "contbufht.h"
 
-#ifndef STAT
-#define STAT
+#ifdef STAT
+#undef STAT 
 #endif
 
 #define MIN_BUF_SZ	8

@@ -18,13 +18,13 @@
 
 /* need to add all the XTaint record flag definition here */
 
-
 /* TPM related constants */
 #define MIN_BUF_SZ          8
 
 #define NUM_REG             14  // num of register (global temps)  
 #define REG_IDX_MASK        0xf
-#define MAX_TEMPIDX         128 // need to be adjuested based on XTaint log: the max temp index that Qemu uses
+#define MAX_TEMPIDX         128 // the max temp index that Qemu uses
+                                // need to be adjuested based on XTaint log: 
 
 
 #define BYTE                1
@@ -120,6 +120,12 @@ struct Record
     u32 is_storeptr;
 };
 
+typedef struct TPMNode1 TPMNode1;
+typedef struct TPMNode2 TPMNode2;
+typedef union TPMNode TPMNode;
+typedef struct Transition Transition;
+typedef struct TPMContext TPMContext;
+typedef struct Record Record;
 /* TPM function prototypes */
 
 int 
@@ -144,5 +150,9 @@ seqNo2NodeSearch(struct TPMContext *tpm, u32 seqNo);
 
 void 
 delTPM(struct TPMContext *tpm);
+
+/* print function */
+void 
+print_mem_node(struct TPMNode2 *n);
 
 #endif
