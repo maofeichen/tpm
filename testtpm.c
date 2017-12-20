@@ -46,7 +46,6 @@ void t_tpm_mem()
 	struct TPMContext* tpm = NULL;
 	union TPMNode *n; 
 	struct MemHT *l, *r;
-	int i;
 
 	u32 addr1 = 0xbffff7a0;
 	u32 val1  = 0xbeef;
@@ -110,7 +109,7 @@ void t_handle_src_reg(void)
 
 	tpm = calloc(1, sizeof(struct TPMContext) );
 
-	handle_src_reg(tpm, &rec, regCntxt, n);
+	handle_src_reg(tpm, &rec, regCntxt, &n);
 	free(tpm);	
 }
 
@@ -126,22 +125,19 @@ void t_handle_src_temp(void)
 	rec.s_addr = G_TEMP_ESI;
 	rec.s_val  = 0xbeef;
 	rec.ts 	   = 0;
-	handle_src_temp(tpm, &rec, tempCntxt, n);
+	handle_src_temp(tpm, &rec, tempCntxt, &n);
 
 	rec.s_addr = 68;
 	rec.s_val  = 0xbeef;
 	rec.ts 	   = 0;
-	handle_src_temp(tpm, &rec, tempCntxt, n);
+	handle_src_temp(tpm, &rec, tempCntxt, &n);
 
 	free(tpm);	
 }
 
 void t_mem_version(void)
 {
-	struct TPMContext* tpm = NULL;
 	union TPMNode *front, *next, *third; 
-	struct MemHT *l, *r;
-	int i;
 
 	u32 addr1 = 0xbffff7a0;
 	u32 val1  = 0xbee0;
@@ -176,7 +172,6 @@ void t_has_adjacent()
 	struct TPMContext* tpm = NULL;
 	union TPMNode *n1, *n2, *n3, *n4, *n5; 
 	struct MemHT *l, *r;
-	int i;
 	u32 ver; 
 
 	u32 addr1 = 0xbffff7a0;
@@ -229,9 +224,9 @@ void t_has_adjacent()
 	print_mem_ht(&(tpm->mem2NodeHT));
 
 	printf("0xbffff7a0 version: \n");
-	print_version(n1);
+	print_version(&(n1->tpmnode2) );
 	printf("0xbffff7a8 version: \n");
-	print_version(n3);
+	print_version(&(n3->tpmnode2));
 
 	n5 = create_first_version(addr2, val2, seq2);
 
@@ -242,9 +237,9 @@ void t_has_adjacent()
     print_mem_node(n5->tpmnode2.rightNBR);
 
     printf("0xbffff7a0 version: \n");
-	print_version(n1);
+	print_version(&(n1->tpmnode2));
 	printf("0xbffff7a8 version: \n");
-	print_version(n3);
+	print_version(&(n3->tpmnode2));
 
 	del_mem_ht(&(tpm->mem2NodeHT) );	// clear mem addr hash table
 	free(tpm);	
@@ -254,9 +249,6 @@ void t_trans(void)
 {
 	struct TPMContext* tpm = NULL;
 	union TPMNode *n1, *n2, *n3; 
-	struct MemHT *l, *r;
-	int i;
-	u32 ver; 
 
 	u32 addr1 = 0xbffff7a0;
 	u32 val1  = 0xbeef;

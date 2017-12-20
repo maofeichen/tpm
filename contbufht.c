@@ -1,4 +1,5 @@
 #include "contbufht.h"
+#include <stdio.h>
 
 int
 add_buf_ht(struct ContBufHT **contbufHT, u32 baddr, u32 eaddr, u32 minseq, u32 maxseq)

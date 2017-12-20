@@ -213,7 +213,7 @@ compute_outd(struct TPMContext *tpm, u32 type)
 	u32 num = 0, min, max = 0, total = 0;
 	int i = 0;
 
-	union TPMnode *n = get_firstnode_in_ht(tpm, type);
+	union TPMNode *n = (union TPMNode*)get_firstnode_in_ht(tpm, type);
 	min = get_out_degree(n);
 
 	for(; i < seqNo2NodeHashSize; i++) {
@@ -256,7 +256,7 @@ compute_outd_all(struct TPMContext *tpm)
 	u32 num = 0, min, max = 0, total = 0;
 	int i = 0;
 
-	union TPMnode *n = get_firstnode_in_ht(tpm, 0);
+	union TPMNode *n = (union TPMNode*)get_firstnode_in_ht(tpm, 0);
 	min = get_out_degree(n);
 
 	for(; i < seqNo2NodeHashSize; i++) {
@@ -332,11 +332,14 @@ get_firstnode_in_ht(struct TPMContext *tpm, u32 type)
 				}
 			}
 		}
-	} else {
+	} 
+	else {
 		for(int i = 0; i < seqNo2NodeHashSize; i++) {
 			if(tpm->seqNo2NodeHash[i] != NULL) {
 				return tpm->seqNo2NodeHash[i]; 
 			}
 		}
 	}
+
+	return n;
 }

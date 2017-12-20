@@ -1,4 +1,5 @@
 #include "versionht.h"
+#include <stdio.h>
 
 int
 add_ver_ht(struct AddrHT **addrHT, u32 addr)

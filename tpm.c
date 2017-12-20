@@ -421,7 +421,7 @@ handle_src_mem(struct TPMContext *tpm, struct Record *rec, union TPMNode **src)
         //     return -1; 
         // }
 
-        *src = src_hn->toMem;
+        *src = (union TPMNode*)src_hn->toMem;
 
 #ifdef DEBUG
         printf("\thandle src mem: addr:0x%-8x found in hash table\n", rec->s_addr);
@@ -504,7 +504,7 @@ handle_src_reg(struct TPMContext *tpm, struct Record *rec, struct TPMNode1 *regC
             //     return -1; 
             // }
 
-            *src = regCntxt[id];
+            *src = (union TPMNode*)regCntxt[id];
 #ifdef DEBUG
             printf("\thandle src reg: found reg in regCntxt\n");
             print_nonmem_node(regCntxt[id]);
@@ -566,7 +566,7 @@ handle_src_temp(struct TPMContext *tpm, struct Record *rec, struct TPMNode1 *tem
         //     return -1; 
         // }
 
-        *src = tempCntxt[rec->s_addr];
+        *src = (union TPMNode*)tempCntxt[rec->s_addr];
 #ifdef DEBUG
         printf("\thandle src temp: found temp in tempCntxt\n");
         print_nonmem_node(tempCntxt[rec->s_addr]);       
@@ -721,7 +721,7 @@ handle_dst_reg(struct TPMContext *tpm, struct Record *rec, struct TPMNode1 *regC
                 //     print_nonmem_node(regCntxt[id]);
                 //     return -1;
                 // }           
-                *dst = regCntxt[id]; 
+                *dst = (union TPMNode*)regCntxt[id]; 
                 // TODO: update the seqNo hash table                                       
             }
         }
@@ -788,7 +788,7 @@ handle_dst_temp(struct TPMContext *tpm, struct Record *rec, struct TPMNode1 *tem
                 //     print_nonmem_node(tempCntxt[rec->d_addr]);
                 //     return -1;
                 // }
-                *dst = tempCntxt[rec->d_addr];
+                *dst = (union TPMNode*)tempCntxt[rec->d_addr];
                 // TODO: update the seqNo hash table                                       
         }
     }
