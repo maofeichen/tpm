@@ -151,8 +151,20 @@ seqNo2NodeSearch(struct TPMContext *tpm, u32 seqNo);
 void 
 delTPM(struct TPMContext *tpm);
 
+/* misc operation */
+int 
+get_earliest_version(struct TPMNode2 **earliest);
+
 /* print function */
+void 
+print_tpmnode(TPMNode *tpmnode);
+
 void 
 print_mem_node(struct TPMNode2 *n);
 
+void 
+print_transition(union TPMNode *head);
+
+void 
+print_single_transition(Transition *transition);
 #endif

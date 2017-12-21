@@ -36,6 +36,7 @@ int main(int argc, char const *argv[])
 			/* test dfs */
 			MemHT *found = find_mem_ht(&(tpm->mem2NodeHT), 0xde911000);
 			TPMNode2 *source = found->toMem;
+			get_earliest_version(&source);
 			dfs(tpm, source); 
 
 			printf("del TPM\n");

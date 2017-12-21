@@ -75,9 +75,6 @@ set_version(union TPMNode *tpmnode, u32 ver);
 static u32 
 get_version(struct TPMNode2 *node);
 
-static int 
-get_earliest_version(struct TPMNode2 **earliest);
-
 /* temp or register nodes */
 static void 
 clear_tempcontext(struct TPMNode1 *tempCntxt[] );
@@ -107,8 +104,7 @@ print_nonmem_node(struct TPMNode1 *n);
 static void 
 print_version(struct TPMNode2 *head);
 
-static void 
-print_transition(union TPMNode *head);
+
 
 int 
 isPropagationOverwriting(u32 flag)
@@ -118,6 +114,8 @@ isPropagationOverwriting(u32 flag)
  *  <0: error
  */
 {
+    // Due to allow source and destination are same. always overwrite
+    return 1;
   /* to be added */
   switch(flag) {
     case TCG_LD_i32:
@@ -249,9 +247,9 @@ processOneXTaintRecord(struct TPMContext *tpm, struct Record *rec, struct TPMNod
         else { return -1; }
     }
 
-    //  creates transition node, need to deal how bind the transition node pointer
-    if(create_trans_node(rec->ts, s_type, src, dst) != NULL) {}
-    else { return -1; } 
+    //  creates transition node, binds the transition node pointer to src
+    if( (create_trans_node(rec->ts, s_type, src, dst) ) != NULL) {}
+    else { return -1; }
 
     return sc+dc;
 }
@@ -1058,7 +1056,7 @@ get_version(struct TPMNode2 *node)
     return node->version;
 }
 
-static int 
+int 
 get_earliest_version(struct TPMNode2 **earliest)
 // Returns:
 //  0: success
@@ -1171,7 +1169,7 @@ print_version(struct TPMNode2 *head)
     } while(head == NULL || head->version != 0);
 }
 
-static void 
+void 
 print_transition(union TPMNode *head)
 {
     struct Transition *t = head->tpmnode1.firstChild; 
@@ -1187,5 +1185,28 @@ print_transition(union TPMNode *head)
        else { fprintf(stderr, "error: print trans: unkown type\n"); break; }
 
        t = t->next;
+    }
+}
+
+void 
+print_single_transition(Transition *transition)
+{
+    if(transition != NULL) {
+        printf("Transition:%p\n seqNo:%u\n", transition, transition->seqNo);
+        printf("Child:\n");
+        print_tpmnode(transition->child);
+    }
+}
+
+void 
+print_tpmnode(TPMNode *tpmnode)
+{
+    if(tpmnode != NULL) {
+        if(tpmnode->tpmnode1.type == TPM_Type_Memory) {
+            print_mem_node(&(tpmnode->tpmnode2) );
+        }
+        else {
+            print_nonmem_node(&(tpmnode->tpmnode1) );
+        }
     }
 }
