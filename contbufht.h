@@ -1,6 +1,7 @@
 #ifndef CONTBUFHT_H
 #define CONTBUFHT_H 
 
+#include "tpm.h"
 #include "uthash.h"
 
 #define u32 unsigned int
@@ -11,12 +12,13 @@ struct ContBufHT
 	u32 eaddr;
 	u32 minseq;
 	u32 maxseq;
+	TPMNode2 *firstNode;
 	UT_hash_handle hh_cont;
 };
 
 /* version hash table */
 int
-add_buf_ht(struct ContBufHT **contbufHT, u32 baddr, u32 eaddr, u32 minseq, u32 maxseq);
+add_buf_ht(struct ContBufHT **contbufHT, u32 baddr, u32 eaddr, u32 minseq, u32 maxseq, TPMNode2 *firstNode);
 
 struct ContBufHT *
 find_buf_ht(struct ContBufHT **contbufHT, u32 baddr);

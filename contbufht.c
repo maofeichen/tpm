@@ -2,7 +2,7 @@
 #include <stdio.h>
 
 int
-add_buf_ht(struct ContBufHT **contbufHT, u32 baddr, u32 eaddr, u32 minseq, u32 maxseq)
+add_buf_ht(struct ContBufHT **contbufHT, u32 baddr, u32 eaddr, u32 minseq, u32 maxseq, TPMNode2 *firstNode)
 {
 	struct ContBufHT *s;
 
@@ -17,14 +17,15 @@ add_buf_ht(struct ContBufHT **contbufHT, u32 baddr, u32 eaddr, u32 minseq, u32 m
 		s->eaddr = eaddr;
 		s->minseq = minseq;
 		s->maxseq = maxseq;
+		s->firstNode = firstNode;
 	} else {	// if found, updates 
 		if(s->eaddr < eaddr) {
 			s->eaddr = eaddr;
 			s->minseq = minseq;
-			s->maxseq = maxseq;		
+			s->maxseq = maxseq;	
+			s->firstNode = firstNode;	
 		}
 	}
-
 	return 0;
 }
 
@@ -59,7 +60,10 @@ print_buf_ht(struct ContBufHT **contbufHT)
 {
 	struct ContBufHT *s;
 	for(s = *contbufHT; s != NULL; s = s->hh_cont.next) {
+		// printf("--------------------\n");
 		printf("begin:0x%-8x end:0x%-8x sz:%-4u minseq:%-6u maxseq:%-6u diffseq:%u\n", 
-				s->baddr, s->eaddr, s->eaddr-s->baddr, s->minseq, s->maxseq, s->maxseq-s->minseq);	
+				s->baddr, s->eaddr, s->eaddr-s->baddr, s->minseq, s->maxseq, s->maxseq-s->minseq);
+		// printf("firt node first version:\n");
+		// print_mem_node(s->firstNode);	
 	}
 }

@@ -61,12 +61,12 @@ dfs(TPMContext *tpm, TPMNode2 *s)
 		return -1;
 	}
 
-// #ifdef DEBUG
+#ifdef DEBUG
 	printf("--------------------\n");
 	printf("dfs:\ntpm:%p\nsource ", tpm);
 	print_mem_node(s);
 	printf("--------------------\n");
-// #endif
+#endif
 
 	TransitionHashTable *markVisitTransHT = NULL;
 	Transition *source_trans = s->firstChild;
@@ -77,19 +77,25 @@ dfs(TPMContext *tpm, TPMNode2 *s)
 		while(!isStackTransEmpty() ) {
 			Transition *pop = stackTransPop();
 			TPMNode *dst = getDestination(pop);
+#ifdef DEBUG
 			if(dst->tpmnode1.type == TPM_Type_Memory)
 				printf("propagate to addr:%x val:%x\n", dst->tpmnode2.addr, dst->tpmnode2.val);
+#endif
 			stepCount++;
 
 			storeAllUnvisitChildren(&markVisitTransHT, dst->tpmnode1.firstChild);
 		}
 	}
 	else { 
+#ifdef DEBUG
 		printf("dfs: given source is a leaf\n");
-		print_mem_node(s); 
+		print_mem_node(s);
+#endif	 
 	}
 
+#ifdef DEBUG
 	printf("total:%u traverse steps\n", stepCount);
+#endif
 	del_trans_ht(&markVisitTransHT);
 	stackTransPopAll();
 
@@ -126,7 +132,7 @@ del_trans_ht(TransitionHashTable **transitionht)
 		HASH_DELETE(hh_trans, *transitionht, curr);
 		free(curr);
 	}
-	printf("del transition hash table\n");
+	// printf("del transition hash table\n");
 }
 
 static void 

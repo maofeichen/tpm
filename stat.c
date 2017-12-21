@@ -1,4 +1,5 @@
 #include "stat.h"
+#include "avalanche.h"
 
 static u32 
 get_out_degree(union TPMNode *t);
@@ -7,7 +8,7 @@ static union TPMNode *
 get_firstnode_in_ht(struct TPMContext *tpm, u32 type);
 
 void 
-get_cont_buf(struct TPMNode2 *node, u32 *baddr, u32 *eaddr, u32 *minseq, u32 *maxseq)
+get_cont_buf(struct TPMNode2 *node, u32 *baddr, u32 *eaddr, u32 *minseq, u32 *maxseq, TPMNode2 **firstnode)
 // Computes 
 //	- baddr
 //	- eaddr
@@ -34,6 +35,8 @@ get_cont_buf(struct TPMNode2 *node, u32 *baddr, u32 *eaddr, u32 *minseq, u32 *ma
 	}
 	*baddr = b->addr;
 
+
+
 	while(e->rightNBR != NULL) {
 		u32 seq = e->lastUpdateTS;
 		if(*minseq > seq)
@@ -46,6 +49,11 @@ get_cont_buf(struct TPMNode2 *node, u32 *baddr, u32 *eaddr, u32 *minseq, u32 *ma
 	}
 	*eaddr = e->addr + 4;	// assume end addr always 4 bytes
 
+	// get first node first version
+	*firstnode = b;
+	get_earliest_version(firstnode);
+	// print_mem_node(*firstnode);
+
 	// if((*eaddr - *baddr) >= 8)
 	// 	printf("begin addr:0x%-8x end addr:0x%-8x minseq:%u maxseq:%u\n", *baddr, *eaddr, *minseq, *maxseq);	
 }
@@ -55,16 +63,17 @@ compute_cont_buf(struct TPMContext *tpm)
 {
 	struct ContBufHT *bufHT = NULL, *s;
 	u32 baddr, eaddr, minseq, maxseq;
+	TPMNode2 *firstnode = NULL; 
 
 	for(int i = 0; i < seqNo2NodeHashSize; i++) {
 		if(tpm->seqNo2NodeHash[i] != NULL) {
 			union TPMNode *t = tpm->seqNo2NodeHash[i];
 			if(t->tpmnode1.type == TPM_Type_Memory) {
-				get_cont_buf(&(t->tpmnode2), &baddr, &eaddr, &minseq, &maxseq );
+				get_cont_buf(&(t->tpmnode2), &baddr, &eaddr, &minseq, &maxseq, &firstnode);
 				if( (eaddr - baddr) >= MIN_BUF_SZ) {
 					s = find_buf_ht(&bufHT, baddr);
 					if(s == NULL) {
-						if(add_buf_ht(&bufHT, baddr, eaddr, minseq, maxseq) >= 0) {}
+						if(add_buf_ht(&bufHT, baddr, eaddr, minseq, maxseq, firstnode) >= 0) {}
 						else { fprintf(stderr, "error: add buf ht\n"); return; }
 					}
 					else {
@@ -98,7 +107,23 @@ compute_cont_buf(struct TPMContext *tpm)
 	printf("continuous buffers: min sz:%-2u bytes avg sz:%-2u bytes max sz:%-2u bytes\n", minsz, totalsz/num, maxsz);
 	// count_buf_ht(&bufHT);
 	printf("--------------------\n");
-	print_buf_ht(&bufHT);
+
+
+	u32 minstep = 100, maxstep = 0, totalstep = 0;
+	s = bufHT;
+	for(; s != NULL; s = s->hh_cont.next) {
+		u32 step = dfs(tpm, s->firstNode);
+		if(minstep > step)
+			minstep = step;
+
+		if(maxstep < step)
+			maxstep = step;
+
+		totalstep += step;
+	}
+	printf("traverse numbers (begin node first version): min step:%u avg step:%u max step:%u\n", minstep, totalstep/num, maxstep);
+
+	// print_buf_ht(&bufHT);
 	del_buf_ht(&bufHT);
 }
 

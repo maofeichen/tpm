@@ -6,14 +6,18 @@
 #include "versionht.h"
 #include "contbufht.h"
 
-#ifdef STAT
-#undef STAT 
+// #ifdef STAT
+// #undef STAT 
+// #endif
+
+#ifndef STAT
+#define STAT
 #endif
 
 #define MIN_BUF_SZ	8
 
 /* continuous buf */
-void get_cont_buf(struct TPMNode2 *node, u32 *baddr, u32 *eaddr, u32 *minseq, u32 *maxseq);
+void get_cont_buf(struct TPMNode2 *node, u32 *baddr, u32 *eaddr, u32 *minseq, u32 *maxseq, TPMNode2 **firstnode);
 void compute_cont_buf(struct TPMContext *tpm);
 
 /* version */
