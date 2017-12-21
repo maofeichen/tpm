@@ -102,7 +102,7 @@ static void
 print_nonmem_node(struct TPMNode1 *n);
 
 int 
-isPropagationOverwriting(u32 flag)
+isPropagationOverwriting(u32 flag, Record *rec)
 /* return:
  * 	0: not overwriting
  *  1: overwriting
@@ -110,7 +110,10 @@ isPropagationOverwriting(u32 flag)
  */
 {
     // Due to allow source and destination are same. always overwrite
-    return 1;
+    if(flag == TCG_XOR_i32 && rec->s_addr != rec->d_addr)
+        return 0;
+    else
+        return 1;
   /* to be added */
   switch(flag) {
     case TCG_LD_i32:
@@ -279,6 +282,7 @@ buildTPM(FILE *taintfp, struct TPMContext *tpm)
                 struct Record rec = {0};
                 if(split(line, '\t', &rec) == 0) {
                     // print_record(&rec);
+
                     /* n increases by how many new nodes created */ 
                     if( (i = processOneXTaintRecord(tpm, &rec, regCntxt, tempCntxt) ) >= 0) { n += i; }  
                     else { return -1; }
@@ -594,7 +598,7 @@ handle_dst_mem(struct TPMContext *tpm, struct Record *rec, union TPMNode **dst)
     print_dst(rec);
 #endif      
 
-    if(isPropagationOverwriting(rec->flag) ) { // overwrite
+    if(isPropagationOverwriting(rec->flag, rec) ) { // overwrite
         if( is_addr_in_ht(tpm, &dst_hn, rec->d_addr) ) { // in TPM 
             *dst = createTPMNode(TPM_Type_Memory, rec->d_addr, rec->d_val, rec->ts);
             version = get_version(dst_hn->toMem);
@@ -679,7 +683,7 @@ handle_dst_reg(struct TPMContext *tpm, struct Record *rec, struct TPMNode1 *regC
             n++;
         }
         else { // in tpm
-            if(isPropagationOverwriting(rec->flag) ) { // overwrite
+            if(isPropagationOverwriting(rec->flag, rec) ) { // overwrite
                 *dst = createTPMNode(TPM_Type_Register, rec->d_addr, rec->d_val, rec->ts);
                 regCntxt[id] = &( (*dst)->tpmnode1);
                 tpm->seqNo2NodeHash[rec->d_ts] = *dst;   // updates seqNo hash table
@@ -746,7 +750,7 @@ handle_dst_temp(struct TPMContext *tpm, struct Record *rec, struct TPMNode1 *tem
         n++;
     }
     else { // in TPM
-        if(isPropagationOverwriting(rec->flag) ) { // overwrite
+        if(isPropagationOverwriting(rec->flag, rec) ) { // overwrite
             *dst = createTPMNode(TPM_Type_Temprary, rec->d_addr, rec->d_val, rec->ts);
             tempCntxt[rec->d_addr] = &( (*dst)->tpmnode1);
             tpm->seqNo2NodeHash[rec->d_ts] = *dst;   // updates seqNo hash table
@@ -925,7 +929,7 @@ has_left_adjacent(struct TPMContext *tpm, struct MemHT **item, u32 addr)
     *item = find_mem_ht( &(tpm->mem2NodeHT), l_adjcnt);
     if(*item != NULL) {
 #ifdef DEBUG
-        printf("has left adjacent: addr: 0x%x\n", *item->toMem->addr); 
+        printf("has left adjacent: addr: 0x%x\n", (*item)->toMem->addr); 
 #endif                                
         return true; 
     }else { // doesn't find 4 bytes left adjacent

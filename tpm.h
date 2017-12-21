@@ -129,7 +129,7 @@ typedef struct Record Record;
 /* TPM function prototypes */
 
 int 
-isPropagationOverwriting(u32 flag);
+isPropagationOverwriting(u32 flag, Record *rec);
 
 union TPMNode*
 createTPMNode(u32 type, u32 addr, u32 val, u32 TS);

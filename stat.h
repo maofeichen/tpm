@@ -6,13 +6,13 @@
 #include "versionht.h"
 #include "contbufht.h"
 
-// #ifdef STAT
-// #undef STAT 
-// #endif
-
-#ifndef STAT
-#define STAT
+#ifdef STAT
+#undef STAT 
 #endif
+
+// #ifndef STAT
+// #define STAT
+// #endif
 
 #define MIN_BUF_SZ	8
 

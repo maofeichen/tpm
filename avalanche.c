@@ -61,12 +61,10 @@ dfs(TPMContext *tpm, TPMNode2 *s)
 		return -1;
 	}
 
-#ifdef DEBUG
+// #ifdef DEBUG
 	printf("--------------------\n");
-	printf("dfs:\ntpm:%p\nsource ", tpm);
-	print_mem_node(s);
-	printf("--------------------\n");
-#endif
+	printf("dfs: source addr:%x val:%x ts:%u version%u\n", s->addr, s->val, s->lastUpdateTS, s->version);
+// #endif
 
 	TransitionHashTable *markVisitTransHT = NULL;
 	Transition *source_trans = s->firstChild;
@@ -77,10 +75,10 @@ dfs(TPMContext *tpm, TPMNode2 *s)
 		while(!isStackTransEmpty() ) {
 			Transition *pop = stackTransPop();
 			TPMNode *dst = getDestination(pop);
-#ifdef DEBUG
+// #ifdef DEBUG
 			if(dst->tpmnode1.type == TPM_Type_Memory)
 				printf("propagate to addr:%x val:%x\n", dst->tpmnode2.addr, dst->tpmnode2.val);
-#endif
+// #endif
 			stepCount++;
 
 			storeAllUnvisitChildren(&markVisitTransHT, dst->tpmnode1.firstChild);
