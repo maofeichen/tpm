@@ -70,6 +70,7 @@ dfs(TPMContext *tpm, TPMNode2 *s)
 
 	TransitionHashTable *markVisitTransHT = NULL;
 	Transition *source_trans = s->firstChild;
+	int stepCount = 0;
 
 	if(source_trans != NULL) {
 		storeAllUnvisitChildren(&markVisitTransHT, source_trans);
@@ -78,6 +79,7 @@ dfs(TPMContext *tpm, TPMNode2 *s)
 			TPMNode *dst = getDestination(pop);
 			if(dst->tpmnode1.type == TPM_Type_Memory)
 				printf("propagate to addr:%x val:%x\n", dst->tpmnode2.addr, dst->tpmnode2.val);
+			stepCount++;
 
 			storeAllUnvisitChildren(&markVisitTransHT, dst->tpmnode1.firstChild);
 		}
@@ -87,10 +89,11 @@ dfs(TPMContext *tpm, TPMNode2 *s)
 		print_mem_node(s); 
 	}
 
+	printf("total:%u traverse steps\n", stepCount);
 	del_trans_ht(&markVisitTransHT);
 	stackTransPopAll();
 
-	return 0;	
+	return stepCount;	
 }
 
 static void 

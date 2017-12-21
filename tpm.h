@@ -163,6 +163,9 @@ void
 print_mem_node(struct TPMNode2 *n);
 
 void 
+print_version(struct TPMNode2 *head);
+
+void 
 print_transition(union TPMNode *head);
 
 void 

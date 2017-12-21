@@ -101,11 +101,6 @@ print_dst(struct Record *rec);
 static void 
 print_nonmem_node(struct TPMNode1 *n);
 
-static void 
-print_version(struct TPMNode2 *head);
-
-
-
 int 
 isPropagationOverwriting(u32 flag)
 /* return:
@@ -284,19 +279,6 @@ buildTPM(FILE *taintfp, struct TPMContext *tpm)
                 struct Record rec = {0};
                 if(split(line, '\t', &rec) == 0) {
                     // print_record(&rec);
-                    // if(rec.s_addr != rec.d_addr) {
-                    //     // n increases by how many new nodes created 
-                    //     if( (i = processOneXTaintRecord(tpm, &rec, regCntxt, tempCntxt) ) >= 0) { n += i; }  
-                    //     else { return -1; }
-                    // }
-                    // else {} // skip
-
-                    /* DBG: print all load/store pointer records */
-                    // if(rec.flag >= 0x56 && rec.flag < 0x5a 
-                    //     || (rec.flag >= 0x5e && rec.flag <= 0x61) ) {
-                    //     print_record(&rec);
-                    // }
-
                     /* n increases by how many new nodes created */ 
                     if( (i = processOneXTaintRecord(tpm, &rec, regCntxt, tempCntxt) ) >= 0) { n += i; }  
                     else { return -1; }
@@ -1156,7 +1138,7 @@ print_nonmem_node(struct TPMNode1 *n)
             n->type, n->addr, n->val, n->lastUpdateTS);   
 }
 
-static void 
+void 
 print_version(struct TPMNode2 *head)
 {
     if(head == NULL)
