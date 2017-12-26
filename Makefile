@@ -4,8 +4,7 @@ CC	= gcc
 CF	= -Wall -g -std=c11 
 LF	= -g 
 
-OBJS	= main.o tpm.o tpmht.o util.o stat.o versionht.o contbufht.o \
-			avalanche.o 
+OBJS	= main.o tpm.o tpmht.o util.o stat.o avalanche.o 
 
 all	: tpm testtpm
 

@@ -4,7 +4,7 @@
 #include "tpm.h"
 #include "uthash.h"
 // #include "versionht.h"
-#include "contbufht.h"
+// #include "contbufht.h"
 
 #ifdef STAT
 #undef STAT 
@@ -16,6 +16,7 @@
 
 #define MIN_BUF_SZ	8
 
+/* version hash table */
 struct AddrHT
 {
     u32 addr;
@@ -23,7 +24,16 @@ struct AddrHT
     UT_hash_handle hh_ver;  // hash table head, required by uthash
 };
 
-
+/* Continuous Buf hash table */
+struct ContBufHT
+{
+	u32 baddr;
+	u32 eaddr;
+	u32 minseq;
+	u32 maxseq;
+	TPMNode2 *firstNode;
+	UT_hash_handle hh_cont;
+};
 
 /* continuous buf */
 void get_cont_buf(struct TPMNode2 *node, u32 *baddr, u32 *eaddr, u32 *minseq, u32 *maxseq, TPMNode2 **firstnode);
