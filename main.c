@@ -1,5 +1,7 @@
 #include <stdlib.h>
-#include "avalanche.h"
+
+// #include "avalanche.h"
+#include "propagate.h"
 #include "stat.h"
 #include "tpm.h"
 
@@ -43,7 +45,7 @@ int main(int argc, char const *argv[])
 			// } while (source->version != 0);
 
 			printf("del TPM\n");
-			del_mem_ht(&(tpm->mem2NodeHT) );	// clear mem addr hash table
+			// del_mem_ht(&(tpm->mem2NodeHT) );	// clear mem addr hash table
 			free(tpm); 							// TODO: merge in delTPM()
 		} 
 		else { fprintf(stderr, "error alloc: TPMContext\n"); }

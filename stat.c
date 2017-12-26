@@ -1,6 +1,6 @@
 #include "stat.h"
-#include "avalanche.h"
-
+// #include "avalanche.h"
+#include "propagate.h"
 
 /* version hash table */
 static int
