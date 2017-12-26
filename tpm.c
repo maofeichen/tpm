@@ -11,6 +11,26 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* mem addr hash table */
+
+// Returns:
+//  0: success
+//  <0: error
+static int
+add_mem_ht(struct MemHT **mem2NodeHT, u32 addr, struct TPMNode2 *toMem);
+
+static struct MemHT* 
+find_mem_ht(struct MemHT **mem2NodeHT, u32 addr);
+
+static void
+del_mem_ht(struct MemHT **mem2NodeHT);
+
+static void 
+count_mem_ht(struct MemHT **mem2NodeHT);
+
+static void 
+print_mem_ht(struct MemHT **mem2NodeHT);
+
 /* TPMContext related */
 static void 
 init_tpmcontext(struct TPMContext *tpm);
@@ -1194,5 +1214,62 @@ print_tpmnode(TPMNode *tpmnode)
         else {
             print_nonmem_node(&(tpmnode->tpmnode1) );
         }
+    }
+}
+
+int
+add_mem_ht(struct MemHT **mem2NodeHT, u32 addr, struct TPMNode2 *toMem)
+{
+    struct MemHT *s;
+
+    if(mem2NodeHT == NULL || toMem == NULL)
+        return -1;
+
+    s = find_mem_ht(mem2NodeHT, addr);
+    if(s == NULL) { // if not found, creates new 
+        s = (struct MemHT*)malloc(sizeof(struct MemHT) );
+        s->addr = addr;
+        HASH_ADD(hh_mem, *mem2NodeHT, addr, 4, s);
+        s->toMem = toMem;
+    } else {    // if found, updates 
+        s->toMem = toMem;
+    }
+
+    return 0;
+}
+
+/* mem addr hash table */
+static struct MemHT *
+find_mem_ht(struct MemHT **mem2NodeHT, u32 addr)
+{
+    struct MemHT *s;
+    HASH_FIND(hh_mem, *mem2NodeHT, &addr, 4, s);
+    return s;   
+}
+
+static void
+del_mem_ht(struct MemHT **mem2NodeHT)
+{
+    struct MemHT *curr, *tmp;
+    HASH_ITER(hh_mem, *mem2NodeHT, curr, tmp) {
+        HASH_DELETE(hh_mem, *mem2NodeHT, curr);
+        free(curr);
+    }
+}
+
+static void 
+count_mem_ht(struct MemHT **mem2NodeHT)
+{
+    u32 num;
+    num = HASH_CNT(hh_mem, *mem2NodeHT);
+    printf("total: %u mem addr in hash table\n", num);
+}
+
+static void 
+print_mem_ht(struct MemHT **mem2NodeHT)
+{
+    struct MemHT *s;
+    for(s = *mem2NodeHT; s != NULL; s = s->hh_mem.next) {
+        printf("mem - addr: %x - to mem node: %p\n", s->addr, s->toMem);
     }
 }

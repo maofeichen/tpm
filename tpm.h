@@ -11,8 +11,8 @@
 #ifndef TPM_H
 #define TPM_H
 
+#include "uthash.h"
 #include "flag.h"   // XTaint record flag
-#include "tpmht.h"  // hash tables
 
 #define u32	unsigned int
 
@@ -40,6 +40,7 @@
 #define TPM_Type_Memory		0x00000004
 
 struct Transition;
+struct MemHT;
 
 struct TPMNode1		// for temp, register addresses
 {
@@ -118,12 +119,21 @@ struct Record
     u32 is_storeptr;
 };
 
+/* mem hash tables, according to uthash */
+struct MemHT
+{
+    u32 addr;               // key
+    struct TPMNode2 *toMem; // val
+    UT_hash_handle hh_mem;  // hash table head, required by uthash
+};
+
 typedef struct TPMNode1 TPMNode1;
 typedef struct TPMNode2 TPMNode2;
 typedef union TPMNode TPMNode;
 typedef struct Transition Transition;
 typedef struct TPMContext TPMContext;
 typedef struct Record Record;
+typedef struct MemHT MemHT;
 
 /* TPM function prototypes */
 
