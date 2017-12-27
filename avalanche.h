@@ -2,8 +2,9 @@
 #define AVALANCHE_H 
 
 #include "uthash.h"
+
+#include "tpmnode.h"
 #include "type.h"
-// #include "tpm.h"
 
 struct addr2NodeItem
 {

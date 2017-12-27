@@ -2,6 +2,7 @@
 #define TPMNODE_H 
 
 #include "type.h"
+#include <stdbool.h>
 
 #define TPM_Type_Register	0x00000001
 #define TPM_Type_Temprary	0x00000002
@@ -52,5 +53,36 @@ typedef struct taintedBuf TaintedBuf;
 
 union TPMNode*
 createTPMNode(u32 type, u32 addr, u32 val, u32 TS);
+
+union TPMNode *
+create_first_version(u32 addr, u32 val, u32 ts);
+
+bool 
+add_next_version(struct TPMNode2 *front, struct TPMNode2 *next);
+
+int 
+set_version(union TPMNode *tpmnode, u32 ver);
+
+u32 
+get_version(struct TPMNode2 *node);
+
+int 
+get_earliest_version(struct TPMNode2 **earliest);
+
+int 
+get_type(u32 flag);
+
+/* print function */
+void 
+print_tpmnode(TPMNode *tpmnode);
+
+void 
+print_mem_node(struct TPMNode2 *n);
+
+void 
+print_nonmem_node(struct TPMNode1 *n);
+
+void 
+print_version(struct TPMNode2 *head);
 
 #endif

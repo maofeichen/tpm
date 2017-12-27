@@ -1,5 +1,6 @@
-#include <stdbool.h>
 #include "avalanche.h"
+#include <stdbool.h>
+#include "stdio.h"
 
 int
 init_AvalancheSearchCtxt(struct AvalancheSearchCtxt **avalsctxt, u32 minBufferSz, struct TPMNode2 *srcBuf, 
@@ -10,10 +11,11 @@ init_AvalancheSearchCtxt(struct AvalancheSearchCtxt **avalsctxt, u32 minBufferSz
 	(*avalsctxt)->minBufferSz 	= minBufferSz;
 	(*avalsctxt)->srcBuf 		= srcBuf;
 	(*avalsctxt)->dstBuf 		= dstBuf;
-	(*avalsctxt)->srcAddrStart = srcAddrStart;
+	(*avalsctxt)->srcAddrStart 	= srcAddrStart;
 	(*avalsctxt)->srcAddrEnd 	= srcAddrEnd;
-	(*avalsctxt)->dstAddrStart = dstAddrStart;
+	(*avalsctxt)->dstAddrStart 	= dstAddrStart;
 	(*avalsctxt)->dstAddrEnd 	= dstAddrEnd;
+	(*avalsctxt)->addr2Node		= NULL;	
 }
 
 void

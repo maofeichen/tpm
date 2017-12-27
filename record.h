@@ -81,5 +81,17 @@ u32 get_dst_ts(u32 ts);
 //		- bytesz if has
 int split(char *s, char c, struct Record *rec);
 
+/* print */
+void 
+print_record(struct Record *rec);
+
+void 
+print_src_addr(struct Record *rec);
+
+void 
+print_src(struct Record *rec);
+
+void 
+print_dst(struct Record *rec);
 
 #endif

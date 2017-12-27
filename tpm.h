@@ -77,9 +77,6 @@ struct MemHT
     UT_hash_handle hh_mem;  // hash table head, required by uthash
 };
 
-// typedef struct TPMNode1 TPMNode1;
-// typedef struct TPMNode2 TPMNode2;
-// typedef union TPMNode TPMNode;
 typedef struct Transition Transition;
 typedef struct TPMContext TPMContext;
 typedef struct MemHT MemHT;
@@ -88,9 +85,6 @@ typedef struct MemHT MemHT;
 
 int 
 isPropagationOverwriting(u32 flag, Record *rec);
-
-// union TPMNode*
-// createTPMNode(u32 type, u32 addr, u32 val, u32 TS);
 
 // u32 
 // processOneXTaintRecord(struct TPMContext *tpm, u32 seqNo, u32 size, u32 srcflg, u32 srcaddr, u32 dstflag, u32 dstaddr);
@@ -112,20 +106,7 @@ delTPM(struct TPMContext *tpm);
 void 
 searchAvalanche(TPMContext *tpm);
 
-/* misc operation */
-int 
-get_earliest_version(struct TPMNode2 **earliest);
-
 /* print function */
-void 
-print_tpmnode(TPMNode *tpmnode);
-
-void 
-print_mem_node(struct TPMNode2 *n);
-
-void 
-print_version(struct TPMNode2 *head);
-
 void 
 print_transition(union TPMNode *head);
 

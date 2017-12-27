@@ -175,3 +175,34 @@ split_nonmem(char r[MAX_NUM_FIELD][MAX_FIELD_SZ], struct Record *rec)
 	rec->d_ts 	= get_dst_ts(rec->ts);
 	return 0;
 }
+
+void 
+print_record(struct Record* rec)
+{
+    printf("flag:%-2x s_addr:%-8x s_val:%-8x" 
+                    " d_addr:%-8x d_val:%-8x"
+                    " size:%-2d seqNo:%-8u s_seqNo:%-8u d_seqNo:%-8u" 
+                    " load:%-1u store:%-1u loadptr:%-1u storeptr:%-1u\n", 
+            rec->flag, rec->s_addr, rec->s_val, 
+                       rec->d_addr, rec->d_val, 
+                       rec->bytesz, rec->ts, rec->s_ts, rec->d_ts, 
+                       rec->is_load, rec->is_store, rec->is_loadptr, rec->is_storeptr);
+}
+
+void 
+print_src_addr(struct Record *rec)
+{
+    printf("s_addr:%-8x seqNo:%-16u\n", rec->s_addr, rec->ts);
+}
+
+void 
+print_src(struct Record *rec)
+{
+    printf("flag:%-2x s_addr:%-8x s_val:%-8x\n", rec->flag, rec->s_addr, rec->s_val);
+}
+
+void 
+print_dst(struct Record *rec)
+{
+    printf("flag:%-2x d_addr:%-8x d_val:%-8x\n", rec->flag, rec->d_addr, rec->d_val);
+}

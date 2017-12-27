@@ -11,26 +11,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-/* mem addr hash table */
-
-// Returns:
-//  0: success
-//  <0: error
-static int
-add_mem_ht(struct MemHT **mem2NodeHT, u32 addr, struct TPMNode2 *toMem);
-
-static struct MemHT* 
-find_mem_ht(struct MemHT **mem2NodeHT, u32 addr);
-
-static void
-del_mem_ht(struct MemHT **mem2NodeHT);
-
-static void 
-count_mem_ht(struct MemHT **mem2NodeHT);
-
-static void 
-print_mem_ht(struct MemHT **mem2NodeHT);
-
 /* TPMContext related */
 static void 
 init_tpmcontext(struct TPMContext *tpm);
@@ -62,10 +42,6 @@ create_trans_node(u32 ts, u32 s_type, union TPMNode* src, union TPMNode* dst);
 static bool 
 is_equal_value(u32 val, union TPMNode *store);
 
-/* mem addr hash table */
-static bool  
-is_addr_in_ht(struct TPMContext *tpm, struct MemHT **item, u32 addr);
-
 /* handles adjacent memory nodes */
 static int 
 update_adjacent(struct TPMContext *tpm, union TPMNode *n, struct MemHT **l, struct MemHT **r, u32 addr, u32 bytesz);
@@ -82,44 +58,35 @@ has_right_adjacent(struct TPMContext *tpm,struct MemHT **item, u32 addr, u32 byt
 static bool 
 link_adjacent(struct TPMNode2 *linker, struct TPMNode2 *linkee, bool is_left);
 
-/* handles memory node's version */
-union TPMNode *
-create_first_version(u32 addr, u32 val, u32 ts);
-
-bool 
-add_next_version(struct TPMNode2 *front, struct TPMNode2 *next);
-
-static int 
-set_version(union TPMNode *tpmnode, u32 ver);
-
-static u32 
-get_version(struct TPMNode2 *node);
-
 /* temp or register nodes */
 static void 
 clear_tempcontext(struct TPMNode1 *tempCntxt[] );
 
 static int 
-get_type(u32 flag);
-
-static int 
 get_regcntxt_idx(u32 reg);
 
-/* print functions */
-static void 
-print_record(struct Record *rec);
+/* mem addr hash table */
+// Returns:
+//  0: success
+//  <0: error
+static int
+add_mem_ht(struct MemHT **mem2NodeHT, u32 addr, struct TPMNode2 *toMem);
+
+static struct MemHT *
+find_mem_ht(struct MemHT **mem2NodeHT, u32 addr);
+
+static void
+del_mem_ht(struct MemHT **mem2NodeHT);
 
 static void 
-print_src_addr(struct Record *rec);
+count_mem_ht(struct MemHT **mem2NodeHT);
 
 static void 
-print_src(struct Record *rec);
+print_mem_ht(struct MemHT **mem2NodeHT);
 
-static void 
-print_dst(struct Record *rec);
-
-static void 
-print_nonmem_node(struct TPMNode1 *n);
+/* mem addr hash table */
+static bool  
+is_addr_in_ht(struct TPMContext *tpm, struct MemHT **item, u32 addr);
 
 int 
 isPropagationOverwriting(u32 flag, Record *rec)
@@ -839,19 +806,6 @@ is_equal_value(u32 val, union TPMNode *store)
     else { return false; }
 }
 
-static bool  
-is_addr_in_ht(struct TPMContext *tpm, struct MemHT **item, u32 addr)
-// Returns:
-//  t: if has mem node
-//  f: if not found 
-//      found item stored in *item
-{   
-    *item = NULL;
-    *item = find_mem_ht( &(tpm->mem2NodeHT), addr);
-    if( (*item) != NULL) { return 1; }
-    else { return 0; }
-}
-
 static int 
 update_adjacent(struct TPMContext *tpm, union TPMNode *n, struct MemHT **l, struct MemHT **r, u32 addr, u32 bytesz)
 // Returns:
@@ -999,92 +953,12 @@ link_adjacent(struct TPMNode2 *linker, struct TPMNode2 *linkee, bool is_left)
     return true;
 }
 
-static int 
-set_version(union TPMNode *tpmnode, u32 ver)
-// Returns:
-//  0: success
-//  <0: error
-{
-    if(tpmnode == NULL)
-        return -1;
-
-    tpmnode->tpmnode2.version = ver;
-    return 0; 
-}
-
-union TPMNode *
-create_first_version(u32 addr, u32 val, u32 ts)
-// creates first version (0) memory node 
-{
-    union TPMNode *n;
-    n = createTPMNode(TPM_Type_Memory, addr, val, ts);
-    set_version(n, 0);   
-    n->tpmnode2.nextVersion = &(n->tpmnode2); // init points to itself
-    return n; 
-}
-
-bool 
-add_next_version(struct TPMNode2 *front, struct TPMNode2 *next)
-// Returns
-//  true: success
-//  false: error
-{
-    if(front == NULL || next == NULL)
-        return false;
-
-    // front node nextVersion should points to head mem node (0 ver)
-    if(front->nextVersion->version != 0)
-        return false; 
-
-    next->nextVersion  = front->nextVersion; // now next points to head
-    front->nextVersion = next;               // front points to next
-    return true;
-}
-
-static u32 
-get_version(struct TPMNode2 *node)
-// Returns
-//  the version of the mem node
-{
-    return node->version;
-}
-
-int 
-get_earliest_version(struct TPMNode2 **earliest)
-// Returns:
-//  0: success
-//  <0: error
-//  stores the earliest version in earliest
-{
-    if(earliest == NULL) {
-        fprintf(stderr, "error: get earliest version\n");
-        return -1;
-    }
-
-    // circulates the linked list until found 0 version
-    while( (*earliest)->version != 0) { 
-        *earliest = (*earliest)->nextVersion; 
-    }
-    return 0;
-}
-
-
 static void 
 clear_tempcontext(struct TPMNode1 *tempCntxt[] )
 {
    for(int i = 0; i < MAX_TEMPIDX; i++) {
     tempCntxt[i] = NULL;
    } 
-}
-
-static int 
-get_type(u32 addr)
-// Returns:
-//  reg or temp based on the addr 
-{
-    if(addr < G_TEMP_UNKNOWN) { return TPM_Type_Temprary; }
-    else if(addr <=  G_TEMP_EDI) { return TPM_Type_Register; } 
-    else { fprintf(stderr, "error: unkown addr type: addr: %u\n", addr); return -1; }
 }
 
 static int 
@@ -1098,68 +972,6 @@ get_regcntxt_idx(u32 reg)
         fprintf(stderr, "error: get regcntxt idx: wrong reg\n");
         return -1;
     }
-}
-
-static void 
-print_record(struct Record* rec)
-{
-    printf("flag:%-2x s_addr:%-8x s_val:%-8x" 
-                    " d_addr:%-8x d_val:%-8x"
-                    " size:%-2d seqNo:%-8u s_seqNo:%-8u d_seqNo:%-8u" 
-                    " load:%-1u store:%-1u loadptr:%-1u storeptr:%-1u\n", 
-            rec->flag, rec->s_addr, rec->s_val, 
-                       rec->d_addr, rec->d_val, 
-                       rec->bytesz, rec->ts, rec->s_ts, rec->d_ts, 
-                       rec->is_load, rec->is_store, rec->is_loadptr, rec->is_storeptr);
-}
-
-static void 
-print_src_addr(struct Record *rec)
-{
-    printf("s_addr:%-8x seqNo:%-16u\n", rec->s_addr, rec->ts);
-}
-
-static void 
-print_src(struct Record *rec)
-{
-    printf("flag:%-2x s_addr:%-8x s_val:%-8x\n", rec->flag, rec->s_addr, rec->s_val);
-}
-
-static void 
-print_dst(struct Record *rec)
-{
-    printf("flag:%-2x d_addr:%-8x d_val:%-8x\n", rec->flag, rec->d_addr, rec->d_val);
-}
-
-void 
-print_mem_node(struct TPMNode2 *n)
-{
-    printf("mem: type:%-1u addr:0x%-8x val:%-8x lastUpdateTS:%-16u"
-            " firstChild:%-8p leftNBR:%-8p rightNBR:%-8p nextVersion:%-8p"
-            " version:%-9u hitcnt:%-8u\n", 
-            n->type, n->addr, n->val, n->lastUpdateTS, 
-            n->firstChild, n->leftNBR, n->rightNBR, n->nextVersion,
-            n->version, n->hitcnt);
-}
-
-static void 
-print_nonmem_node(struct TPMNode1 *n)
-{
-     printf("non-mem: type:%-1u addr:0x%-8x val:%-8x lastUpdateTS:%-16u\n", 
-            n->type, n->addr, n->val, n->lastUpdateTS);   
-}
-
-void 
-print_version(struct TPMNode2 *head)
-{
-    if(head == NULL)
-        return;
-
-    do{
-        // printf("version: %u\n", head->version);
-        print_mem_node(head);
-        head = head->nextVersion;
-    } while(head == NULL || head->version != 0);
 }
 
 void 
@@ -1191,18 +1003,6 @@ print_single_transition(Transition *transition)
     }
 }
 
-void 
-print_tpmnode(TPMNode *tpmnode)
-{
-    if(tpmnode != NULL) {
-        if(tpmnode->tpmnode1.type == TPM_Type_Memory) {
-            print_mem_node(&(tpmnode->tpmnode2) );
-        }
-        else {
-            print_nonmem_node(&(tpmnode->tpmnode1) );
-        }
-    }
-}
 
 int
 add_mem_ht(struct MemHT **mem2NodeHT, u32 addr, struct TPMNode2 *toMem)
@@ -1260,3 +1060,17 @@ print_mem_ht(struct MemHT **mem2NodeHT)
         printf("mem - addr: %x - to mem node: %p\n", s->addr, s->toMem);
     }
 }
+
+static bool  
+is_addr_in_ht(struct TPMContext *tpm, struct MemHT **item, u32 addr)
+// Returns:
+//  t: if has mem node
+//  f: if not found 
+//      found item stored in *item
+{   
+    *item = NULL;
+    *item = find_mem_ht( &(tpm->mem2NodeHT), addr);
+    if( (*item) != NULL) { return 1; }
+    else { return 0; }
+}
+
