@@ -29,7 +29,8 @@ struct AvalancheSearchCtxt
     u32 dstMaxSeqN;		// maximum seq# of the destination buffer
     unsigned char *srcAddrHitCnt;  // array[0, srcAddrEnd-srcAddrStart] to record the aggregated hit account of all versions of each source address
     unsigned char *dstAddrHitCnt;  // array[0, dstAddrEnd-dstAddrStart] to record the aggregated hit account of all versions of each destination address
-    struct addr2NodeItem **addr2Node;	// array[0, dstAddrEnd-dstAddrStart] of pointers to struct addr2NodeItem (hash table)
+    // struct addr2NodeItem **addr2Node;	// array[0, dstAddrEnd-dstAddrStart] of pointers to struct addr2NodeItem (hash table)
+    struct addr2NodeItem *addr2Node;	// array[0, dstAddrEnd-dstAddrStart] of pointers to struct addr2NodeItem (hash table)
 };
 typedef struct AvalancheSearchCtxt AvalancheSearchCtxt;
 

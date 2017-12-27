@@ -12,9 +12,11 @@
 #define TPM_H
 
 #include "uthash.h"
+
 #include "avalanche.h"
 #include "flag.h"   // XTaint record flag
 #include "record.h"
+#include "tpmnode.h"
 
 #define u32	unsigned int
 
@@ -37,43 +39,7 @@
 #define mem2NodeHashSize	90000
 #define seqNo2NodeHashSize	50000000
 
-#define TPM_Type_Register	0x00000001
-#define TPM_Type_Temprary	0x00000002
-#define TPM_Type_Memory		0x00000004
-
-struct Transition;
 struct MemHT;
-
-struct TPMNode1		// for temp, register addresses
-{
-    u32	type;		// indicating the type of the node
-    u32	addr;		// mem addr, id of temp or register
-    u32 val;        
-    u32	lastUpdateTS;	// the TS (seq#) of last update of the node
-    struct Transition *firstChild;  // points to structure that points to the first child
-};
-
-struct TPMNode2		// for memory address
-{
-    u32	type;		// indicating the type of the node
-    u32	addr;		// mem addr, id of temp or register
-    u32 val;
-    u32	lastUpdateTS;	// the TS (seq#) of last update of the node
-    struct Transition *firstChild;  // points to structure that points to the first child
-/* the following fields are only for TPMNode for memory */
-    struct TPMNode2 *leftNBR;	// point to node of adjacent, smaller memory address 
-    struct TPMNode2 *rightNBR;	// point to node of adjacent, bigger memory address 
-    struct TPMNode2 *nextVersion;// point to node of the same addr buf of different version or age. Forms circular link
-    u32 version;	// the version of current node, monotonically increasing from 0.
-    u32	hitcnt;		/* as source, the number of TMPNode2 in destination buffer this node propagates to; or
-			   as detination, the number of TMPNode2 in source buffer that propagates to this node	*/
-};
-
-union TPMNode
-{
-    struct TPMNode1 tpmnode1;
-    struct TPMNode2 tpmnode2;
-};
 
 struct Transition
 {
@@ -82,11 +48,11 @@ struct Transition
     struct Transition *next;
 };
 
-struct taintedBuf
-{
-    struct TPMNode2 *bufstart;	// point to the TMPNode2 of the start addr of some tainted buffer in TPM;
-    struct taintedBuf *next;	// point to the taintedBuf structure of the next tainted buffer; null if no more
-};
+// struct taintedBuf
+// {
+//     struct TPMNode2 *bufstart;	// point to the TMPNode2 of the start addr of some tainted buffer in TPM;
+//     struct taintedBuf *next;	// point to the taintedBuf structure of the next tainted buffer; null if no more
+// };
 
 struct TPMContext
 {
@@ -111,9 +77,9 @@ struct MemHT
     UT_hash_handle hh_mem;  // hash table head, required by uthash
 };
 
-typedef struct TPMNode1 TPMNode1;
-typedef struct TPMNode2 TPMNode2;
-typedef union TPMNode TPMNode;
+// typedef struct TPMNode1 TPMNode1;
+// typedef struct TPMNode2 TPMNode2;
+// typedef union TPMNode TPMNode;
 typedef struct Transition Transition;
 typedef struct TPMContext TPMContext;
 typedef struct MemHT MemHT;
@@ -123,8 +89,8 @@ typedef struct MemHT MemHT;
 int 
 isPropagationOverwriting(u32 flag, Record *rec);
 
-union TPMNode*
-createTPMNode(u32 type, u32 addr, u32 val, u32 TS);
+// union TPMNode*
+// createTPMNode(u32 type, u32 addr, u32 val, u32 TS);
 
 // u32 
 // processOneXTaintRecord(struct TPMContext *tpm, u32 seqNo, u32 size, u32 srcflg, u32 srcaddr, u32 dstflag, u32 dstaddr);

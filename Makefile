@@ -4,7 +4,7 @@ CC	= gcc
 CF	= -Wall -g -std=c11 
 LF	= -g 
 
-OBJS	= main.o tpm.o record.o stat.o propagate.o avalanche.o 
+OBJS	= main.o tpm.o record.o stat.o propagate.o avalanche.o tpmnode.o 
 
 all	: tpm #testtpm
 
@@ -34,6 +34,9 @@ avalanche.o: avalanche.c
 
 propagate.o: propagate.c
 	$(CC) $(CF) -c propagate.c
+
+tpmnode.o: tpmnode.c
+	$(CC) $(CF) -c tpmnode.c
 
 clean	:
 	rm -rf *.o tpm testtpm
