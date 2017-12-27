@@ -1,4 +1,5 @@
 #include <stdbool.h>
+#include "utlist.h"
 #include "propagate.h"
 
 /* TransitionHashTable operation */
@@ -33,6 +34,13 @@ stackTransPopAll();
 static bool 
 isStackTransEmpty();
 
+/* get propagate implement */
+static int 
+dfs(TPMContext *tpm, TPMNode2 *s, TaintedBuf **dstBuf);
+
+static int 
+dfs_print(TPMContext *tpm, TPMNode2 *s);
+
 /* dfs operation */
 static void 
 markVisitTransition(TransitionHashTable **transitionht, Transition *transition);
@@ -49,8 +57,75 @@ getDestination(Transition *transition);
 static u32 
 getChildrenNum(Transition *firstChild);
 
+static void 
+storeReachMemNode(TPMNode2 *memNode, TaintedBuf **dstBuf);
+
 int 
-dfs(TPMContext *tpm, TPMNode2 *s)
+memNodeReachBuf(TPMContext *tpm, TPMNode2 *s, TaintedBuf **dstBuf)
+{
+	return dfs(tpm, s, dstBuf);
+}
+
+int 
+print_propagation(TPMContext *tpm, TPMNode2 *s)
+{
+	return dfs_print(tpm, s);
+}
+
+static int
+dfs(TPMContext *tpm, TPMNode2 *s, TaintedBuf **dstBuf)
+// Returns
+//	0: success
+//	<0: error
+//	Depth First Search the propagated buffer given tpm and source 
+{
+	if(tpm == NULL || s == NULL) {
+		fprintf(stderr, "error: dfs: tpm:%p s:%p\n", tpm, s);
+		return -1;
+	}
+
+// #ifdef DEBUG
+	printf("--------------------\n");
+	printf("dfs: source addr:%x val:%x ts:%u version%u\n", s->addr, s->val, s->lastUpdateTS, s->version);
+// #endif
+
+	TransitionHashTable *markVisitTransHT = NULL;
+	Transition *source_trans = s->firstChild;
+	int stepCount = 0;
+
+	if(source_trans != NULL) {
+		storeAllUnvisitChildren(&markVisitTransHT, source_trans);
+		while(!isStackTransEmpty() ) {
+			Transition *pop = stackTransPop();
+			TPMNode *dst = getDestination(pop);
+// #ifdef DEBUG
+			if(dst->tpmnode1.type == TPM_Type_Memory) {
+				// printf("propagate to addr:%x val:%x\n", dst->tpmnode2.addr, dst->tpmnode2.val);
+				storeReachMemNode(&(dst->tpmnode2), dstBuf);
+			}
+// #endif
+			stepCount++;
+			storeAllUnvisitChildren(&markVisitTransHT, dst->tpmnode1.firstChild);
+		}
+	}
+	else { 
+#ifdef DEBUG
+		printf("dfs: given source is a leaf\n");
+		print_mem_node(s);
+#endif	 
+	}
+
+#ifdef DEBUG
+	printf("total:%u traverse steps\n", stepCount);
+#endif
+	del_trans_ht(&markVisitTransHT);
+	stackTransPopAll();
+
+	return stepCount;	
+}
+
+static int 
+dfs_print(TPMContext *tpm, TPMNode2 *s)
 // Returns
 //	0: success
 //	<0: error
@@ -250,4 +325,11 @@ getChildrenNum(Transition *firstChild)
 		firstChild = firstChild->next;
 	}
 	return num;
+}
+
+static void 
+storeReachMemNode(TPMNode2 *memNode, TaintedBuf **dstBuf)
+{
+	TaintedBuf *node = createTaintedBuf(memNode);
+	LL_APPEND(*dstBuf, node);
 }

@@ -57,6 +57,7 @@ createTPMNode(u32 type, u32 addr, u32 val, u32 TS);
 union TPMNode *
 create_first_version(u32 addr, u32 val, u32 ts);
 
+/* mem node version */
 bool 
 add_next_version(struct TPMNode2 *front, struct TPMNode2 *next);
 
@@ -71,6 +72,9 @@ get_earliest_version(struct TPMNode2 **earliest);
 
 int 
 get_type(u32 flag);
+
+/* TaintedBuf */
+TaintedBuf *createTaintedBuf(TPMNode2 *bufstart);
 
 /* print function */
 void 

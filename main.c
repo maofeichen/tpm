@@ -1,6 +1,7 @@
 #include <stdlib.h>
 
-#include "propagate.h"
+// #include "propagate.h"
+#include "avalanche.h"
 #include "stat.h"
 #include "tpm.h"
 

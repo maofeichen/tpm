@@ -111,6 +111,13 @@ get_type(u32 addr)
     else { fprintf(stderr, "error: unkown addr type: addr: %u\n", addr); return -1; }
 }
 
+TaintedBuf *createTaintedBuf(TPMNode2 *bufstart)
+{
+    TaintedBuf *taintedBuf = malloc(sizeof(TaintedBuf) );
+    memset(taintedBuf, 0, sizeof(TaintedBuf) );
+    taintedBuf->bufstart = bufstart;
+}
+
 void 
 print_tpmnode(TPMNode *tpmnode)
 {

@@ -299,21 +299,6 @@ void delTPM(struct TPMContext *tpm)
     free(tpm);                       // TODO: merge in delTPM()
 }
 
-void 
-searchAvalanche(TPMContext *tpm)
-{
-    AvalancheSearchCtxt *avalsctxt;
-
-    /* test dfs */
-    MemHT *found = find_mem_ht(&(tpm->mem2NodeHT), 0xde911000);
-    TPMNode2 *source = found->toMem;
-    get_earliest_version(&source);
-
-    init_AvalancheSearchCtxt(&avalsctxt, 8, source, NULL, 0, 0, 0, 0);
-    searchAvalancheInOut(avalsctxt);
-    free_AvalancheSearchCtxt(avalsctxt);    
-}
-
 static void 
 init_tpmcontext(struct TPMContext *tpm)
 {

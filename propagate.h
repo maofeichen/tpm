@@ -3,6 +3,7 @@
 
 #include "uthash.h"
 
+#include "tpmnode.h"
 #include "tpm.h"
 #include "type.h"
 
@@ -22,6 +23,9 @@ typedef struct StackTransitionNode
 } StackTransitionNode;
 
 int 
-dfs(TPMContext *tpm, TPMNode2 *s);
+memNodeReachBuf(TPMContext *tpm, TPMNode2 *s, TaintedBuf **dstBuf);
+
+int 
+print_propagation(TPMContext *tpm, TPMNode2 *s);
 
 #endif

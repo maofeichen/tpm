@@ -3,7 +3,9 @@
 
 #include "uthash.h"
 
+#include "propagate.h"
 #include "tpmnode.h"
+#include "tpm.h"
 #include "type.h"
 
 struct addr2NodeItem
@@ -11,7 +13,7 @@ struct addr2NodeItem
     u32 addr;				/* 32-bit address: src addr in 1st level hash; dst addr in 2nd level hash */
     struct TMPNode2 *node;	/* used as key to hash: src node in 1st level hash; dst node in 2nd level hash */
     struct addr2NodeItem *subHash;	/* next level hash */
-    UT_hash_handle hh_addr2NodeItem;/* makes this structure hashable */
+    UT_hash_handle hh; 				/* makes this structure hashable */
 };
 typedef struct addr2NodeItem Addr2NodeItem;
 
@@ -42,21 +44,14 @@ init_AvalancheSearchCtxt(struct AvalancheSearchCtxt **avalsctxt, u32 minBufferSz
 void
 free_AvalancheSearchCtxt(struct AvalancheSearchCtxt *avalsctxt);
 
-struct TPMNode2 * 
-memNodeReachBuf(struct AvalancheSearchCtxt *avalsctxt, struct TPMNode2 *srcNode, struct taintedBuf *dstBuf);
-/* return:
-    NULL: srcNode does not reach any node in the dstBuf
-    else: pointer to the node in dstBuf that srcNode reaches
-*/
-
-int
-memNodePropagationSearch(struct AvalancheSearchCtxt *avalsctxt, struct TPMNode2 *srcNode, struct taintedBuf *dstBuf);
+void 
+searchAvalanche(TPMContext *tpm);
 
 // Searches avalanche given in and out buffers (stored in AvalancheSearchCtxt)
 // Retures:
 //	0: success
 //	<0: error
 int 
-searchAvalancheInOut(AvalancheSearchCtxt *avalsctxt);
+searchAvalancheInOut(TPMContext *tpm, AvalancheSearchCtxt *avalsctxt);
 
 #endif
