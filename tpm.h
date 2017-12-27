@@ -13,6 +13,7 @@
 
 #include "uthash.h"
 #include "flag.h"   // XTaint record flag
+#include "record.h"
 
 #define u32	unsigned int
 
@@ -101,24 +102,6 @@ struct TPMContext
     struct taintedBuf *taintedbuf;	// point to the tainted buffers in TPM
 };
 
-/* single record */
-struct Record
-{
-    u32 flag;   // src and dst flags are same
-    u32 s_addr;
-    u32 s_val;
-    u32 d_addr;
-    u32 d_val;
-    u32 bytesz;
-    u32 ts;     // time stamp (seqNo)
-    u32 s_ts;   // src time stamp
-    u32 d_ts;   // dst time stamp
-    u32 is_load;
-    u32 is_loadptr;
-    u32 is_store;
-    u32 is_storeptr;
-};
-
 /* mem hash tables, according to uthash */
 struct MemHT
 {
@@ -132,7 +115,6 @@ typedef struct TPMNode2 TPMNode2;
 typedef union TPMNode TPMNode;
 typedef struct Transition Transition;
 typedef struct TPMContext TPMContext;
-typedef struct Record Record;
 typedef struct MemHT MemHT;
 
 /* TPM function prototypes */

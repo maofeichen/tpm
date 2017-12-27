@@ -1,13 +1,31 @@
 #ifndef UTIL_H
 #define UTIL_H
 
-#include "tpm.h"
+// #include "tpm.h"
 #include <stdbool.h>
 
 #define u32 unsigned int
 
 #define MAX_NUM_FIELD	8	// max num of fields, flag, addr, ect a record has
 #define MAX_FIELD_SZ	16	// max byte sz of a field
+
+struct Record
+{
+    u32 flag;   // src and dst flags are same
+    u32 s_addr;
+    u32 s_val;
+    u32 d_addr;
+    u32 d_val;
+    u32 bytesz;
+    u32 ts;     // time stamp (seqNo)
+    u32 s_ts;   // src time stamp
+    u32 d_ts;   // dst time stamp
+    u32 is_load;
+    u32 is_loadptr;
+    u32 is_store;
+    u32 is_storeptr;
+};
+typedef struct Record Record;
 
 // Returns:
 //	t: success

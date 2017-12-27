@@ -4,12 +4,12 @@ CC	= gcc
 CF	= -Wall -g -std=c11 
 LF	= -g 
 
-OBJS	= main.o tpm.o util.o stat.o propagate.o 
+OBJS	= main.o tpm.o record.o stat.o propagate.o 
 
 all	: tpm testtpm
 
-testtpm : testtpm.o tpm.o util.o
-	$(CC) $(LF) -o testtpm testtpm.o util.o
+testtpm : testtpm.o tpm.o record.o
+	$(CC) $(LF) -o testtpm testtpm.o record.o
 
 testtpm.o : testtpm.c
 	$(CC) $(CF)	-c testtpm.c 
@@ -23,8 +23,8 @@ main.o : main.c
 tpm.o : tpm.c
 	$(CC) $(CF) -c tpm.c
 
-util.o : util.c
-	$(CC) $(CF) -c util.c
+record.o : record.c
+	$(CC) $(CF) -c record.c
 
 stat.o : stat.c
 	$(CC) $(CF) -c stat.c

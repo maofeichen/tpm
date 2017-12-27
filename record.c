@@ -1,7 +1,8 @@
 #include "flag.h"
-#include "util.h"
+#include "record.h"
 #include <string.h> //strcmp
 #include <stdlib.h>
+#include <stdio.h>
 
 // static int 
 // split_load(char r[MAX_NUM_FIELD][MAX_FIELD_SZ], struct Record *rec);

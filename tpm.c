@@ -6,7 +6,7 @@
  * */
 
 #include "tpm.h"
-#include "util.h"
+#include "record.h"
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
