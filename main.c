@@ -1,6 +1,5 @@
 #include <stdlib.h>
 
-// #include "avalanche.h"
 #include "propagate.h"
 #include "stat.h"
 #include "tpm.h"
@@ -35,18 +34,10 @@ int main(int argc, char const *argv[])
 #ifdef STAT
 			stat(tpm);
 #endif
-			/* test dfs */
-			// MemHT *found = find_mem_ht(&(tpm->mem2NodeHT), 0xde911000);
-			// TPMNode2 *source = found->toMem;
-			// get_earliest_version(&source);
-			// do {
-			// 	dfs(tpm, source);
-			// 	source = source->nextVersion;
-			// } while (source->version != 0);
 
+			searchAvalanche(tpm);	// test searching avalanche
 			printf("del TPM\n");
-			// del_mem_ht(&(tpm->mem2NodeHT) );	// clear mem addr hash table
-			free(tpm); 							// TODO: merge in delTPM()
+			delTPM(tpm);
 		} 
 		else { fprintf(stderr, "error alloc: TPMContext\n"); }
 		fclose(log);

@@ -4,9 +4,9 @@ CC	= gcc
 CF	= -Wall -g -std=c11 
 LF	= -g 
 
-OBJS	= main.o tpm.o record.o stat.o propagate.o 
+OBJS	= main.o tpm.o record.o stat.o propagate.o avalanche.o 
 
-all	: tpm testtpm
+all	: tpm #testtpm
 
 testtpm : testtpm.o tpm.o record.o
 	$(CC) $(LF) -o testtpm testtpm.o record.o

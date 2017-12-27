@@ -12,6 +12,7 @@
 #define TPM_H
 
 #include "uthash.h"
+#include "avalanche.h"
 #include "flag.h"   // XTaint record flag
 #include "record.h"
 
@@ -141,6 +142,9 @@ seqNo2NodeSearch(struct TPMContext *tpm, u32 seqNo);
 
 void 
 delTPM(struct TPMContext *tpm);
+
+void 
+searchAvalanche(TPMContext *tpm);
 
 /* misc operation */
 int 

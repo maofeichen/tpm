@@ -1,8 +1,9 @@
 #ifndef AVALANCHE_H
 #define AVALANCHE_H 
 
-#include "tpm.h"
 #include "uthash.h"
+#include "type.h"
+// #include "tpm.h"
 
 struct addr2NodeItem
 {
@@ -48,5 +49,12 @@ memNodeReachBuf(struct AvalancheSearchCtxt *avalsctxt, struct TPMNode2 *srcNode,
 
 int
 memNodePropagationSearch(struct AvalancheSearchCtxt *avalsctxt, struct TPMNode2 *srcNode, struct taintedBuf *dstBuf);
+
+// Searches avalanche given in and out buffers (stored in AvalancheSearchCtxt)
+// Retures:
+//	0: success
+//	<0: error
+int 
+searchAvalancheInOut(AvalancheSearchCtxt *avalsctxt);
 
 #endif

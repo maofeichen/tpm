@@ -357,7 +357,25 @@ seqNo2NodeSearch(struct TPMContext *tpm, u32 seqNo)
 
 void delTPM(struct TPMContext *tpm)
 {
+    del_mem_ht(&(tpm->mem2NodeHT) ); // clear mem addr hash table
+    free(tpm);                       // TODO: merge in delTPM()
+}
 
+init_AvalancheSearchCtxt(struct AvalancheSearchCtxt *avalsctxt, u32 minBufferSz, struct TPMNode2 *srcBuf, 
+             struct TPMNode2 *dstBuf, u32 srcAddrStart, u32 srcAddrEnd, u32 dstAddrStart, u32 dstAddrEnd);
+
+void 
+searchAvalanche(TPMContext *tpm)
+{
+    AvalancheSearchCtxt *avalsctxt;
+
+    /* test dfs */
+    MemHT *found = find_mem_ht(&(tpm->mem2NodeHT), 0xde911000);
+    TPMNode2 *source = found->toMem;
+    get_earliest_version(&source);
+    searchAvalancheInOut(avalsctxt);
+    init_AvalancheSearchCtxt(avalsctxt, 8, source, NULL, 0, 0, 0, 0);
+    free_AvalancheSearchCtxt(avalsctxt);    
 }
 
 static void 
