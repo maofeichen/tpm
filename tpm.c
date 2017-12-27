@@ -361,9 +361,6 @@ void delTPM(struct TPMContext *tpm)
     free(tpm);                       // TODO: merge in delTPM()
 }
 
-init_AvalancheSearchCtxt(struct AvalancheSearchCtxt *avalsctxt, u32 minBufferSz, struct TPMNode2 *srcBuf, 
-             struct TPMNode2 *dstBuf, u32 srcAddrStart, u32 srcAddrEnd, u32 dstAddrStart, u32 dstAddrEnd);
-
 void 
 searchAvalanche(TPMContext *tpm)
 {
@@ -373,8 +370,9 @@ searchAvalanche(TPMContext *tpm)
     MemHT *found = find_mem_ht(&(tpm->mem2NodeHT), 0xde911000);
     TPMNode2 *source = found->toMem;
     get_earliest_version(&source);
+
+    init_AvalancheSearchCtxt(&avalsctxt, 8, source, NULL, 0, 0, 0, 0);
     searchAvalancheInOut(avalsctxt);
-    init_AvalancheSearchCtxt(avalsctxt, 8, source, NULL, 0, 0, 0, 0);
     free_AvalancheSearchCtxt(avalsctxt);    
 }
 

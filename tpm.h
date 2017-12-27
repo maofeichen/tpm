@@ -107,7 +107,7 @@ struct TPMContext
 struct MemHT
 {
     u32 addr;               // key
-    struct TPMNode2 *toMem; // val
+    struct TPMNode2 *toMem; // val, latest version node of the addr
     UT_hash_handle hh_mem;  // hash table head, required by uthash
 };
 

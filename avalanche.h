@@ -7,10 +7,10 @@
 
 struct addr2NodeItem
 {
-    u32 addr;			/* 32-bit address: src addr in 1st level hash; dst addr in 2nd level hash */
+    u32 addr;				/* 32-bit address: src addr in 1st level hash; dst addr in 2nd level hash */
     struct TMPNode2 *node;	/* used as key to hash: src node in 1st level hash; dst node in 2nd level hash */
     struct addr2NodeItem *subHash;	/* next level hash */
-    UT_hash_handle hh;         /* makes this structure hashable */
+    UT_hash_handle hh_addr2NodeItem;/* makes this structure hashable */
 };
 typedef struct addr2NodeItem Addr2NodeItem;
 
@@ -34,7 +34,7 @@ struct AvalancheSearchCtxt
 typedef struct AvalancheSearchCtxt AvalancheSearchCtxt;
 
 int
-init_AvalancheSearchCtxt(struct AvalancheSearchCtxt *avalsctxt, u32 minBufferSz, struct TPMNode2 *srcBuf, 
+init_AvalancheSearchCtxt(struct AvalancheSearchCtxt **avalsctxt, u32 minBufferSz, struct TPMNode2 *srcBuf, 
 			 struct TPMNode2 *dstBuf, u32 srcAddrStart, u32 srcAddrEnd, u32 dstAddrStart, u32 dstAddrEnd);
 
 void
