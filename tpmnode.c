@@ -89,7 +89,7 @@ get_earliest_version(struct TPMNode2 **earliest)
 //  <0: error
 //  stores the earliest version in earliest
 {
-    if(earliest == NULL) {
+    if(*earliest == NULL) {
         fprintf(stderr, "error: get earliest version\n");
         return -1;
     }

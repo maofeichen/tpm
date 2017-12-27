@@ -56,9 +56,15 @@ searchAvalancheInOut(TPMContext *tpm, AvalancheSearchCtxt *avalsctxt)
 	printf("searching avalanche given in and out buffers\n");
 	TaintedBuf *reachmemnode_list, *itr;
 	TPMNode2 *srcNode;
+	u32 srcAddr;
 	int count = 0;
 
+	Addr2NodeItem *item, *subitem, *temp, *subTemp;
+	Addr2NodeItem *items = NULL;
+
 	srcNode = avalsctxt->srcBuf;
+	srcAddr = srcNode->addr;
+
 	while(srcNode != NULL) {
 		reachmemnode_list = NULL;
 		memNodeReachBuf(tpm, srcNode, &reachmemnode_list);
@@ -70,8 +76,44 @@ searchAvalancheInOut(TPMContext *tpm, AvalancheSearchCtxt *avalsctxt)
 		// 	printf("propagate to addr:%x val:%x\n", itr->bufstart->addr, itr->bufstart->val);
 		// }
 
+		Addr2NodeItem *i = malloc(sizeof(Addr2NodeItem) );
+		i->addr = srcAddr;
+		i->node = NULL;
+		i->subHash = NULL;
+		i->toMemNode = NULL;
+		HASH_ADD(hh_addr2NodeItem, items, addr, 4, i);
+
+
+		Addr2NodeItem *s = malloc(sizeof(Addr2NodeItem) );
+		s->addr = 0;
+		s->node = srcNode;
+		s->subHash = NULL;
+		s->toMemNode = reachmemnode_list;
+		HASH_ADD(hh_addr2NodeItem, i->subHash, node, 4, s);
+
 		srcNode = srcNode->rightNBR;
-		if(srcNode != NULL)
+		if(srcNode != NULL) {
 			get_earliest_version(&srcNode);
+			srcAddr = srcNode->addr;
+		}
 	}
+
+	int totalItem, totalSubItem;
+	totalItem = HASH_CNT(hh_addr2NodeItem, items);
+	printf("total addr item in hash table:%d\n", totalItem);
+
+	HASH_ITER(hh_addr2NodeItem, items, item, temp) {
+		totalSubItem = HASH_CNT(hh_addr2NodeItem, item->subHash);
+		printf("total pointer item in sub hash table:%d\n", totalSubItem);
+		HASH_ITER(hh_addr2NodeItem, item->subHash, subitem, subTemp) {
+			TaintedBuf *dstBuf = subitem->toMemNode;
+			LL_COUNT(dstBuf, itr, count);
+			printf("total item in list:%d\n", count);
+
+			// LL_FOREACH(dstBuf, itr) {
+			// 	printf("propagate to addr:%x val:%x\n", itr->bufstart->addr, itr->bufstart->val);
+			// }
+		}
+	}
+
 }
