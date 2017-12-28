@@ -1,6 +1,5 @@
 #include <stdlib.h>
 
-// #include "propagate.h"
 #include "avalanche.h"
 #include "stat.h"
 #include "tpm.h"
@@ -12,14 +11,14 @@ void usage()
 
 int main(int argc, char const *argv[])
 {
+	FILE *log;
+	struct TPMContext* tpm;
+	int numOfNode;
+
 	if(argc <= 1){
 		usage();
 		exit(1);
 	}
-
-	FILE *log;
-	struct TPMContext* tpm;
-	int n;
 
 	if((log = fopen(argv[1], "r") ) != NULL) {
 		printf("open log: %s\n", argv[1]);
@@ -27,8 +26,8 @@ int main(int argc, char const *argv[])
 		if((tpm = calloc(1, sizeof(struct TPMContext) ) ) != NULL) { 
 			printf("alloc TPMContext: %zu MB\n", sizeof(struct TPMContext) / (1024*1024) );
 
-			if( (n = buildTPM(log, tpm) ) >= 0) {
-				printf("build TPM successful, total number nodes:%d\n", n);
+			if( (numOfNode = buildTPM(log, tpm) ) >= 0) {
+				printf("build TPM successful, total number nodes:%d\n", numOfNode);
 			}
 			else { fprintf(stderr, "error build TPM\n"); }
 

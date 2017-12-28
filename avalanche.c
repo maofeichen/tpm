@@ -43,7 +43,7 @@ searchAvalanche(TPMContext *tpm)
 	TPMNode2 *source;
 
     source = mem2NodeSearch(tpm, 0xde911000);
-    get_earliest_version(&source);
+    getMemNode1stVersion(&source);
 
     init_AvalancheSearchCtxt(&avalsctxt, 8, source, NULL, 0, 0, 0, 0);
     searchAvalancheInOut(tpm, avalsctxt);
@@ -99,7 +99,7 @@ searchAvalancheInOut(TPMContext *tpm, AvalancheSearchCtxt *avalsctxt)
 
 		srcNode = srcNode->rightNBR;
 		if(srcNode != NULL) {
-			get_earliest_version(&srcNode);
+			getMemNode1stVersion(&srcNode);
 			srcAddr = srcNode->addr;
 		}
 	}

@@ -33,18 +33,18 @@ createTPMNode(u32 type, u32 addr, u32 val, u32 TS)
 }
 
 union TPMNode *
-create_first_version(u32 addr, u32 val, u32 ts)
+create1stVersionMemNode(u32 addr, u32 val, u32 ts)
 // creates first version (0) memory node 
 {
     union TPMNode *n;
     n = createTPMNode(TPM_Type_Memory, addr, val, ts);
-    set_version(n, 0);   
+    setMemNodeVersion(n, 0);   
     n->tpmnode2.nextVersion = &(n->tpmnode2); // init points to itself
     return n; 
 }
 
 bool 
-add_next_version(struct TPMNode2 *front, struct TPMNode2 *next)
+addNextVerMemNode(struct TPMNode2 *front, struct TPMNode2 *next)
 // Returns
 //  true: success
 //  false: error
@@ -62,7 +62,7 @@ add_next_version(struct TPMNode2 *front, struct TPMNode2 *next)
 }
 
 int 
-set_version(union TPMNode *tpmnode, u32 ver)
+setMemNodeVersion(union TPMNode *tpmnode, u32 ver)
 // Returns:
 //  0: success
 //  <0: error
@@ -75,7 +75,7 @@ set_version(union TPMNode *tpmnode, u32 ver)
 }
 
 u32 
-get_version(struct TPMNode2 *node)
+getMemNodeVersion(struct TPMNode2 *node)
 // Returns
 //  the version of the mem node
 {
@@ -83,7 +83,7 @@ get_version(struct TPMNode2 *node)
 }
 
 int 
-get_earliest_version(struct TPMNode2 **earliest)
+getMemNode1stVersion(struct TPMNode2 **earliest)
 // Returns:
 //  0: success
 //  <0: error
@@ -102,7 +102,7 @@ get_earliest_version(struct TPMNode2 **earliest)
 }
 
 int 
-get_type(u32 addr)
+getNodeType(u32 addr)
 // Returns:
 //  reg or temp based on the addr 
 {
@@ -119,20 +119,20 @@ TaintedBuf *createTaintedBuf(TPMNode2 *bufstart)
 }
 
 void 
-print_tpmnode(TPMNode *tpmnode)
+printNode(TPMNode *tpmnode)
 {
     if(tpmnode != NULL) {
         if(tpmnode->tpmnode1.type == TPM_Type_Memory) {
-            print_mem_node(&(tpmnode->tpmnode2) );
+            printMemNode(&(tpmnode->tpmnode2) );
         }
         else {
-            print_nonmem_node(&(tpmnode->tpmnode1) );
+            printNonmemNode(&(tpmnode->tpmnode1) );
         }
     }
 }
 
 void 
-print_mem_node(struct TPMNode2 *n)
+printMemNode(struct TPMNode2 *n)
 {
     printf("mem: type:%-1u addr:0x%-8x val:%-8x lastUpdateTS:%-16u"
             " firstChild:%-8p leftNBR:%-8p rightNBR:%-8p nextVersion:%-8p"
@@ -143,21 +143,21 @@ print_mem_node(struct TPMNode2 *n)
 }
 
 void 
-print_nonmem_node(struct TPMNode1 *n)
+printNonmemNode(struct TPMNode1 *n)
 {
      printf("non-mem: type:%-1u addr:0x%-8x val:%-8x lastUpdateTS:%-16u\n", 
             n->type, n->addr, n->val, n->lastUpdateTS);   
 }
 
 void 
-print_version(struct TPMNode2 *head)
+printMemNodeAllVersion(struct TPMNode2 *head)
 {
     if(head == NULL)
         return;
 
     do{
         // printf("version: %u\n", head->version);
-        print_mem_node(head);
+        printMemNode(head);
         head = head->nextVersion;
     } while(head == NULL || head->version != 0);
 }

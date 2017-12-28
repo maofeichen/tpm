@@ -85,7 +85,7 @@ get_cont_buf(struct TPMNode2 *node, u32 *baddr, u32 *eaddr, u32 *minseq, u32 *ma
 
 	// get first node first version
 	*firstnode = b;
-	get_earliest_version(firstnode);
+	getMemNode1stVersion(firstnode);
 	// print_mem_node(*firstnode);
 
 	// if((*eaddr - *baddr) >= 8)

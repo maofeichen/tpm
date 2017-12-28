@@ -151,20 +151,20 @@ void t_mem_version(void)
 	u32 val3  = 0xbee8;
 	u32 seq3  = 2;
 
-	front = create_first_version(addr1, val1, seq1);
-	set_version(front, 0);
+	front = create1stVersionMemNode(addr1, val1, seq1);
+	setMemNodeVersion(front, 0);
 
 	next = createTPMNode(TPM_Type_Memory, addr2, val2, seq2);
-	set_version(next, 1);
-	add_next_version(&(front->tpmnode2), &(next->tpmnode2) );
+	setMemNodeVersion(next, 1);
+	addNextVerMemNode(&(front->tpmnode2), &(next->tpmnode2) );
 
-	print_version(&(front->tpmnode2) );
+	printMemNodeAllVersion(&(front->tpmnode2) );
 
 	third = createTPMNode(TPM_Type_Memory, addr3, val3, seq3);
-	set_version(third, 2);
-	add_next_version(&(next->tpmnode2), &(third->tpmnode2) );
+	setMemNodeVersion(third, 2);
+	addNextVerMemNode(&(next->tpmnode2), &(third->tpmnode2) );
 
-	print_version(&(front->tpmnode2) );
+	printMemNodeAllVersion(&(front->tpmnode2) );
 }
 
 void t_has_adjacent()
@@ -196,50 +196,50 @@ void t_has_adjacent()
 
 	tpm = calloc(1, sizeof(struct TPMContext) );
 
-	n1 = create_first_version(addr1, val1, seq1);
+	n1 = create1stVersionMemNode(addr1, val1, seq1);
 	if(add_mem_ht(&(tpm->mem2NodeHT), addr1, &(n1->tpmnode2) ) == 0) { printf("add mem addr success\n"); }
 	else { printf("add mem addr error\n");}
 
 	n2 = createTPMNode(TPM_Type_Memory, addr4, val4, seq4);
 	l = find_mem_ht(&(tpm->mem2NodeHT), addr4);
-	ver = get_version(l->toMem);
-    set_version(n2, ver+1); // set version accordingly
+	ver = getMemNodeVersion(l->toMem);
+    setMemNodeVersion(n2, ver+1); // set version accordingly
 	if(add_mem_ht(&(tpm->mem2NodeHT), addr4, &(n2->tpmnode2) ) == 0) { printf("add mem addr success\n"); }
 	else { printf("add mem addr error\n");}
-	add_next_version(&(n1->tpmnode2), &(n2->tpmnode2) );
+	addNextVerMemNode(&(n1->tpmnode2), &(n2->tpmnode2) );
 
-	n3 = create_first_version(addr3, val3, seq3);
+	n3 = create1stVersionMemNode(addr3, val3, seq3);
 	if(add_mem_ht(&(tpm->mem2NodeHT), addr3, &(n3->tpmnode2) ) == 0) { printf("add mem addr success\n"); }
 	else { printf("add mem addr error\n");}
 
 	n4 = createTPMNode(TPM_Type_Memory, addr5, val5, seq5);
 	r = find_mem_ht(&(tpm->mem2NodeHT), addr5);
-	ver = get_version(r->toMem);
-	set_version(n4, ver+1);
+	ver = getMemNodeVersion(r->toMem);
+	setMemNodeVersion(n4, ver+1);
 	if(add_mem_ht(&(tpm->mem2NodeHT), addr5, &(n4->tpmnode2) ) == 0) { printf("add mem addr success\n"); }
 	else { printf("add mem addr error\n");}
-	add_next_version(&(n3->tpmnode2), &(n4->tpmnode2) );
+	addNextVerMemNode(&(n3->tpmnode2), &(n4->tpmnode2) );
 
 	count_mem_ht(&(tpm->mem2NodeHT));
 	print_mem_ht(&(tpm->mem2NodeHT));
 
 	printf("0xbffff7a0 version: \n");
-	print_version(&(n1->tpmnode2) );
+	printMemNodeAllVersion(&(n1->tpmnode2) );
 	printf("0xbffff7a8 version: \n");
-	print_version(&(n3->tpmnode2));
+	printMemNodeAllVersion(&(n3->tpmnode2));
 
-	n5 = create_first_version(addr2, val2, seq2);
+	n5 = create1stVersionMemNode(addr2, val2, seq2);
 
 	update_adjacent(tpm, n5, &l, &r, addr2, 4);
 	printf("leftNBR:\n");
-	print_mem_node(n5->tpmnode2.leftNBR);
+	printMemNode(n5->tpmnode2.leftNBR);
     printf("rightNBR:\n");
-    print_mem_node(n5->tpmnode2.rightNBR);
+    printMemNode(n5->tpmnode2.rightNBR);
 
     printf("0xbffff7a0 version: \n");
-	print_version(&(n1->tpmnode2));
+    printMemNodeAllVersion(&(n1->tpmnode2));
 	printf("0xbffff7a8 version: \n");
-	print_version(&(n3->tpmnode2));
+	printMemNodeAllVersion(&(n3->tpmnode2));
 
 	del_mem_ht(&(tpm->mem2NodeHT) );	// clear mem addr hash table
 	free(tpm);	
@@ -264,16 +264,16 @@ void t_trans(void)
 
 	tpm = calloc(1, sizeof(struct TPMContext) );
 
-	n1 = create_first_version(addr1, val1, seq1);
-	n2 = create_first_version(addr2, val2, seq2);
+	n1 = create1stVersionMemNode(addr1, val1, seq1);
+	n2 = create1stVersionMemNode(addr2, val2, seq2);
 	create_trans_node(seq2, TPM_Type_Memory, n1, n2);
 
 	printf("trasn source:\n");
-	print_mem_node(&(n1->tpmnode2) );
+	printMemNode(&(n1->tpmnode2) );
 	printf("trans destination:\n");
 	print_transition(n1);
 
-	n3 = create_first_version(addr3, val3, seq3);
+	n3 = create1stVersionMemNode(addr3, val3, seq3);
 	create_trans_node(seq3, TPM_Type_Memory, n1, n3);
 	printf("trans destination:\n");
 	print_transition(n1);
