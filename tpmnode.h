@@ -51,13 +51,18 @@ struct taintedBuf
 };
 typedef struct taintedBuf TaintedBuf;
 
+
+/* Generic node prototype */
 union TPMNode*
 createTPMNode(u32 type, u32 addr, u32 val, u32 TS);
 
+int
+getNodeType(u32 flag);
+
+/* Mem node operation*/
 union TPMNode *
 create1stVersionMemNode(u32 addr, u32 val, u32 ts);
 
-/* mem node version */
 bool 
 addNextVerMemNode(struct TPMNode2 *front, struct TPMNode2 *next);
 
@@ -70,10 +75,7 @@ getMemNodeVersion(struct TPMNode2 *node);
 int 
 getMemNode1stVersion(struct TPMNode2 **earliest);
 
-int 
-getNodeType(u32 flag);
-
-/* TaintedBuf */
+/* Tainted buffer operation */
 TaintedBuf *createTaintedBuf(TPMNode2 *bufstart);
 
 /* print function */

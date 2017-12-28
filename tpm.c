@@ -171,7 +171,7 @@ processOneXTaintRecord(struct TPMContext *tpm, struct Record *rec, struct TPMNod
         s_type = TPM_Type_Memory;
     }  
     else { // src is either reg or temp  
-        type = get_type(rec->s_addr);
+        type = getNodeType(rec->s_addr);
         if (type == TPM_Type_Register) { 
             if( (sc = handle_src_reg(tpm, rec, regCntxt, &src) ) >= 0 ) {}
             else { return -1; }
@@ -191,7 +191,7 @@ processOneXTaintRecord(struct TPMContext *tpm, struct Record *rec, struct TPMNod
         else { return -1; } 
     } 
     else { // dst is either reg or temp
-        type = get_type(rec->d_addr);
+        type = getNodeType(rec->d_addr);
         if(type == TPM_Type_Register) { 
             if((dc = handle_dst_reg(tpm, rec, regCntxt, &dst) ) >= 0) {}
             else { return -1; } 
@@ -227,10 +227,10 @@ buildTPM(FILE *taintfp, struct TPMContext *tpm)
     char line[128] = {0};
     while(fgets(line, sizeof(line), taintfp) ) { // iterates each line (record) 
         char flag[3] = {0};
-        if(get_flag(flag, line) ) {
-            if(is_mark(flag) ) { // mark record, simply skip except for insn mark 
+        if(getRecordFlag(flag, line) ) {
+            if(isRecordMark(flag) ) { // mark record, simply skip except for insn mark 
                 // printf("flag: %s\n", flag);
-                if(equal_mark(flag, INSN_MARK) ) { 
+                if(equalRecordMark(flag, INSN_MARK) ) { 
                     clear_tempcontext(tempCntxt); /* clear current context of temp, due to temp are 
                                                     only alive within instruction, if encounter an insn mark  
                                                     it crosses insn boundary */ 
@@ -238,7 +238,7 @@ buildTPM(FILE *taintfp, struct TPMContext *tpm)
             } 
             else { // data record, creates nodes 
                 struct Record rec = {0};
-                if(split(line, '\t', &rec) == 0) {
+                if(splitRecord(line, '\t', &rec) == 0) {
                     // print_record(&rec);
 
                     /* n increases by how many new nodes created */ 
@@ -365,16 +365,16 @@ handle_src_mem(struct TPMContext *tpm, struct Record *rec, union TPMNode **src)
 
 #ifdef DEBUG
         printf("\thandle src mem: addr:0x%-8x found in hash table\n", rec->s_addr);
-        print_mem_node(*src);
+        printMemNode(*src);
 #endif       
 
     }
     else { // not found
-        *src = create_first_version(rec->s_addr, rec->s_val, rec->ts);
+        *src = create1stVersionMemNode(rec->s_addr, rec->s_val, rec->ts);
 
 #ifdef DEBUG
         printf("\taddr:0x%-8x not found in hash table, creates new mem node\n", rec->s_addr);
-        print_mem_node(&( (*src)->tpmnode2) );
+        printMemNode(&( (*src)->tpmnode2) );
 #endif       
 
         // updates hash table
@@ -430,7 +430,7 @@ handle_src_reg(struct TPMContext *tpm, struct Record *rec, struct TPMNode1 *regC
 
 #ifdef DEBUG
             printf("reg: %x not found in regCntxt, creates new reg node\n", rec->s_addr);
-            print_nonmem_node(&( (*src)->tpmnode1) );
+            printNonmemNode(&( (*src)->tpmnode1) );
             printf("reg: %x - id: %d - addr of the node: %p\n", rec->s_addr, id, regCntxt[id]);
 #endif                  
         } 
@@ -447,7 +447,7 @@ handle_src_reg(struct TPMContext *tpm, struct Record *rec, struct TPMNode1 *regC
             *src = (union TPMNode*)regCntxt[id];
 #ifdef DEBUG
             printf("\thandle src reg: found reg in regCntxt\n");
-            print_nonmem_node(regCntxt[id]);
+            printNonmemNode(regCntxt[id]);
 #endif      
         }
     }
@@ -492,7 +492,7 @@ handle_src_temp(struct TPMContext *tpm, struct Record *rec, struct TPMNode1 *tem
 
 #ifdef DEBUG
         printf("\ttemp: %u not found in tempCntxt, creates new temp node\n", rec->s_addr);
-        print_nonmem_node(&( (*src)->tpmnode1) );
+        printNonmemNode(&( (*src)->tpmnode1) );
         printf("\ttemp: %u - addr of the node: %p\n", rec->s_addr, tempCntxt[rec->s_addr]);
 #endif      
     } 
@@ -509,7 +509,7 @@ handle_src_temp(struct TPMContext *tpm, struct Record *rec, struct TPMNode1 *tem
         *src = (union TPMNode*)tempCntxt[rec->s_addr];
 #ifdef DEBUG
         printf("\thandle src temp: found temp in tempCntxt\n");
-        print_nonmem_node(tempCntxt[rec->s_addr]);       
+        printNonmemNode(tempCntxt[rec->s_addr]);       
 #endif      
     } 
     return n;
@@ -560,19 +560,19 @@ handle_dst_mem(struct TPMContext *tpm, struct Record *rec, union TPMNode **dst)
     if(isPropagationOverwriting(rec->flag, rec) ) { // overwrite
         if( is_addr_in_ht(tpm, &dst_hn, rec->d_addr) ) { // in TPM 
             *dst = createTPMNode(TPM_Type_Memory, rec->d_addr, rec->d_val, rec->ts);
-            version = get_version(dst_hn->toMem);
-            set_version(*dst, version+1); // set version accordingly
-            add_next_version(dst_hn->toMem, &( (*dst)->tpmnode2) );             
+            version = getMemNodeVersion(dst_hn->toMem);
+            setMemNodeVersion(*dst, version+1); // set version accordingly
+            addNextVerMemNode(dst_hn->toMem, &( (*dst)->tpmnode2) );             
 
 #ifdef DEBUG
-            print_mem_node(dst_hn->toMem);
-            print_mem_node(&( (*dst)->tpmnode2) );
+            printMemNode(dst_hn->toMem);
+            printMemNode(&( (*dst)->tpmnode2) );
             printf("\tversion:\n");
-            print_version(dst_hn->toMem);
+            printMemNodeAllVersion(dst_hn->toMem);
 #endif      
         }
         else { // not found
-            *dst = create_first_version(rec->d_addr, rec->d_val, rec->ts);
+            *dst = create1stVersionMemNode(rec->d_addr, rec->d_val, rec->ts);
         }
 
         // updates mem hash table
@@ -591,7 +591,7 @@ handle_dst_mem(struct TPMContext *tpm, struct Record *rec, union TPMNode **dst)
             return -1;  // TODO
         }
         else { // not found
-            *dst = create_first_version(rec->d_addr, rec->d_val, rec->ts);
+            *dst = create1stVersionMemNode(rec->d_addr, rec->d_val, rec->ts);
             tpm->seqNo2NodeHash[rec->d_ts] = *dst;   // updates seqNo hash table
             n++;
         }
@@ -810,12 +810,12 @@ update_adjacent(struct TPMContext *tpm, union TPMNode *n, struct MemHT **l, stru
         struct TPMNode2 *earliest = NULL;
         if(*l != NULL){
             earliest = (*l)->toMem;
-            if(get_earliest_version(&earliest) == 0) {
+            if(getMemNode1stVersion(&earliest) == 0) {
                 is_left = true;
                 link_adjacent(&(n->tpmnode2), earliest, is_left);   // update the self leftNBR
 
                 self = &(n->tpmnode2);
-                if(get_earliest_version(&self) == 0) {
+                if(getMemNode1stVersion(&self) == 0) {
                     is_left = false;
                     link_adjacent(earliest, self, is_left); // updates the target rightNBR 
                 }
@@ -828,12 +828,12 @@ update_adjacent(struct TPMContext *tpm, union TPMNode *n, struct MemHT **l, stru
 
         if(*r != NULL){
             earliest = (*r)->toMem;
-            if(get_earliest_version(&earliest) == 0) {
+            if(getMemNode1stVersion(&earliest) == 0) {
                 is_left = false;
                 link_adjacent(&(n->tpmnode2), earliest, is_left); // updates the self rightNBR
 
                 self = &(n->tpmnode2);
-                if(get_earliest_version(&self) == 0) {
+                if(getMemNode1stVersion(&self) == 0) {
                     is_left = true;
                     link_adjacent(earliest, self, is_left); // updates the target leftNBR
                 }
@@ -966,11 +966,11 @@ print_transition(union TPMNode *head)
 
     while(t != NULL) {
        if(t->child->tpmnode1.type == TPM_Type_Memory) {
-        print_mem_node(&(t->child->tpmnode2) );
+        printMemNode(&(t->child->tpmnode2) );
        } 
        else if(t->child->tpmnode1.type == TPM_Type_Register 
                || t->child->tpmnode1.type == TPM_Type_Temprary){
-        print_nonmem_node(&(t->child->tpmnode1) );
+        printNonmemNode(&(t->child->tpmnode1) );
        }
        else { fprintf(stderr, "error: print trans: unkown type\n"); break; }
 
@@ -984,7 +984,7 @@ print_single_transition(Transition *transition)
     if(transition != NULL) {
         printf("Transition:%p\n seqNo:%u\n", transition, transition->seqNo);
         printf("Child:\n");
-        print_tpmnode(transition->child);
+        printNode(transition->child);
     }
 }
 

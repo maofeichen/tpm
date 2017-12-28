@@ -32,6 +32,17 @@ createTPMNode(u32 type, u32 addr, u32 val, u32 TS)
     return tpmnode;
 }
 
+int
+getNodeType(u32 addr)
+// Returns:
+//  reg or temp based on the addr
+{
+    if(addr < G_TEMP_UNKNOWN) { return TPM_Type_Temprary; }
+    else if(addr <=  G_TEMP_EDI) { return TPM_Type_Register; }
+    else { fprintf(stderr, "error: unkown addr type: addr: %u\n", addr); return -1; }
+}
+
+
 union TPMNode *
 create1stVersionMemNode(u32 addr, u32 val, u32 ts)
 // creates first version (0) memory node 
@@ -99,16 +110,6 @@ getMemNode1stVersion(struct TPMNode2 **earliest)
         *earliest = (*earliest)->nextVersion; 
     }
     return 0;
-}
-
-int 
-getNodeType(u32 addr)
-// Returns:
-//  reg or temp based on the addr 
-{
-    if(addr < G_TEMP_UNKNOWN) { return TPM_Type_Temprary; }
-    else if(addr <=  G_TEMP_EDI) { return TPM_Type_Register; } 
-    else { fprintf(stderr, "error: unkown addr type: addr: %u\n", addr); return -1; }
 }
 
 TaintedBuf *createTaintedBuf(TPMNode2 *bufstart)

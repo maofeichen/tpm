@@ -1,12 +1,10 @@
-#ifndef UTIL_H
-#define UTIL_H
+#ifndef RECORD_H
+#define RECORD_H
 
-// #include "tpm.h"
 #include <stdbool.h>
+#include "type.h"
 
-#define u32 unsigned int
-
-#define MAX_NUM_FIELD	8	// max num of fields, flag, addr, ect a record has
+#define MAX_NUM_FIELD	8	  // max num of fields, flag, addr, ect a record has
 #define MAX_FIELD_SZ	16	// max byte sz of a field
 
 struct Record
@@ -27,47 +25,57 @@ struct Record
 };
 typedef struct Record Record;
 
+bool
+getRecordFlag(char *flag, char *rec);
 // Returns:
 //	t: success
 //	f: error
 //	stores first 2 chars (flag) in flag
-bool get_flag(char *flag, char *rec);
 
+bool
+equalRecordMark(char *flag, char *mark);
 // Returns:
 //	t: if flag is mark
 //	f: otherwise
-bool equal_mark(char *flag, char *mark);
 
+bool
+isRecordMark(char *flag);
 // Returns:
 //	true: if given flag is a mark record
 //	false: otherwise
-bool is_mark(char *flag);
 
+bool
+isLoadRecord(char *flag);
 // Returns:
 //	t: if it's a load IR
 //	f: otherwise
-bool is_load(char *flag);
 
-bool is_loadptr(char *flag);
+bool isLoadptrRecord(char *flag);
 
+bool
+isStoreRecord(char *flag);
 // Returns:
 //	t: if it's a store IR
 //	f: otherwise
-bool is_store(char *flag);
 
+bool
+isStoreptrRecord(char *flag);
 // Returns:
 //	t: if it's a store ptr IR
 //	f: otherwise
-bool is_storeptr(char *flag);
 
+u32
+getRecSrcTS(u32 ts);
 // Returns:
 //	src ts give the records ts
-u32 get_src_ts(u32 ts);
 
+u32
+getRecDstTS(u32 ts);
 // Returns:
 //	dst ts given the record ts
-u32 get_dst_ts(u32 ts);
 
+int
+splitRecord(char *s, char c, struct Record *rec);
 // Returns:
 //	0: success
 //	<0: error
@@ -79,19 +87,18 @@ u32 get_dst_ts(u32 ts);
 //		- dst val
 //		- ts (seqNo)
 //		- bytesz if has
-int split(char *s, char c, struct Record *rec);
 
 /* print */
 void 
-print_record(struct Record *rec);
+printRecord(struct Record *rec);
 
 void 
-print_src_addr(struct Record *rec);
+printRecSrcAddr(struct Record *rec);
 
 void 
-print_src(struct Record *rec);
+printRecSrc(struct Record *rec);
 
 void 
-print_dst(struct Record *rec);
+printRecDst(struct Record *rec);
 
 #endif
