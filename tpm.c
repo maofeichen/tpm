@@ -299,6 +299,58 @@ void delTPM(struct TPMContext *tpm)
     free(tpm);                       // TODO: merge in delTPM()
 }
 
+TPMNode *
+getTransitionDst(Transition *transition)
+{
+	if(transition != NULL)
+		return transition->child;
+	else
+		return NULL;
+}
+
+u32
+getTransitionChildrenNum(Transition *firstChild)
+{
+	u32 num = 0;
+	while(firstChild != NULL) {
+		num++;
+		firstChild = firstChild->next;
+	}
+	return num;
+}
+
+void
+printTrans1stChild(union TPMNode *head)
+{
+    struct Transition *t = head->tpmnode1.firstChild;
+
+    while(t != NULL) {
+       if(t->child->tpmnode1.type == TPM_Type_Memory) {
+        printMemNode(&(t->child->tpmnode2) );
+       }
+       else if(t->child->tpmnode1.type == TPM_Type_Register
+               || t->child->tpmnode1.type == TPM_Type_Temprary){
+        printNonmemNode(&(t->child->tpmnode1) );
+       }
+       else { fprintf(stderr, "error: print trans: unkown type\n"); break; }
+
+       t = t->next;
+    }
+}
+
+void
+printTransAllChildren(Transition *transition)
+{
+    if(transition != NULL) {
+        printf("Transition:%p\n seqNo:%u\n", transition, transition->seqNo);
+        printf("Child:\n");
+        printNode(transition->child);
+    }
+}
+
+
+
+
 static void 
 init_tpmcontext(struct TPMContext *tpm)
 {
@@ -958,36 +1010,6 @@ get_regcntxt_idx(u32 reg)
         return -1;
     }
 }
-
-void 
-print_transition(union TPMNode *head)
-{
-    struct Transition *t = head->tpmnode1.firstChild; 
-
-    while(t != NULL) {
-       if(t->child->tpmnode1.type == TPM_Type_Memory) {
-        printMemNode(&(t->child->tpmnode2) );
-       } 
-       else if(t->child->tpmnode1.type == TPM_Type_Register 
-               || t->child->tpmnode1.type == TPM_Type_Temprary){
-        printNonmemNode(&(t->child->tpmnode1) );
-       }
-       else { fprintf(stderr, "error: print trans: unkown type\n"); break; }
-
-       t = t->next;
-    }
-}
-
-void 
-print_single_transition(Transition *transition)
-{
-    if(transition != NULL) {
-        printf("Transition:%p\n seqNo:%u\n", transition, transition->seqNo);
-        printf("Child:\n");
-        printNode(transition->child);
-    }
-}
-
 
 int
 add_mem_ht(struct MemHT **mem2NodeHT, u32 addr, struct TPMNode2 *toMem)

@@ -271,12 +271,12 @@ void t_trans(void)
 	printf("trasn source:\n");
 	printMemNode(&(n1->tpmnode2) );
 	printf("trans destination:\n");
-	print_transition(n1);
+	printTrans1stChild(n1);
 
 	n3 = create1stVersionMemNode(addr3, val3, seq3);
 	create_trans_node(seq3, TPM_Type_Memory, n1, n3);
 	printf("trans destination:\n");
-	print_transition(n1);
+	printTrans1stChild(n1);
 
 	free(tpm);
 }

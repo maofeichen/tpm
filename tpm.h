@@ -48,12 +48,6 @@ struct Transition
     struct Transition *next;
 };
 
-// struct taintedBuf
-// {
-//     struct TPMNode2 *bufstart;	// point to the TMPNode2 of the start addr of some tainted buffer in TPM;
-//     struct taintedBuf *next;	// point to the taintedBuf structure of the next tainted buffer; null if no more
-// };
-
 struct TPMContext
 {
     u32 nodeNum;	// total number of TPM node
@@ -103,10 +97,17 @@ seqNo2NodeSearch(struct TPMContext *tpm, u32 seqNo);
 void 
 delTPM(struct TPMContext *tpm);
 
+/* Transition operation */
+TPMNode *
+getTransitionDst(Transition *transition);
+
+u32
+getTransitionChildrenNum(Transition *firstChild);
+
 /* print function */
 void 
-print_transition(union TPMNode *head);
+printTrans1stChild(union TPMNode *head);
 
 void 
-print_single_transition(Transition *transition);
+printTransAllChildren(Transition *transition);
 #endif

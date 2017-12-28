@@ -51,14 +51,8 @@ isTransitionVisited(TransitionHashTable *transitionht, Transition *transition);
 static void 
 storeAllUnvisitChildren(TransitionHashTable **transitionht, Transition *firstChild);
 
-static TPMNode *
-getDestination(Transition *transition);
-
-static u32 
-getChildrenNum(Transition *firstChild);
-
 static void 
-storeReachMemNode(TPMNode2 *memNode, TaintedBuf **dstMemNodes);
+storePropagateDstMemNode(TPMNode2 *memNode, TaintedBuf **dstMemNodes);
 
 int 
 memNodePropagate(TPMContext *tpm, TPMNode2 *s, TaintedBuf **dstMemNodes)
@@ -97,11 +91,11 @@ dfs(TPMContext *tpm, TPMNode2 *s, TaintedBuf **dstMemNodes)
 		storeAllUnvisitChildren(&markVisitTransHT, source_trans);
 		while(!isTransStackEmpty() ) {
 			Transition *pop = transStackPop();
-			TPMNode *dst = getDestination(pop);
+			TPMNode *dst = getTransitionDst(pop);
 // #ifdef DEBUG
 			if(dst->tpmnode1.type == TPM_Type_Memory) {
 				// printf("propagate to addr:%x val:%x\n", dst->tpmnode2.addr, dst->tpmnode2.val);
-				storeReachMemNode(&(dst->tpmnode2), dstMemNodes);
+				storePropagateDstMemNode(&(dst->tpmnode2), dstMemNodes);
 			}
 // #endif
 			stepCount++;
@@ -149,7 +143,7 @@ dfsPrintResult(TPMContext *tpm, TPMNode2 *s)
 		storeAllUnvisitChildren(&markVisitTransHT, source_trans);
 		while(!isTransStackEmpty() ) {
 			Transition *pop = transStackPop();
-			TPMNode *dst = getDestination(pop);
+			TPMNode *dst = getTransitionDst(pop);
 // #ifdef DEBUG
 			if(dst->tpmnode1.type == TPM_Type_Memory)
 				printf("propagate to addr:%x val:%x\n", dst->tpmnode2.addr, dst->tpmnode2.val);
@@ -307,28 +301,8 @@ storeAllUnvisitChildren(TransitionHashTable **transitionht, Transition *firstChi
 	}
 }
 
-static TPMNode *
-getDestination(Transition *transition)
-{
-	if(transition != NULL)
-		return transition->child;
-	else 
-		return NULL;
-}
-
-static u32 
-getChildrenNum(Transition *firstChild)
-{
-	u32 num = 0;
-	while(firstChild != NULL) {
-		num++;
-		firstChild = firstChild->next;
-	}
-	return num;
-}
-
 static void 
-storeReachMemNode(TPMNode2 *memNode, TaintedBuf **dstMemNodes)
+storePropagateDstMemNode(TPMNode2 *memNode, TaintedBuf **dstMemNodes)
 {
 	TaintedBuf *node = createTaintedBuf(memNode);
 	LL_APPEND(*dstMemNodes, node);
