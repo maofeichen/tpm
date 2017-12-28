@@ -66,15 +66,8 @@ searchAvalancheInOut(TPMContext *tpm, AvalancheSearchCtxt *avalsctxt)
 	srcAddr = srcNode->addr;
 
 	while(srcNode != NULL) {
-		reachmemnode_list = NULL;
-		memNodeReachBuf(tpm, srcNode, &reachmemnode_list);
-
-		LL_COUNT(reachmemnode_list, itr, count);
-		printf("total item in list:%d\n", count);
-
-		// LL_FOREACH(reachmemnode_list, itr) {
-		// 	printf("propagate to addr:%x val:%x\n", itr->bufstart->addr, itr->bufstart->val);
-		// }
+		// srcNode = get_earliest_version(&srcNode);
+		// srcAddr = srcNode->addr;
 
 		Addr2NodeItem *i = malloc(sizeof(Addr2NodeItem) );
 		i->addr = srcAddr;
@@ -83,13 +76,26 @@ searchAvalancheInOut(TPMContext *tpm, AvalancheSearchCtxt *avalsctxt)
 		i->toMemNode = NULL;
 		HASH_ADD(hh_addr2NodeItem, items, addr, 4, i);
 
+		do {
+			reachmemnode_list = NULL;
+			memNodeReachBuf(tpm, srcNode, &reachmemnode_list);
 
-		Addr2NodeItem *s = malloc(sizeof(Addr2NodeItem) );
-		s->addr = 0;
-		s->node = srcNode;
-		s->subHash = NULL;
-		s->toMemNode = reachmemnode_list;
-		HASH_ADD(hh_addr2NodeItem, i->subHash, node, 4, s);
+			LL_COUNT(reachmemnode_list, itr, count);
+			printf("total item in list:%d\n", count);
+
+			// LL_FOREACH(reachmemnode_list, itr) {
+			// 	printf("propagate to addr:%x val:%x\n", itr->bufstart->addr, itr->bufstart->val);
+			// }
+
+			Addr2NodeItem *s = malloc(sizeof(Addr2NodeItem) );
+			s->addr = 0;
+			s->node = srcNode;
+			s->subHash = NULL;
+			s->toMemNode = reachmemnode_list;
+			HASH_ADD(hh_addr2NodeItem, i->subHash, node, 4, s);
+
+			srcNode = srcNode->nextVersion;
+		} while(srcNode->version != 0);
 
 		srcNode = srcNode->rightNBR;
 		if(srcNode != NULL) {
