@@ -1,45 +1,45 @@
+#include "propagate.h"
 #include <stdbool.h>
 #include "utlist.h"
-#include "propagate.h"
 
-/* TransitionHashTable operation */
+/* Transition hash table operation */
 static void 
-add_trans_ht(TransitionHashTable **transitionht, u32 seqNo, Transition *toTrans);
+add2TransitionHT(TransitionHashTable **transitionht, u32 seqNo, Transition *toTrans);
 
 static TransitionHashTable *
-find_trans_ht(TransitionHashTable *transitionht, u32 seqNo);
+findInTransitionHT(TransitionHashTable *transitionht, u32 seqNo);
 
 static void
-del_trans_ht(TransitionHashTable **transitionht);
+delTransitionHT(TransitionHashTable **transitionht);
 
 static void 
-count_trans_ht(TransitionHashTable *transitionht);
+countTransitionHT(TransitionHashTable *transitionht);
 
 /* Stack of Transition node operation */
 StackTransitionNode *stackTransTop = NULL;
 u32 stackCount = 0;
 
 static void 
-stackTransPush(Transition *transition);
+transStackPush(Transition *transition);
 
 static Transition * 
-stackTransPop();
+transStackPop();
 
 static void 
-stackTransDisplay();
+transStackDisplay();
 
 static void 
-stackTransPopAll();
+transStackPopAll();
 
 static bool 
-isStackTransEmpty();
+isTransStackEmpty();
 
-/* get propagate implement */
+/* mem node propagate implement */
 static int 
-dfs(TPMContext *tpm, TPMNode2 *s, TaintedBuf **dstBuf);
+dfs(TPMContext *tpm, TPMNode2 *s, TaintedBuf **dstMemNodes);
 
 static int 
-dfs_print(TPMContext *tpm, TPMNode2 *s);
+dfsPrintResult(TPMContext *tpm, TPMNode2 *s);
 
 /* dfs operation */
 static void 
@@ -58,22 +58,22 @@ static u32
 getChildrenNum(Transition *firstChild);
 
 static void 
-storeReachMemNode(TPMNode2 *memNode, TaintedBuf **dstBuf);
+storeReachMemNode(TPMNode2 *memNode, TaintedBuf **dstMemNodes);
 
 int 
-memNodeReachBuf(TPMContext *tpm, TPMNode2 *s, TaintedBuf **dstBuf)
+memNodePropagate(TPMContext *tpm, TPMNode2 *s, TaintedBuf **dstMemNodes)
 {
-	return dfs(tpm, s, dstBuf);
+	return dfs(tpm, s, dstMemNodes);
 }
 
 int 
-print_propagation(TPMContext *tpm, TPMNode2 *s)
+printMemNodePropagate(TPMContext *tpm, TPMNode2 *s)
 {
-	return dfs_print(tpm, s);
+	return dfsPrintResult(tpm, s);
 }
 
 static int
-dfs(TPMContext *tpm, TPMNode2 *s, TaintedBuf **dstBuf)
+dfs(TPMContext *tpm, TPMNode2 *s, TaintedBuf **dstMemNodes)
 // Returns
 //	0: success
 //	<0: error
@@ -95,13 +95,13 @@ dfs(TPMContext *tpm, TPMNode2 *s, TaintedBuf **dstBuf)
 
 	if(source_trans != NULL) {
 		storeAllUnvisitChildren(&markVisitTransHT, source_trans);
-		while(!isStackTransEmpty() ) {
-			Transition *pop = stackTransPop();
+		while(!isTransStackEmpty() ) {
+			Transition *pop = transStackPop();
 			TPMNode *dst = getDestination(pop);
 // #ifdef DEBUG
 			if(dst->tpmnode1.type == TPM_Type_Memory) {
 				// printf("propagate to addr:%x val:%x\n", dst->tpmnode2.addr, dst->tpmnode2.val);
-				storeReachMemNode(&(dst->tpmnode2), dstBuf);
+				storeReachMemNode(&(dst->tpmnode2), dstMemNodes);
 			}
 // #endif
 			stepCount++;
@@ -118,14 +118,14 @@ dfs(TPMContext *tpm, TPMNode2 *s, TaintedBuf **dstBuf)
 #ifdef DEBUG
 	printf("total:%u traverse steps\n", stepCount);
 #endif
-	del_trans_ht(&markVisitTransHT);
-	stackTransPopAll();
+	delTransitionHT(&markVisitTransHT);
+	transStackPopAll();
 
 	return stepCount;	
 }
 
 static int 
-dfs_print(TPMContext *tpm, TPMNode2 *s)
+dfsPrintResult(TPMContext *tpm, TPMNode2 *s)
 // Returns
 //	0: success
 //	<0: error
@@ -147,8 +147,8 @@ dfs_print(TPMContext *tpm, TPMNode2 *s)
 
 	if(source_trans != NULL) {
 		storeAllUnvisitChildren(&markVisitTransHT, source_trans);
-		while(!isStackTransEmpty() ) {
-			Transition *pop = stackTransPop();
+		while(!isTransStackEmpty() ) {
+			Transition *pop = transStackPop();
 			TPMNode *dst = getDestination(pop);
 // #ifdef DEBUG
 			if(dst->tpmnode1.type == TPM_Type_Memory)
@@ -169,17 +169,17 @@ dfs_print(TPMContext *tpm, TPMNode2 *s)
 #ifdef DEBUG
 	printf("total:%u traverse steps\n", stepCount);
 #endif
-	del_trans_ht(&markVisitTransHT);
-	stackTransPopAll();
+	delTransitionHT(&markVisitTransHT);
+	transStackPopAll();
 
 	return stepCount;	
 }
 
 static void 
-add_trans_ht(TransitionHashTable **transitionht, u32 seqNo, Transition *toTrans)
+add2TransitionHT(TransitionHashTable **transitionht, u32 seqNo, Transition *toTrans)
 {
 	TransitionHashTable *t;
-	t = find_trans_ht(*transitionht, seqNo);
+	t = findInTransitionHT(*transitionht, seqNo);
 	if(t == NULL ) {
 		t = malloc(sizeof(TransitionHashTable) );
 		t->seqNo = seqNo;
@@ -190,7 +190,7 @@ add_trans_ht(TransitionHashTable **transitionht, u32 seqNo, Transition *toTrans)
 }
 
 static TransitionHashTable *
-find_trans_ht(TransitionHashTable *transitionht, u32 seqNo)
+findInTransitionHT(TransitionHashTable *transitionht, u32 seqNo)
 {
 	TransitionHashTable *s = NULL;
 	HASH_FIND(hh_trans, transitionht, &seqNo, 4, s);
@@ -198,7 +198,7 @@ find_trans_ht(TransitionHashTable *transitionht, u32 seqNo)
 }
 
 static void
-del_trans_ht(TransitionHashTable **transitionht)
+delTransitionHT(TransitionHashTable **transitionht)
 {
 	TransitionHashTable *curr, *tmp;
 	HASH_ITER(hh_trans, *transitionht, curr, tmp) {
@@ -209,7 +209,7 @@ del_trans_ht(TransitionHashTable **transitionht)
 }
 
 static void 
-count_trans_ht(TransitionHashTable *transitionht)
+countTransitionHT(TransitionHashTable *transitionht)
 {
 	u32 num;
 	num = HASH_CNT(hh_trans, transitionht);
@@ -217,7 +217,7 @@ count_trans_ht(TransitionHashTable *transitionht)
 }
 
 static void 
-stackTransPush(Transition *transition)
+transStackPush(Transition *transition)
 {
 	StackTransitionNode *n = malloc(sizeof(StackTransitionNode) );
 	n->transition = transition;
@@ -227,7 +227,7 @@ stackTransPush(Transition *transition)
 }
 
 static Transition *
-stackTransPop()
+transStackPop()
 {
 	StackTransitionNode *toDel;
 	Transition *trans = NULL;
@@ -243,7 +243,7 @@ stackTransPop()
 }
 
 static void 
-stackTransDisplay()
+transStackDisplay()
 {
 	StackTransitionNode *n = stackTransTop;
 	while(n != NULL) {
@@ -253,15 +253,15 @@ stackTransDisplay()
 }
 
 static void 
-stackTransPopAll()
+transStackPopAll()
 {
 	while(stackTransTop != NULL) {
-		stackTransPop();
+		transStackPop();
 	}
 }
 
 static bool 
-isStackTransEmpty()
+isTransStackEmpty()
 {
 	if(stackTransTop == NULL)
 		return true;
@@ -275,7 +275,7 @@ markVisitTransition(TransitionHashTable **transitionht, Transition *transition)
 	if (transitionht == NULL || transition == NULL)
 		return;
 
-	add_trans_ht(transitionht, transition->seqNo, transition);
+	add2TransitionHT(transitionht, transition->seqNo, transition);
 }
 
 static bool 
@@ -288,7 +288,7 @@ isTransitionVisited(TransitionHashTable *transitionht, Transition *transition)
 	u32 seqNo;
 
 	seqNo = transition->seqNo;
-	found = find_trans_ht(transitionht, seqNo);
+	found = findInTransitionHT(transitionht, seqNo);
 	if(found != NULL)
 		return true;
 	else
@@ -300,7 +300,7 @@ storeAllUnvisitChildren(TransitionHashTable **transitionht, Transition *firstChi
 {
 	while(firstChild != NULL){
 		if(!isTransitionVisited(*transitionht, firstChild) ) {
-			stackTransPush(firstChild);
+			transStackPush(firstChild);
 			markVisitTransition(transitionht, firstChild);
 		}
 		firstChild = firstChild->next;
@@ -328,8 +328,8 @@ getChildrenNum(Transition *firstChild)
 }
 
 static void 
-storeReachMemNode(TPMNode2 *memNode, TaintedBuf **dstBuf)
+storeReachMemNode(TPMNode2 *memNode, TaintedBuf **dstMemNodes)
 {
 	TaintedBuf *node = createTaintedBuf(memNode);
-	LL_APPEND(*dstBuf, node);
+	LL_APPEND(*dstMemNodes, node);
 }

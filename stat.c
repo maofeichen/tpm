@@ -146,7 +146,7 @@ compute_cont_buf(struct TPMContext *tpm)
 	u32 minstep = 100, maxstep = 0, totalstep = 0;
 	s = bufHT;
 	for(; s != NULL; s = s->hh_cont.next) {
-		u32 step = print_propagation(tpm, s->firstNode);
+		u32 step = printMemNodePropagate(tpm, s->firstNode);
 		if(minstep > step)
 			minstep = step;
 

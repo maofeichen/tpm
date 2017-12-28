@@ -1,7 +1,7 @@
-#include "avalanche.h"
-#include "utlist.h"
 #include <stdbool.h>
-#include "stdio.h"
+#include <stdio.h>
+#include "utlist.h"
+#include "avalanche.h"
 
 // static struct TPMNode2 * 
 // memNodeReachBuf(TPMContext *tpm, struct AvalancheSearchCtxt *avalsctxt, struct TPMNode2 *srcNode, struct taintedBuf **dstBuf);
@@ -26,7 +26,7 @@ init_AvalancheSearchCtxt(struct AvalancheSearchCtxt **avalsctxt, u32 minBufferSz
 	(*avalsctxt)->srcAddrEnd 	= srcAddrEnd;
 	(*avalsctxt)->dstAddrStart 	= dstAddrStart;
 	(*avalsctxt)->dstAddrEnd 	= dstAddrEnd;
-	(*avalsctxt)->addr2Node		= NULL;	
+	(*avalsctxt)->addr2Node		= NULL;
 }
 
 void
@@ -37,21 +37,22 @@ free_AvalancheSearchCtxt(struct AvalancheSearchCtxt *avalsctxt)
 
 
 void 
-searchAvalanche(TPMContext *tpm)
+searchAllAvalancheInTPM(TPMContext *tpm)
 {
     AvalancheSearchCtxt *avalsctxt;
-	TPMNode2 *source;
+	TPMNode2 *srcBuf;
 
-    source = mem2NodeSearch(tpm, 0xde911000);
-    getMemNode1stVersion(&source);
+	/* test one buffer */
+    srcBuf = mem2NodeSearch(tpm, 0xde911000);
+    getMemNode1stVersion(&srcBuf);
 
-    init_AvalancheSearchCtxt(&avalsctxt, 8, source, NULL, 0, 0, 0, 0);
-    searchAvalancheInOut(tpm, avalsctxt);
+    init_AvalancheSearchCtxt(&avalsctxt, 8, srcBuf, NULL, 0, 0, 0, 0);
+    searchAvalancheInOutBuf(tpm, avalsctxt);
     free_AvalancheSearchCtxt(avalsctxt);    
 }
 
 int 
-searchAvalancheInOut(TPMContext *tpm, AvalancheSearchCtxt *avalsctxt)
+searchAvalancheInOutBuf(TPMContext *tpm, AvalancheSearchCtxt *avalsctxt)
 {
 	printf("searching avalanche given in and out buffers\n");
 	TaintedBuf *reachmemnode_list, *itr;
@@ -78,7 +79,7 @@ searchAvalancheInOut(TPMContext *tpm, AvalancheSearchCtxt *avalsctxt)
 
 		do {
 			reachmemnode_list = NULL;
-			memNodeReachBuf(tpm, srcNode, &reachmemnode_list);
+			memNodePropagate(tpm, srcNode, &reachmemnode_list);
 
 			LL_COUNT(reachmemnode_list, itr, count);
 			printf("total item in list:%d\n", count);
@@ -121,5 +122,4 @@ searchAvalancheInOut(TPMContext *tpm, AvalancheSearchCtxt *avalsctxt)
 			// }
 		}
 	}
-
 }

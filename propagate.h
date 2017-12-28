@@ -2,14 +2,13 @@
 #define PROPAGATE_H 
 
 #include "uthash.h"
-
 #include "tpmnode.h"
 #include "tpm.h"
 #include "type.h"
 
+typedef struct TransitionHashTable
 // Transition hash table
 //	uses in dfs to mark transitions that had been visited
-typedef struct TransitionHashTable
 {
 	u32 seqNo;
 	Transition *toTrans;
@@ -23,9 +22,11 @@ typedef struct StackTransitionNode
 } StackTransitionNode;
 
 int 
-memNodeReachBuf(TPMContext *tpm, TPMNode2 *s, TaintedBuf **dstBuf);
+memNodePropagate(TPMContext *tpm, TPMNode2 *s, TaintedBuf **dstMemNodes);
+// searches mem node propagation given tpm, source node. Stores results
+// (destination mem nodes) in dstBuf
 
 int 
-print_propagation(TPMContext *tpm, TPMNode2 *s);
+printMemNodePropagate(TPMContext *tpm, TPMNode2 *s);
 
 #endif

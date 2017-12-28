@@ -35,7 +35,7 @@ int main(int argc, char const *argv[])
 			stat(tpm);
 #endif
 
-			searchAvalanche(tpm);	// test searching avalanche
+			searchAllAvalancheInTPM(tpm);	// test searching avalanche
 			printf("del TPM\n");
 			delTPM(tpm);
 		} 
