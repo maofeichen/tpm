@@ -11,7 +11,7 @@
 struct addr2NodeItem
 {
     u32 addr;				/* 32-bit address: src addr in 1st level hash; dst addr in 2nd level hash */
-    struct TMPNode2 *node;	/* used as key to hash: src node in 1st level hash; dst node in 2nd level hash */
+    struct TPMNode2 *node;	/* used as key to hash: src node in 1st level hash; dst node in 2nd level hash */
     struct addr2NodeItem *subHash;	  /* next level hash */
     TaintedBuf *toMemNode; 			  // the mem node that the source node can propagate
     UT_hash_handle hh_addr2NodeItem;  /* makes this structure hashable */
@@ -33,8 +33,7 @@ struct AvalancheSearchCtxt
     u32 dstMaxSeqN;		// maximum seq# of the destination buffer
     unsigned char *srcAddrHitCnt;  // array[0, srcAddrEnd-srcAddrStart] to record the aggregated hit account of all versions of each source address
     unsigned char *dstAddrHitCnt;  // array[0, dstAddrEnd-dstAddrStart] to record the aggregated hit account of all versions of each destination address
-    // struct addr2NodeItem **addr2Node;	// array[0, dstAddrEnd-dstAddrStart] of pointers to struct addr2NodeItem (hash table)
-    struct addr2NodeItem *addr2Node;	// array[0, dstAddrEnd-dstAddrStart] of pointers to struct addr2NodeItem (hash table)
+    struct addr2NodeItem *addr2Node; // array[0, dstAddrEnd-dstAddrStart] of pointers to struct addr2NodeItem (hash table)
 };
 typedef struct AvalancheSearchCtxt AvalancheSearchCtxt;
 

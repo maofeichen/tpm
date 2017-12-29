@@ -13,17 +13,27 @@
 // static int
 // memNodePropagationSearch(struct AvalancheSearchCtxt *avalsctxt, struct TPMNode2 *srcNode, struct taintedBuf *dstBuf);
 
+static void 
+searchPropagateInOutBuf(TPMContext *tpm, AvalancheSearchCtxt *avalsctxt, Addr2NodeItem **dstMemNodesHT);
+
 static Addr2NodeItem *
 createAddr2NodeItem(u32 addr, TPMNode2 *memNode, Addr2NodeItem *subHash, TaintedBuf *toMemNode);
 
 static int 
 initSourceNode(u32 *srcAddr, TPMNode2 **srcNode);
 
+/* print */
 static void 
 printDstMemNodesHTTotal(Addr2NodeItem *dstMemNodesHT);
 
 static void 
 printDstMemNodesHT(Addr2NodeItem *dstMemNodesHT);
+
+static void 
+printDstMemNodesListTotal(TaintedBuf *lst_dstMemNodes);
+
+static void 
+printDstMemNodesList(TaintedBuf *lst_dstMemNodes);
 
 /* functions */
 int
@@ -67,35 +77,41 @@ searchAllAvalancheInTPM(TPMContext *tpm)
 int 
 searchAvalancheInOutBuf(TPMContext *tpm, AvalancheSearchCtxt *avalsctxt)
 {
-	printf("begins to search avalanche between in and out buffers\n");
+	Addr2NodeItem *dstMemNodesHT = NULL;
 
-	TaintedBuf *lst_dstMemNodes, *itr;
+	searchPropagateInOutBuf(tpm, avalsctxt, &(avalsctxt->addr2Node) );
+// #ifdef DEBUG
+	printDstMemNodesHTTotal(avalsctxt->addr2Node);
+	printDstMemNodesHT(avalsctxt->addr2Node);
+// #endif	
+}
+
+static void 
+searchPropagateInOutBuf(TPMContext *tpm, AvalancheSearchCtxt *avalsctxt, Addr2NodeItem **dstMemNodesHT)
+// Searches propagations of source buffer (all version of each node), results store in dstMemNodesHT
+{
 	TPMNode2 *srcNode;
 	u32 srcAddr;
-	int count = 0, srcNodeHitcnt = 0;
-	Addr2NodeItem *dstMemNodesHT = NULL;
+	int srcNodeHitcnt = 0;
+	TaintedBuf *dstMemNodesLst;
 
 	srcNode = avalsctxt->srcBuf;
 	initSourceNode(&srcAddr, &srcNode);
 
 	while(srcNode != NULL) {
 		Addr2NodeItem *addrItem = createAddr2NodeItem(srcAddr, NULL, NULL, NULL);
-		HASH_ADD(hh_addr2NodeItem, dstMemNodesHT, addr, 4, addrItem);	// 1st level hash: key: addr
+		HASH_ADD(hh_addr2NodeItem, *dstMemNodesHT, addr, 4, addrItem);	// 1st level hash: key: addr
 
 		do {
-			lst_dstMemNodes = NULL;
-			srcNodeHitcnt = memNodePropagate(tpm, srcNode, &lst_dstMemNodes);	// store result in utlist
-			printf("source node hit count:%d\n", srcNodeHitcnt);
-
+			dstMemNodesLst = NULL;
+			srcNodeHitcnt = memNodePropagate(tpm, srcNode, &dstMemNodesLst);	// store result in utlist
+			srcNode->hitcnt = srcNodeHitcnt;
 #ifdef DEBUG
-			LL_COUNT(lst_dstMemNodes, itr, count);
-			printf("total item in list:%d\n", count);
-
-			LL_FOREACH(lst_dstMemNodes, itr) {
-				printf("propagate to addr:%x val:%x\n", itr->bufstart->addr, itr->bufstart->val);
-			}
+			printf("source node hit count:%d\n", srcNodeHitcnt);
+			printDstMemNodesListTotal(dstMemNodesLst);
+			printDstMemNodesList(dstMemNodesLst);
 #endif
-			Addr2NodeItem *srcNodePtr = createAddr2NodeItem(0, srcNode, NULL, lst_dstMemNodes);
+			Addr2NodeItem *srcNodePtr = createAddr2NodeItem(0, srcNode, NULL, dstMemNodesLst);
 			HASH_ADD(hh_addr2NodeItem, addrItem->subHash, node, 4, srcNodePtr);	// 2nd level hash: key: node ptr val: propagate dst mem nodes
 
 			srcNode = srcNode->nextVersion;
@@ -104,9 +120,6 @@ searchAvalancheInOutBuf(TPMContext *tpm, AvalancheSearchCtxt *avalsctxt)
 		srcNode = srcNode->rightNBR;
 		initSourceNode(&srcAddr, &srcNode);
 	}
-
-	printDstMemNodesHTTotal(dstMemNodesHT);
-	printDstMemNodesHT(dstMemNodesHT);
 }
 
 static Addr2NodeItem *
@@ -155,15 +168,33 @@ printDstMemNodesHT(Addr2NodeItem *dstMemNodesHT)
 
 	HASH_ITER(hh_addr2NodeItem, dstMemNodesHT, item, temp) {
 		totalSubItem = HASH_CNT(hh_addr2NodeItem, item->subHash);
-		printf("total pointer item in sub hash table:%d\n", totalSubItem);
+		printf("addr:0x%x - total pointer item in sub hash table:%d\n", item->addr, totalSubItem);
 		HASH_ITER(hh_addr2NodeItem, item->subHash, subitem, subTemp) {
-			TaintedBuf *dstBuf = subitem->toMemNode;
-			LL_COUNT(dstBuf, itr, count);
-			printf("total item in list:%d\n", count);
-
-			// LL_FOREACH(dstBuf, itr) {
-			// 	printf("propagate to addr:%x val:%x\n", itr->bufstart->addr, itr->bufstart->val);
-			// }
+			TaintedBuf *dstMemNodesLst = subitem->toMemNode;
+			printf("addr:%-8x version:%u - ", (subitem->node)->addr, (subitem->node)->version);
+			LL_COUNT(dstMemNodesLst, itr, count);
+			printf("total propagate destination mem nodes:%d\n", count);
+			printDstMemNodesList(dstMemNodesLst);
 		}
+	}
+}
+
+static void 
+printDstMemNodesListTotal(TaintedBuf *lst_dstMemNodes)
+{	
+	int count;
+	TaintedBuf *itr;
+
+	LL_COUNT(lst_dstMemNodes, itr, count);
+	printf("total item in list:%d\n", count);
+}
+
+static void 
+printDstMemNodesList(TaintedBuf *lst_dstMemNodes)
+{
+	TaintedBuf *itr;
+
+	LL_FOREACH(lst_dstMemNodes, itr) {
+		printf("\t-> addr:%-8x val:%-8x\n", itr->bufstart->addr, itr->bufstart->val);
 	}
 }
