@@ -37,6 +37,14 @@ struct AvalancheSearchCtxt
 };
 typedef struct AvalancheSearchCtxt AvalancheSearchCtxt;
 
+struct AvalancheDstBuf
+{
+    TPMNode2 *dstNode;
+    u32 hitcnt;
+    UT_hash_handle hh_avalnchDstBuf;
+};
+typedef struct AvalancheDstBuf AvalancheDstBuf; // stores the propagate destination mem nodes
+
 int
 init_AvalancheSearchCtxt(struct AvalancheSearchCtxt **avalsctxt, u32 minBufferSz, struct TPMNode2 *srcBuf, 
 			 struct TPMNode2 *dstBuf, u32 srcAddrStart, u32 srcAddrEnd, u32 dstAddrStart, u32 dstAddrEnd);

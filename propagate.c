@@ -79,10 +79,10 @@ dfs(TPMContext *tpm, TPMNode2 *s, TaintedBuf **dstMemNodes)
 		return -1;
 	}
 
-// #ifdef DEBUG
+#ifdef DEBUG
 	printf("--------------------\n");
 	printf("dfs: source addr:%x val:%x ts:%u version%u\n", s->addr, s->val, s->lastUpdateTS, s->version);
-// #endif
+#endif
 
 	TransitionHashTable *markVisitTransHT = NULL;
 	Transition *source_trans = s->firstChild;

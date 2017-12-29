@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include "utlist.h"
@@ -22,6 +23,18 @@ createAddr2NodeItem(u32 addr, TPMNode2 *memNode, Addr2NodeItem *subHash, Tainted
 static int 
 initSourceNode(u32 *srcAddr, TPMNode2 **srcNode);
 
+static void 
+detectAvalancheInOutBuf(TPMContext *tpm, AvalancheSearchCtxt *avalsctxt);
+
+static AvalancheDstBuf *
+createAvalancheDstBuf(TPMNode2 *dstNode, u32 hitcnt);
+
+static void 
+initSlidingWindow(TaintedBuf *dstMemNodesLst, u32 dstAddrStart, u32 dstAddrEnd, AvalancheDstBuf **avalDstBufHT);
+
+static bool 
+isInMemRange(TPMNode2 *node, u32 addrBegin, u32 addrEnd);
+
 /* print */
 static void 
 printDstMemNodesHTTotal(Addr2NodeItem *dstMemNodesHT);
@@ -34,6 +47,12 @@ printDstMemNodesListTotal(TaintedBuf *lst_dstMemNodes);
 
 static void 
 printDstMemNodesList(TaintedBuf *lst_dstMemNodes);
+
+static void 
+printAvalDstBufHTTotal(AvalancheDstBuf *avalDstBufHT);
+
+static void 
+printAvalDstBufHT(AvalancheDstBuf *avalDstBufHT);
 
 /* functions */
 int
@@ -77,13 +96,29 @@ searchAllAvalancheInTPM(TPMContext *tpm)
 int 
 searchAvalancheInOutBuf(TPMContext *tpm, AvalancheSearchCtxt *avalsctxt)
 {
-	Addr2NodeItem *dstMemNodesHT = NULL;
-
 	searchPropagateInOutBuf(tpm, avalsctxt, &(avalsctxt->addr2Node) );
-// #ifdef DEBUG
+#ifdef DEBUG
 	printDstMemNodesHTTotal(avalsctxt->addr2Node);
 	printDstMemNodesHT(avalsctxt->addr2Node);
-// #endif	
+#endif
+
+	AvalancheDstBuf *avalDstBufHT = NULL;
+
+	Addr2NodeItem *item, *subitem, *temp, *subTemp;
+	TaintedBuf *itr, *dstMemNodesLst;
+	int count, totalSubItem;
+
+	HASH_ITER(hh_addr2NodeItem, avalsctxt->addr2Node, item, temp) {
+		HASH_ITER(hh_addr2NodeItem, item->subHash, subitem, subTemp) {
+			dstMemNodesLst = subitem->toMemNode;
+			initSlidingWindow(dstMemNodesLst, 0x804c170, 0x804c1B0, &avalDstBufHT);
+			printAvalDstBufHTTotal(avalDstBufHT);
+			printAvalDstBufHT(avalDstBufHT);
+			break;
+		}
+		break;
+	}
+
 }
 
 static void 
@@ -152,11 +187,48 @@ initSourceNode(u32 *srcAddr, TPMNode2 **srcNode)
 }
 
 static void 
+detectAvalancheInOutBuf(TPMContext *tpm, AvalancheSearchCtxt *avalsctxt)
+{
+
+}
+
+static AvalancheDstBuf *
+createAvalancheDstBuf(TPMNode2 *dstNode, u32 hitcnt)
+{
+	AvalancheDstBuf *i = NULL;
+	i = malloc(sizeof(AvalancheDstBuf) );
+	i->dstNode = dstNode;
+	i->hitcnt = hitcnt;
+	return i;
+}
+
+static void 
+initSlidingWindow(TaintedBuf *dstMemNodesLst, u32 dstAddrStart, u32 dstAddrEnd, AvalancheDstBuf **avalDstBufHT)
+{
+	TaintedBuf *itr;
+
+	LL_FOREACH(dstMemNodesLst, itr) {
+		if(isInMemRange(itr->bufstart, dstAddrStart, dstAddrEnd) ) {
+			AvalancheDstBuf *dstMemNode = createAvalancheDstBuf(itr->bufstart, 0);
+			HASH_ADD(hh_avalnchDstBuf, *avalDstBufHT, dstNode, 4, dstMemNode);
+		}
+	}
+}
+
+static bool 
+isInMemRange(TPMNode2 *node, u32 addrBegin, u32 addrEnd)
+{
+	assert(node != NULL);
+	if(node->addr >= addrBegin && node->addr <= addrEnd) { return true; }
+	else { return false; }
+}
+
+static void 
 printDstMemNodesHTTotal(Addr2NodeItem *dstMemNodesHT)
 {
-	int totalItem;
-	totalItem = HASH_CNT(hh_addr2NodeItem, dstMemNodesHT);
-	printf("total addr item in hash table:%d\n", totalItem);
+	int total;
+	total = HASH_CNT(hh_addr2NodeItem, dstMemNodesHT);
+	printf("total addr item in hash table:%d\n", total);
 }
 
 static void 
@@ -180,21 +252,38 @@ printDstMemNodesHT(Addr2NodeItem *dstMemNodesHT)
 }
 
 static void 
-printDstMemNodesListTotal(TaintedBuf *lst_dstMemNodes)
+printDstMemNodesListTotal(TaintedBuf *dstMemNodesLst)
 {	
 	int count;
 	TaintedBuf *itr;
 
-	LL_COUNT(lst_dstMemNodes, itr, count);
+	LL_COUNT(dstMemNodesLst, itr, count);
 	printf("total item in list:%d\n", count);
 }
 
 static void 
-printDstMemNodesList(TaintedBuf *lst_dstMemNodes)
+printDstMemNodesList(TaintedBuf *dstMemNodesLst)
 {
 	TaintedBuf *itr;
 
-	LL_FOREACH(lst_dstMemNodes, itr) {
+	LL_FOREACH(dstMemNodesLst, itr) {
 		printf("\t-> addr:%-8x val:%-8x\n", itr->bufstart->addr, itr->bufstart->val);
+	}
+}
+
+static void 
+printAvalDstBufHTTotal(AvalancheDstBuf *avalDstBufHT)
+{
+	int total;
+	total = HASH_CNT(hh_avalnchDstBuf, avalDstBufHT);
+	printf("total nodes in destination range:%d\n", total);
+}
+
+static void 
+printAvalDstBufHT(AvalancheDstBuf *avalDstBufHT)
+{
+	AvalancheDstBuf *item, *temp;
+	HASH_ITER(hh_avalnchDstBuf, avalDstBufHT, item, temp) {
+		printf("addr:0x%x - ptr:%p\n", item->dstNode->addr, item->dstNode);
 	}
 }
