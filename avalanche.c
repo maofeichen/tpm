@@ -72,7 +72,7 @@ searchAvalancheInOutBuf(TPMContext *tpm, AvalancheSearchCtxt *avalsctxt)
 	TaintedBuf *lst_dstMemNodes, *itr;
 	TPMNode2 *srcNode;
 	u32 srcAddr;
-	int count = 0;
+	int count = 0, srcNodeHitcnt = 0;
 	Addr2NodeItem *dstMemNodesHT = NULL;
 
 	srcNode = avalsctxt->srcBuf;
@@ -84,7 +84,8 @@ searchAvalancheInOutBuf(TPMContext *tpm, AvalancheSearchCtxt *avalsctxt)
 
 		do {
 			lst_dstMemNodes = NULL;
-			memNodePropagate(tpm, srcNode, &lst_dstMemNodes);	// store result in utlist
+			srcNodeHitcnt = memNodePropagate(tpm, srcNode, &lst_dstMemNodes);	// store result in utlist
+			printf("source node hit count:%d\n", srcNodeHitcnt);
 
 #ifdef DEBUG
 			LL_COUNT(lst_dstMemNodes, itr, count);

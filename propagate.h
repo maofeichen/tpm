@@ -23,6 +23,9 @@ typedef struct StackTransitionNode
 
 int 
 memNodePropagate(TPMContext *tpm, TPMNode2 *s, TaintedBuf **dstMemNodes);
+// Returns:
+//  >=0: dst mem nodes hit count
+//  <0: error
 // searches mem node propagation given tpm, source node. Stores results
 // (destination mem nodes) in dstBuf
 

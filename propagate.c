@@ -69,9 +69,9 @@ printMemNodePropagate(TPMContext *tpm, TPMNode2 *s)
 
 static int
 dfs(TPMContext *tpm, TPMNode2 *s, TaintedBuf **dstMemNodes)
-// Returns
-//	0: success
-//	<0: error
+// Returns:
+//  >=0: dst mem nodes hit count
+//  <0: error
 //	Depth First Search the propagated buffer given tpm and source 
 {
 	if(tpm == NULL || s == NULL) {
@@ -86,7 +86,7 @@ dfs(TPMContext *tpm, TPMNode2 *s, TaintedBuf **dstMemNodes)
 
 	TransitionHashTable *markVisitTransHT = NULL;
 	Transition *source_trans = s->firstChild;
-	int stepCount = 0;
+	int stepCount = 0, hitCount = 0;
 
 	if(source_trans != NULL) {
 		storeAllUnvisitChildren(&markVisitTransHT, source_trans);
@@ -97,6 +97,7 @@ dfs(TPMContext *tpm, TPMNode2 *s, TaintedBuf **dstMemNodes)
 			if(dst->tpmnode1.type == TPM_Type_Memory) {
 				// printf("propagate to addr:%x val:%x\n", dst->tpmnode2.addr, dst->tpmnode2.val);
 				storePropagateDstMemNode(&(dst->tpmnode2), dstMemNodes);
+				hitCount++;
 			}
 // #endif
 			stepCount++;
@@ -116,7 +117,8 @@ dfs(TPMContext *tpm, TPMNode2 *s, TaintedBuf **dstMemNodes)
 	delTransitionHT(&markVisitTransHT);
 	transStackPopAll();
 
-	return stepCount;	
+	// return stepCount;
+	return hitCount;	
 }
 
 static int 
