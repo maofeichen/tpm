@@ -54,6 +54,7 @@ storeAllUnvisitChildren(TransitionHashTable **transitionht, Transition *firstChi
 static void 
 storePropagateDstMemNode(TPMNode2 *memNode, TaintedBuf **dstMemNodes);
 
+/* functions */
 int 
 memNodePropagate(TPMContext *tpm, TPMNode2 *s, TaintedBuf **dstMemNodes)
 {

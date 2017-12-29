@@ -13,6 +13,19 @@
 // static int
 // memNodePropagationSearch(struct AvalancheSearchCtxt *avalsctxt, struct TPMNode2 *srcNode, struct taintedBuf *dstBuf);
 
+static Addr2NodeItem *
+createAddr2NodeItem(u32 addr, TPMNode2 *memNode, Addr2NodeItem *subHash, TaintedBuf *toMemNode);
+
+static int 
+initSourceNode(u32 *srcAddr, TPMNode2 **srcNode);
+
+static void 
+printDstMemNodesHTTotal(Addr2NodeItem *dstMemNodesHT);
+
+static void 
+printDstMemNodesHT(Addr2NodeItem *dstMemNodesHT);
+
+/* functions */
 int
 init_AvalancheSearchCtxt(struct AvalancheSearchCtxt **avalsctxt, u32 minBufferSz, struct TPMNode2 *srcBuf, 
 			 struct TPMNode2 *dstBuf, u32 srcAddrStart, u32 srcAddrEnd, u32 dstAddrStart, u32 dstAddrEnd)
@@ -54,62 +67,92 @@ searchAllAvalancheInTPM(TPMContext *tpm)
 int 
 searchAvalancheInOutBuf(TPMContext *tpm, AvalancheSearchCtxt *avalsctxt)
 {
-	printf("searching avalanche given in and out buffers\n");
-	TaintedBuf *reachmemnode_list, *itr;
+	printf("begins to search avalanche between in and out buffers\n");
+
+	TaintedBuf *lst_dstMemNodes, *itr;
 	TPMNode2 *srcNode;
 	u32 srcAddr;
 	int count = 0;
-
-	Addr2NodeItem *item, *subitem, *temp, *subTemp;
-	Addr2NodeItem *items = NULL;
+	Addr2NodeItem *dstMemNodesHT = NULL;
 
 	srcNode = avalsctxt->srcBuf;
-	srcAddr = srcNode->addr;
+	initSourceNode(&srcAddr, &srcNode);
 
 	while(srcNode != NULL) {
-		// srcNode = get_earliest_version(&srcNode);
-		// srcAddr = srcNode->addr;
-
-		Addr2NodeItem *i = malloc(sizeof(Addr2NodeItem) );
-		i->addr = srcAddr;
-		i->node = NULL;
-		i->subHash = NULL;
-		i->toMemNode = NULL;
-		HASH_ADD(hh_addr2NodeItem, items, addr, 4, i);
+		Addr2NodeItem *addrItem = createAddr2NodeItem(srcAddr, NULL, NULL, NULL);
+		HASH_ADD(hh_addr2NodeItem, dstMemNodesHT, addr, 4, addrItem);	// 1st level hash: key: addr
 
 		do {
-			reachmemnode_list = NULL;
-			memNodePropagate(tpm, srcNode, &reachmemnode_list);
+			lst_dstMemNodes = NULL;
+			memNodePropagate(tpm, srcNode, &lst_dstMemNodes);	// store result in utlist
 
-			LL_COUNT(reachmemnode_list, itr, count);
+#ifdef DEBUG
+			LL_COUNT(lst_dstMemNodes, itr, count);
 			printf("total item in list:%d\n", count);
 
-			// LL_FOREACH(reachmemnode_list, itr) {
-			// 	printf("propagate to addr:%x val:%x\n", itr->bufstart->addr, itr->bufstart->val);
-			// }
-
-			Addr2NodeItem *s = malloc(sizeof(Addr2NodeItem) );
-			s->addr = 0;
-			s->node = srcNode;
-			s->subHash = NULL;
-			s->toMemNode = reachmemnode_list;
-			HASH_ADD(hh_addr2NodeItem, i->subHash, node, 4, s);
+			LL_FOREACH(lst_dstMemNodes, itr) {
+				printf("propagate to addr:%x val:%x\n", itr->bufstart->addr, itr->bufstart->val);
+			}
+#endif
+			Addr2NodeItem *srcNodePtr = createAddr2NodeItem(0, srcNode, NULL, lst_dstMemNodes);
+			HASH_ADD(hh_addr2NodeItem, addrItem->subHash, node, 4, srcNodePtr);	// 2nd level hash: key: node ptr val: propagate dst mem nodes
 
 			srcNode = srcNode->nextVersion;
-		} while(srcNode->version != 0);
+		} while(srcNode->version != 0); // go through all versions of the src nodes
 
 		srcNode = srcNode->rightNBR;
-		if(srcNode != NULL) {
-			getMemNode1stVersion(&srcNode);
-			srcAddr = srcNode->addr;
-		}
+		initSourceNode(&srcAddr, &srcNode);
 	}
 
-	int totalItem, totalSubItem;
-	totalItem = HASH_CNT(hh_addr2NodeItem, items);
-	printf("total addr item in hash table:%d\n", totalItem);
+	printDstMemNodesHTTotal(dstMemNodesHT);
+	printDstMemNodesHT(dstMemNodesHT);
+}
 
-	HASH_ITER(hh_addr2NodeItem, items, item, temp) {
+static Addr2NodeItem *
+createAddr2NodeItem(u32 addr, TPMNode2 *memNode, Addr2NodeItem *subHash, TaintedBuf *toMemNode)
+{
+	Addr2NodeItem *i = NULL;
+	i = malloc(sizeof(Addr2NodeItem) );
+	i->addr = addr;
+	i->node = memNode;
+	i->subHash 	 = subHash;
+	i->toMemNode = toMemNode;
+	return i;
+}
+
+static int 
+initSourceNode(u32 *srcAddr, TPMNode2 **srcNode)
+// given a source node, get its 1st version, and init the srcAddr of the src node
+{
+	if(*srcNode == NULL) {
+#ifdef DEBUG		
+		fprintf(stderr, "error: init source node:%p\n", *srcNode);
+#endif
+		*srcAddr = 0;
+		return -1;
+	}
+
+	getMemNode1stVersion(srcNode);
+	*srcAddr = (*srcNode)->addr;
+	return 0;
+}
+
+static void 
+printDstMemNodesHTTotal(Addr2NodeItem *dstMemNodesHT)
+{
+	int totalItem;
+	totalItem = HASH_CNT(hh_addr2NodeItem, dstMemNodesHT);
+	printf("total addr item in hash table:%d\n", totalItem);
+}
+
+static void 
+printDstMemNodesHT(Addr2NodeItem *dstMemNodesHT)
+{
+	Addr2NodeItem *item, *subitem, *temp, *subTemp;
+	TaintedBuf *itr;
+	int count, totalSubItem;
+
+	HASH_ITER(hh_addr2NodeItem, dstMemNodesHT, item, temp) {
 		totalSubItem = HASH_CNT(hh_addr2NodeItem, item->subHash);
 		printf("total pointer item in sub hash table:%d\n", totalSubItem);
 		HASH_ITER(hh_addr2NodeItem, item->subHash, subitem, subTemp) {
