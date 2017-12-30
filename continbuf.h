@@ -1,9 +1,10 @@
 #ifndef CONTINBUF_H
 #define CONTINBUF_H 
 
-#include "utarray.h"
 #include "tpmnode.h"
 #include "type.h"
+
+#define INIT_CONTBUFNODEARY_SZ	4
 
 // struct ContinBufNode
 // {
@@ -15,7 +16,10 @@ struct ContinBuf
 {
 	u32 bufStart;
 	u32 bufEnd;
-	UT_array *continBufNodeAry;
+	u32 nodeArySz;					
+	u32 nodeAryUsed;	// num of nodes in the ary
+	TaintedBuf **contBufNodeAry;	// dynamic pointer of array, 
+									// each pointer is a list of versions of same addr
 };
 typedef struct ContinBuf ContinBuf;	// stores the continuous buffer
 
@@ -30,7 +34,10 @@ ContinBuf *
 initContinBuf();
 
 int 
-AppendContinBuf(ContinBuf *contBuf, TPMNode2 *nodeptr);
+extendContinBuf(ContinBuf *contBuf, TPMNode2 *nodeptr);
+
+void 
+delContinBuf(ContinBuf *contBuf);
 
 // int 
 // extendContBuf(ContinBuf *contBuf, ContinBufNode *contBufNode);

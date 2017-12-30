@@ -249,12 +249,11 @@ t_createDstContinBuf(AvalDstBufHTNode *dstMemNodesHT)
 	AvalDstBufHTNode *item, *temp;
 
 	continBuf = initContinBuf();
-	int len = utarray_len(continBuf->continBufNodeAry);
-	printf("len contin buf node ary:%d\n", len );
+	printContinBuf(continBuf);
 
 	HASH_ITER(hh_avalDstBufHTNode, dstMemNodesHT, item, temp) {
 		// printf("addr:0x%x - ptr:%p\n", item->dstNode->addr, item->dstNode);
-		AppendContinBuf(continBuf, item->dstNode);
+		extendContinBuf(continBuf, item->dstNode);
 		// break;
 	}
 	printContinBuf(continBuf);
