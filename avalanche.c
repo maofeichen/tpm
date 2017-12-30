@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include "utlist.h"
 #include "avalanche.h"
+#include "continbuf.h"
 
 // static struct TPMNode2 * 
 // memNodeReachBuf(TPMContext *tpm, struct AvalancheSearchCtxt *avalsctxt, struct TPMNode2 *srcNode, struct taintedBuf **dstBuf);
@@ -29,9 +30,6 @@ detectAvalancheInOutBuf(TPMContext *tpm, AvalancheSearchCtxt *avalsctxt);
 static AvalDstBufHTNode *
 createAvalDstBufHTNode(TPMNode2 *dstNode, u32 hitcnt);
 
-// static AvalDstBufLstNode *
-// createAvalDstBufLstNode(TPMNode2 *dstNode);
-
 static int 
 cmpAvalDstBufHTNode(AvalDstBufHTNode *l, AvalDstBufHTNode *r);
 
@@ -40,6 +38,9 @@ initSlidingWindow(TaintedBuf *dstMemNodesLst, u32 dstAddrStart, u32 dstAddrEnd, 
 
 static bool 
 isInMemRange(TPMNode2 *node, u32 addrBegin, u32 addrEnd);
+
+static void 
+t_createDstContinBuf(AvalDstBufHTNode *dstMemNodesHT);
 
 /* print */
 static void 
@@ -119,8 +120,12 @@ searchAvalancheInOutBuf(TPMContext *tpm, AvalancheSearchCtxt *avalsctxt)
 			dstMemNodesLst = subitem->toMemNode;
 			initSlidingWindow(dstMemNodesLst, 0x804c170, 0x804c1B0, &avalDstBufHT);
 			HASH_SRT(hh_avalDstBufHTNode, avalDstBufHT, cmpAvalDstBufHTNode);
+
 			printAvalDstBufHTTotal(avalDstBufHT);
 			printAvalDstBufHT(avalDstBufHT);
+
+			t_createDstContinBuf(avalDstBufHT);
+
 			break;
 		}
 		break;
@@ -208,16 +213,6 @@ createAvalDstBufHTNode(TPMNode2 *dstNode, u32 hitcnt)
 	return i;
 }
 
-// static AvalDstBufLstNode *
-// createAvalDstBufLstNode(TPMNode2 *dstNode)
-// {
-// 	AvalDstBufLstNode *i = NULL;
-// 	i = malloc(sizeof(AvalDstBufLstNode) );
-// 	i->addr = dstNode->addr;
-// 	i->dstNode = dstNode;
-// 	return i;
-// }
-
 static int 
 cmpAvalDstBufHTNode(AvalDstBufHTNode *l, AvalDstBufHTNode *r)
 {
@@ -245,6 +240,24 @@ isInMemRange(TPMNode2 *node, u32 addrBegin, u32 addrEnd)
 	assert(node != NULL);
 	if(node->addr >= addrBegin && node->addr <= addrEnd) { return true; }
 	else { return false; }
+}
+
+static void 
+t_createDstContinBuf(AvalDstBufHTNode *dstMemNodesHT)
+{
+	ContinBuf *continBuf = NULL;
+	AvalDstBufHTNode *item, *temp;
+
+	continBuf = initContinBuf();
+	int len = utarray_len(continBuf->continBufNodeAry);
+	printf("len contin buf node ary:%d\n", len );
+
+	HASH_ITER(hh_avalDstBufHTNode, dstMemNodesHT, item, temp) {
+		// printf("addr:0x%x - ptr:%p\n", item->dstNode->addr, item->dstNode);
+		AppendContinBuf(continBuf, item->dstNode);
+		// break;
+	}
+	printContinBuf(continBuf);
 }
 
 static void 

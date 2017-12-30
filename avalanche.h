@@ -45,14 +45,6 @@ struct AvalDstBufHTNode
 };
 typedef struct AvalDstBufHTNode AvalDstBufHTNode; // stores the propagate destination mem nodes
 
-// struct AvalDstBufLstNode
-// {
-//     u32 addr;           // addr of the dstNode
-//     TPMNode2 *dstNode;
-//     struct AvalDstBufLstNode *next;
-// };
-// typedef struct AvalDstBufLstNode AvalDstBufLstNode; // stores the propagate destination mem nodes in list
-
 int
 init_AvalancheSearchCtxt(struct AvalancheSearchCtxt **avalsctxt, u32 minBufferSz, struct TPMNode2 *srcBuf, 
 			 struct TPMNode2 *dstBuf, u32 srcAddrStart, u32 srcAddrEnd, u32 dstAddrStart, u32 dstAddrEnd);
