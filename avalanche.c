@@ -266,6 +266,9 @@ t_createDstContinBuf(AvalDstBufHTNode *dstMemNodesHT)
 
 	add2ContBufAry(contBufAry, continBuf);
 	printContinBufAry(contBufAry);
+
+	delContinBufAry(&contBufAry);
+	printContinBufAry(contBufAry);
 }
 
 static void 

@@ -42,7 +42,7 @@ int
 add2ContBufAry(ContinBufAry *contBufAry, ContinBuf *contBuf);
 
 void 
-delContinBufAry(ContinBufAry *contBufAry);
+delContinBufAry(ContinBufAry **contBufAry);
 
 void 
 printContinBuf(ContinBuf *contBuf);

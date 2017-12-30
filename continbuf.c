@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 #include "utlist.h"
 #include "continbuf.h"
@@ -51,6 +52,15 @@ extendContinBuf(ContinBuf *contBuf, TPMNode2 *nodeptr)
 void 
 delContinBuf(ContinBuf *contBuf)
 {
+	int i;
+	TaintedBuf *head, *elt, *tmp;
+	for(i = 0; i < contBuf->nodeAryUsed; i++) {
+		head = contBuf->contBufNodeAry[i];
+		LL_FOREACH_SAFE(head, elt, tmp) {
+			LL_DELETE(head, elt);
+			free(elt);
+		}
+	}
 	free(contBuf->contBufNodeAry);
 	free(contBuf);
 }
@@ -85,14 +95,15 @@ add2ContBufAry(ContinBufAry *contBufAry, ContinBuf *contBuf)
 }
 
 void 
-delContinBufAry(ContinBufAry *contBufAry)
+delContinBufAry(ContinBufAry **contBufAry)
 {
 	int i;
-	for(i = 0; i < contBufAry->bufAryUsed; i++) {
-		delContinBuf(contBufAry->contBufAryHead[i]);
+	for(i = 0; i < (*contBufAry)->bufAryUsed; i++) {
+		delContinBuf( (*contBufAry)->contBufAryHead[i]);
 	}
-	free(contBufAry->contBufAryHead);
-	free(contBufAry);
+	free( (*contBufAry)->contBufAryHead);
+	free(*contBufAry);
+	*contBufAry = NULL;
 }
 
 void 
@@ -120,6 +131,11 @@ printContinBuf(ContinBuf *contBuf)
 void 
 printContinBufAry(ContinBufAry *contBufAry)
 {
+	if(contBufAry == NULL){
+		fprintf(stderr, "error: continuous buf ary is empty:%p\n", contBufAry);
+		return;
+	}
+
 	int i;
 	printf("cont buf ary: sz:%u - total cont buf:%u\n", 
 		contBufAry->bufArySz, contBufAry->bufAryUsed);
