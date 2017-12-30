@@ -5,12 +5,7 @@
 #include "type.h"
 
 #define INIT_CONTBUFNODEARY_SZ	4
-
-// struct ContinBufNode
-// {
-//     TaintedBuf *headOfAddr;  	 // nodeptr list of the mem node (could be multiple of same addr)
-// };
-// typedef struct ContinBufNode ContinBufNode;   
+#define INIT_CONTBUFARY_SZ 		4
 
 struct ContinBuf
 {
@@ -23,12 +18,13 @@ struct ContinBuf
 };
 typedef struct ContinBuf ContinBuf;	// stores the continuous buffer
 
-// ContinBufNode *
-// createContBufNode(TPMNode2 *nodeptr);
-
-// int 
-// extendContBufNode(ContinBufNode *contBufNode, TPMNode2 *nodeptr);
-//TODO
+struct ContinBufAry
+{
+	u32 bufArySz;
+	u32 bufAryUsed;
+	ContinBuf **contBufAryHead;	
+};
+typedef struct ContinBufAry ContinBufAry;
 
 ContinBuf *
 initContinBuf();
@@ -39,11 +35,19 @@ extendContinBuf(ContinBuf *contBuf, TPMNode2 *nodeptr);
 void 
 delContinBuf(ContinBuf *contBuf);
 
-// int 
-// extendContBuf(ContinBuf *contBuf, ContinBufNode *contBufNode);
-// TODO
+ContinBufAry *
+initContBufAry();
+
+int 
+add2ContBufAry(ContinBufAry *contBufAry, ContinBuf *contBuf);
+
+void 
+delContinBufAry(ContinBufAry *contBufAry);
 
 void 
 printContinBuf(ContinBuf *contBuf);
+
+void 
+printContinBufAry(ContinBufAry *contBufAry);
 
 #endif

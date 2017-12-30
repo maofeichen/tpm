@@ -246,8 +246,10 @@ static void
 t_createDstContinBuf(AvalDstBufHTNode *dstMemNodesHT)
 {
 	ContinBuf *continBuf = NULL;
+	ContinBufAry *contBufAry = NULL;
 	AvalDstBufHTNode *item, *temp;
 
+	/* test cont buf*/
 	continBuf = initContinBuf();
 	printContinBuf(continBuf);
 
@@ -257,6 +259,13 @@ t_createDstContinBuf(AvalDstBufHTNode *dstMemNodesHT)
 		// break;
 	}
 	printContinBuf(continBuf);
+
+	/* test cont buf ary*/
+	contBufAry = initContBufAry();
+	printContinBufAry(contBufAry);
+
+	add2ContBufAry(contBufAry, continBuf);
+	printContinBufAry(contBufAry);
 }
 
 static void 

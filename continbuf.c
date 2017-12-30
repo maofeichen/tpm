@@ -4,31 +4,10 @@
 #include "continbuf.h"
 
 static void 
-reallocContBufNodeAry(ContinBuf *contBuf);
+growContBufNodeAry(ContinBuf *contBuf);
 
-// static void 
-// bufNodeCopy(void *_dst, const void *_src);
-
-// static void 
-// reallocContBufNodeAry(ContinBuf *contBuf);
-
-// UT_icd continBufNodeAry_icd = {sizeof(TaintedBuf *), NULL, bufNodeCopy, NULL };
-
-// ContinBufNode *
-// createContBufNode(TPMNode2 *nodeptr)
-// {
-// 	ContinBufNode *bufNode;
-// 	TaintedBuf *nodeHead = NULL, *node;
-
-// 	bufNode = malloc(sizeof(ContinBufNode) );
-// 	memset(bufNode, 0, sizeof(ContinBufNode) );
-
-// 	node = createTaintedBuf(nodeptr);
-// 	LL_APPEND(nodeHead, node); 
-// 	bufNode->headOfAddr = nodeHead;
-
-// 	return bufNode;
-// }
+static void 
+growContBufAry(ContinBufAry *contBufAry);
 
 ContinBuf *
 initContinBuf()
@@ -59,7 +38,7 @@ extendContinBuf(ContinBuf *contBuf, TPMNode2 *nodeptr)
 	}
 	else {
 		if(contBuf->nodeAryUsed == contBuf->nodeArySz) {
-			reallocContBufNodeAry(contBuf);
+			growContBufNodeAry(contBuf);
 		}
 
 		contBuf->bufEnd = nodeptr->addr + 4;
@@ -67,6 +46,48 @@ extendContinBuf(ContinBuf *contBuf, TPMNode2 *nodeptr)
 		(contBuf->nodeAryUsed)++;	
 	}
 	return 0;
+}
+
+void 
+delContinBuf(ContinBuf *contBuf)
+{
+	free(contBuf->contBufNodeAry);
+	free(contBuf);
+}
+
+ContinBufAry *
+initContBufAry()
+{
+	ContinBuf **contBufAryHead;
+	ContinBufAry *bufAry;
+
+	bufAry = calloc(1, sizeof(ContinBufAry) );
+	bufAry->bufArySz = INIT_CONTBUFARY_SZ;
+	bufAry->bufAryUsed = 0;
+	contBufAryHead = calloc(1, sizeof(ContinBuf) * INIT_CONTBUFARY_SZ);
+	bufAry->contBufAryHead = contBufAryHead;
+
+	return bufAry;
+}
+
+int 
+add2ContBufAry(ContinBufAry *contBufAry, ContinBuf *contBuf)
+{
+
+	if(contBufAry->bufAryUsed == contBufAry->bufArySz) {
+		growContBufAry(contBufAry);
+	}
+
+	contBufAry->contBufAryHead[contBufAry->bufAryUsed] = contBuf;
+	(contBufAry->bufAryUsed)++;
+
+	return 0;
+}
+
+void 
+delContinBufAry(ContinBufAry *contBufAry)
+{
+
 }
 
 void 
@@ -91,15 +112,21 @@ printContinBuf(ContinBuf *contBuf)
 	}
 }
 
-// static void 
-// bufNodeCopy(void *_dst, const void *_src)
-// {
-// 	TaintedBuf *dst = (TaintedBuf *)_dst, *src = (TaintedBuf *)_src;
-// 	*dst = *src;
-// }
+void 
+printContinBufAry(ContinBufAry *contBufAry)
+{
+	int i;
+	printf("cont buf ary: sz:%u - total cont buf:%u\n", 
+		contBufAry->bufArySz, contBufAry->bufAryUsed);
+	for(i = 0; i < contBufAry->bufArySz; i++) {
+		if(contBufAry->contBufAryHead[i] != NULL) {
+			printContinBuf(contBufAry->contBufAryHead[i]);
+		}
+	}
+}
 
 static void 
-reallocContBufNodeAry(ContinBuf *contBuf)
+growContBufNodeAry(ContinBuf *contBuf)
 // doubles the contNodeBufSz 
 {
 	TaintedBuf **newBufNodeAry;
@@ -115,4 +142,10 @@ reallocContBufNodeAry(ContinBuf *contBuf)
 	contBuf->nodeArySz = newNodeArySz;
 	free(contBuf->contBufNodeAry);
 	contBuf->contBufNodeAry = newBufNodeAry;
+}
+
+static void 
+growContBufAry(ContinBufAry *contBufAry)
+{
+
 }
