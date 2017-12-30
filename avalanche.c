@@ -26,11 +26,17 @@ initSourceNode(u32 *srcAddr, TPMNode2 **srcNode);
 static void 
 detectAvalancheInOutBuf(TPMContext *tpm, AvalancheSearchCtxt *avalsctxt);
 
-static AvalancheDstBuf *
-createAvalancheDstBuf(TPMNode2 *dstNode, u32 hitcnt);
+static AvalDstBufHTNode *
+createAvalDstBufHTNode(TPMNode2 *dstNode, u32 hitcnt);
+
+// static AvalDstBufLstNode *
+// createAvalDstBufLstNode(TPMNode2 *dstNode);
+
+static int 
+cmpAvalDstBufHTNode(AvalDstBufHTNode *l, AvalDstBufHTNode *r);
 
 static void 
-initSlidingWindow(TaintedBuf *dstMemNodesLst, u32 dstAddrStart, u32 dstAddrEnd, AvalancheDstBuf **avalDstBufHT);
+initSlidingWindow(TaintedBuf *dstMemNodesLst, u32 dstAddrStart, u32 dstAddrEnd, AvalDstBufHTNode **avalDstBufHT);
 
 static bool 
 isInMemRange(TPMNode2 *node, u32 addrBegin, u32 addrEnd);
@@ -49,10 +55,10 @@ static void
 printDstMemNodesList(TaintedBuf *lst_dstMemNodes);
 
 static void 
-printAvalDstBufHTTotal(AvalancheDstBuf *avalDstBufHT);
+printAvalDstBufHTTotal(AvalDstBufHTNode *avalDstBufHT);
 
 static void 
-printAvalDstBufHT(AvalancheDstBuf *avalDstBufHT);
+printAvalDstBufHT(AvalDstBufHTNode *avalDstBufHT);
 
 /* functions */
 int
@@ -102,7 +108,7 @@ searchAvalancheInOutBuf(TPMContext *tpm, AvalancheSearchCtxt *avalsctxt)
 	printDstMemNodesHT(avalsctxt->addr2Node);
 #endif
 
-	AvalancheDstBuf *avalDstBufHT = NULL;
+	AvalDstBufHTNode *avalDstBufHT = NULL;
 
 	Addr2NodeItem *item, *subitem, *temp, *subTemp;
 	TaintedBuf *itr, *dstMemNodesLst;
@@ -112,13 +118,13 @@ searchAvalancheInOutBuf(TPMContext *tpm, AvalancheSearchCtxt *avalsctxt)
 		HASH_ITER(hh_addr2NodeItem, item->subHash, subitem, subTemp) {
 			dstMemNodesLst = subitem->toMemNode;
 			initSlidingWindow(dstMemNodesLst, 0x804c170, 0x804c1B0, &avalDstBufHT);
+			HASH_SRT(hh_avalDstBufHTNode, avalDstBufHT, cmpAvalDstBufHTNode);
 			printAvalDstBufHTTotal(avalDstBufHT);
 			printAvalDstBufHT(avalDstBufHT);
 			break;
 		}
 		break;
 	}
-
 }
 
 static void 
@@ -192,25 +198,43 @@ detectAvalancheInOutBuf(TPMContext *tpm, AvalancheSearchCtxt *avalsctxt)
 
 }
 
-static AvalancheDstBuf *
-createAvalancheDstBuf(TPMNode2 *dstNode, u32 hitcnt)
+static AvalDstBufHTNode *
+createAvalDstBufHTNode(TPMNode2 *dstNode, u32 hitcnt)
 {
-	AvalancheDstBuf *i = NULL;
-	i = malloc(sizeof(AvalancheDstBuf) );
+	AvalDstBufHTNode *i = NULL;
+	i = malloc(sizeof(AvalDstBufHTNode) );
 	i->dstNode = dstNode;
 	i->hitcnt = hitcnt;
 	return i;
 }
 
+// static AvalDstBufLstNode *
+// createAvalDstBufLstNode(TPMNode2 *dstNode)
+// {
+// 	AvalDstBufLstNode *i = NULL;
+// 	i = malloc(sizeof(AvalDstBufLstNode) );
+// 	i->addr = dstNode->addr;
+// 	i->dstNode = dstNode;
+// 	return i;
+// }
+
+static int 
+cmpAvalDstBufHTNode(AvalDstBufHTNode *l, AvalDstBufHTNode *r)
+{
+	if(l->dstNode->addr < r->dstNode->addr) { return -1; }
+	else if(l->dstNode->addr == r->dstNode->addr) { return 0; }
+	else { return 1; }
+}
+
 static void 
-initSlidingWindow(TaintedBuf *dstMemNodesLst, u32 dstAddrStart, u32 dstAddrEnd, AvalancheDstBuf **avalDstBufHT)
+initSlidingWindow(TaintedBuf *dstMemNodesLst, u32 dstAddrStart, u32 dstAddrEnd, AvalDstBufHTNode **avalDstBufHT)
 {
 	TaintedBuf *itr;
 
 	LL_FOREACH(dstMemNodesLst, itr) {
 		if(isInMemRange(itr->bufstart, dstAddrStart, dstAddrEnd) ) {
-			AvalancheDstBuf *dstMemNode = createAvalancheDstBuf(itr->bufstart, 0);
-			HASH_ADD(hh_avalnchDstBuf, *avalDstBufHT, dstNode, 4, dstMemNode);
+			AvalDstBufHTNode *dstMemNode = createAvalDstBufHTNode(itr->bufstart, 0);
+			HASH_ADD(hh_avalDstBufHTNode, *avalDstBufHT, dstNode, 4, dstMemNode);
 		}
 	}
 }
@@ -272,18 +296,18 @@ printDstMemNodesList(TaintedBuf *dstMemNodesLst)
 }
 
 static void 
-printAvalDstBufHTTotal(AvalancheDstBuf *avalDstBufHT)
+printAvalDstBufHTTotal(AvalDstBufHTNode *avalDstBufHT)
 {
 	int total;
-	total = HASH_CNT(hh_avalnchDstBuf, avalDstBufHT);
+	total = HASH_CNT(hh_avalDstBufHTNode, avalDstBufHT);
 	printf("total nodes in destination range:%d\n", total);
 }
 
 static void 
-printAvalDstBufHT(AvalancheDstBuf *avalDstBufHT)
+printAvalDstBufHT(AvalDstBufHTNode *avalDstBufHT)
 {
-	AvalancheDstBuf *item, *temp;
-	HASH_ITER(hh_avalnchDstBuf, avalDstBufHT, item, temp) {
+	AvalDstBufHTNode *item, *temp;
+	HASH_ITER(hh_avalDstBufHTNode, avalDstBufHT, item, temp) {
 		printf("addr:0x%x - ptr:%p\n", item->dstNode->addr, item->dstNode);
 	}
 }
