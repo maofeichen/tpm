@@ -87,7 +87,12 @@ add2ContBufAry(ContinBufAry *contBufAry, ContinBuf *contBuf)
 void 
 delContinBufAry(ContinBufAry *contBufAry)
 {
-
+	int i;
+	for(i = 0; i < contBufAry->bufAryUsed; i++) {
+		delContinBuf(contBufAry->contBufAryHead[i]);
+	}
+	free(contBufAry->contBufAryHead);
+	free(contBufAry);
 }
 
 void 
@@ -146,6 +151,18 @@ growContBufNodeAry(ContinBuf *contBuf)
 
 static void 
 growContBufAry(ContinBufAry *contBufAry)
+// doubles the bufArySz
 {
+	ContinBuf **newContBufAryHead;
+	u32 newBufArySz = contBufAry->bufArySz * 2;
+	int i;
 
+	newContBufAryHead = calloc(1, sizeof(ContinBuf) * newBufArySz);
+	for(i = 0; i < contBufAry->bufAryUsed; i++) {
+		newContBufAryHead[i] = contBufAry->contBufAryHead[i];
+	}
+	contBufAry->bufArySz = newBufArySz;
+
+	free(contBufAry->contBufAryHead);
+	contBufAry->contBufAryHead = newContBufAryHead;
 }
