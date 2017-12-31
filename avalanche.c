@@ -276,11 +276,11 @@ t_createDstContinBuf(AvalDstBufHTNode *dstMemNodesHT)
 	/* test cont buf ary*/
 	contBufAry_l = initContBufAry();
 	// printContinBufAry(contBufAry_l);
-	add2ContBufAry(contBufAry_l, continBuf_l);
+	appendContBufAry(contBufAry_l, continBuf_l);
 	printContinBufAry(contBufAry_l);
 
 	contBufAry_r = initContBufAry();
-	add2ContBufAry(contBufAry_r, continBuf_r);
+	appendContBufAry(contBufAry_r, continBuf_r);
 	printContinBufAry(contBufAry_r);
 
 	bufAryIntersect = getBufAryIntersect(contBufAry_l, contBufAry_r);

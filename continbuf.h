@@ -42,7 +42,11 @@ ContinBufAry *
 initContBufAry();
 
 int 
-add2ContBufAry(ContinBufAry *contBufAry, ContinBuf *contBuf);
+appendContBufAry(ContinBufAry *contBufAry, ContinBuf *contBuf);
+
+int 
+add2BufAry(ContinBufAry *contBufAry, ContinBuf *contBuf);
+// Adds the continuous buf to the buf ary in increasing order
 
 ContinBufAry *
 getBufAryIntersect(ContinBufAry *l, ContinBufAry *r);

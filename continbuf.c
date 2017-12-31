@@ -10,6 +10,9 @@ growContBufNodeAry(ContinBuf *contBuf);
 static void 
 growContBufAry(ContinBufAry *contBufAry);
 
+static int 
+addContBuf(ContinBufAry *contBufAry, ContinBuf *contBuf, int pos);
+
 static u32 
 getMaxAddr(u32 addr_l, u32 addr_r);
 
@@ -67,7 +70,8 @@ getContBufIntersect(ContinBuf *l, u32 intersectStart, u32 intersectEnd)
 		if(head->bufstart->addr >= intersectStart) {
 			extendContinBuf(contBuf, head->bufstart);
 		} 
-		
+	
+		// TODO: hardcode 4 bytes, should use size instead	
 		if( (head->bufstart->addr + 4) > intersectEnd) {
 			break;
 		}
@@ -108,7 +112,7 @@ initContBufAry()
 }
 
 int 
-add2ContBufAry(ContinBufAry *contBufAry, ContinBuf *contBuf)
+appendContBufAry(ContinBufAry *contBufAry, ContinBuf *contBuf)
 {
 
 	if(contBufAry->bufAryUsed == contBufAry->bufArySz) {
@@ -116,6 +120,42 @@ add2ContBufAry(ContinBufAry *contBufAry, ContinBuf *contBuf)
 	}
 
 	contBufAry->contBufAryHead[contBufAry->bufAryUsed] = contBuf;
+	(contBufAry->bufAryUsed)++;
+
+	return 0;
+}
+
+int 
+add2BufAry(ContinBufAry *contBufAry, ContinBuf *contBuf)
+{
+	int lo = 0, mid = lo, hi = contBufAry->bufAryUsed;
+	while(lo < hi) {
+		mid = lo + (hi - lo) / 2;
+		if(contBufAry->contBufAryHead[mid]->bufStart < contBuf->bufStart) {
+			lo = mid + 1;
+		}
+		else { hi = mid; }
+	}
+	addContBuf(contBufAry, contBuf, lo);
+	return 0;	
+}
+
+static int 
+addContBuf(ContinBufAry *contBufAry, ContinBuf *contBuf, int pos)
+{
+	if(pos > contBufAry->bufAryUsed) {
+		fprintf(stderr, "addContBuf: pos is larger than used\n");
+		return -1;
+	}
+
+	if(contBufAry->bufAryUsed == contBufAry->bufArySz) {
+		growContBufAry(contBufAry);
+	}
+
+	for(int i = (contBufAry->bufAryUsed - 1); i >= pos; i--) {
+		contBufAry->contBufAryHead[i+1] = contBufAry->contBufAryHead[i];
+	}
+	contBufAry->contBufAryHead[pos] = contBuf;
 	(contBufAry->bufAryUsed)++;
 
 	return 0;
@@ -146,7 +186,8 @@ getBufAryIntersect(ContinBufAry *l, ContinBufAry *r)
 			// TODO: add the bufAryIntrsct buf
 			printf("intersection: addr start:%x - addr end:%x\n", intrsctAddrStart, intrsctAddrEnd);
 			bufIntrsct = getContBufIntersect(buf_l, intrsctAddrStart, intrsctAddrEnd);
-			add2ContBufAry(bufAryIntrsct, bufIntrsct);
+			// appendContBufAry(bufAryIntrsct, bufIntrsct);
+			add2BufAry(bufAryIntrsct, bufIntrsct);
 		}
 
 		// if left buf range is smaller than right buf range, increases it
