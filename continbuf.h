@@ -32,6 +32,9 @@ initContinBuf();
 int 
 extendContinBuf(ContinBuf *contBuf, TPMNode2 *nodeptr);
 
+ContinBuf *
+getContBufIntersect(ContinBuf *l, u32 intersectStart, u32 intersectEnd);
+
 void 
 delContinBuf(ContinBuf *contBuf);
 
@@ -40,6 +43,10 @@ initContBufAry();
 
 int 
 add2ContBufAry(ContinBufAry *contBufAry, ContinBuf *contBuf);
+
+ContinBufAry *
+getBufAryIntersect(ContinBufAry *l, ContinBufAry *r);
+// computes intersection between the two continuous buf arraies
 
 void 
 delContinBufAry(ContinBufAry **contBufAry);

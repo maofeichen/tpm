@@ -10,6 +10,12 @@ growContBufNodeAry(ContinBuf *contBuf);
 static void 
 growContBufAry(ContinBufAry *contBufAry);
 
+static u32 
+getMaxAddr(u32 addr_l, u32 addr_r);
+
+static u32 
+getMinAddr(u32 addr_l, u32 addr_r);
+
 ContinBuf *
 initContinBuf()
 {
@@ -47,6 +53,27 @@ extendContinBuf(ContinBuf *contBuf, TPMNode2 *nodeptr)
 		(contBuf->nodeAryUsed)++;	
 	}
 	return 0;
+}
+
+ContinBuf *
+getContBufIntersect(ContinBuf *l, u32 intersectStart, u32 intersectEnd)
+{
+	TaintedBuf *head;
+	ContinBuf *contBuf = initContinBuf();
+	int i;
+
+	for(i = 0; i < l->nodeAryUsed; i++) {
+		head = l->contBufNodeAry[i];
+		if(head->bufstart->addr >= intersectStart) {
+			extendContinBuf(contBuf, head->bufstart);
+		} 
+		
+		if( (head->bufstart->addr + 4) > intersectEnd) {
+			break;
+		}
+	}
+
+	return contBuf;
 }
 
 void 
@@ -92,6 +119,45 @@ add2ContBufAry(ContinBufAry *contBufAry, ContinBuf *contBuf)
 	(contBufAry->bufAryUsed)++;
 
 	return 0;
+}
+
+ContinBufAry *
+getBufAryIntersect(ContinBufAry *l, ContinBufAry *r)
+{
+	ContinBufAry *bufAryIntrsct = NULL;
+	u32 idx_l = 0, idx_r = 0;
+	u32 aryUsed_l = l->bufAryUsed, aryUsed_r = r->bufAryUsed;
+	ContinBuf *buf_l, *buf_r, *bufIntrsct;
+
+	bufAryIntrsct = initContBufAry();
+
+	while(true) {
+		if(idx_l >= aryUsed_l || idx_r >= aryUsed_r)
+		 	break;
+
+		buf_l = l->contBufAryHead[idx_l];
+		buf_r = r->contBufAryHead[idx_r];
+
+		// choose the larger buf start addr, choose the smaller buf end addr
+		u32 intrsctAddrStart = getMaxAddr(buf_l->bufStart, buf_r->bufStart);
+		u32 intrsctAddrEnd 	 = getMinAddr(buf_l->bufEnd, buf_r->bufEnd);
+
+		if(intrsctAddrStart < intrsctAddrEnd) { // gets the intersection buf
+			// TODO: add the bufAryIntrsct buf
+			printf("intersection: addr start:%x - addr end:%x\n", intrsctAddrStart, intrsctAddrEnd);
+			bufIntrsct = getContBufIntersect(buf_l, intrsctAddrStart, intrsctAddrEnd);
+			add2ContBufAry(bufAryIntrsct, bufIntrsct);
+		}
+
+		// if left buf range is smaller than right buf range, increases it
+		// notices all bufs in buf ary are in increasing order
+		if(buf_l->bufEnd < buf_r->bufEnd) { idx_l++; }
+		else if(buf_l->bufEnd > buf_r->bufEnd) { idx_r++; }
+		else { idx_l++, idx_r++; }	
+	}
+
+
+	return bufAryIntrsct;
 }
 
 void 
@@ -181,4 +247,22 @@ growContBufAry(ContinBufAry *contBufAry)
 
 	free(contBufAry->contBufAryHead);
 	contBufAry->contBufAryHead = newContBufAryHead;
+}
+
+static u32 
+getMaxAddr(u32 addr_l, u32 addr_r)
+{
+	if(addr_l > addr_r)
+		return addr_l;
+	else
+		return addr_r;
+}
+
+static u32 
+getMinAddr(u32 addr_l, u32 addr_r)
+{
+	if(addr_l < addr_r)
+		return addr_l;
+	else
+		return addr_r;
 }

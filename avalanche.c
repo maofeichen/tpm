@@ -245,30 +245,51 @@ isInMemRange(TPMNode2 *node, u32 addrBegin, u32 addrEnd)
 static void 
 t_createDstContinBuf(AvalDstBufHTNode *dstMemNodesHT)
 {
-	ContinBuf *continBuf = NULL;
-	ContinBufAry *contBufAry = NULL;
+	ContinBuf *continBuf_l = NULL, *continBuf_r;
+	ContinBufAry *contBufAry_l = NULL, *contBufAry_r = NULL, *bufAryIntersect;
 	AvalDstBufHTNode *item, *temp;
 
 	/* test cont buf*/
-	continBuf = initContinBuf();
-	printContinBuf(continBuf);
-
+	continBuf_l = initContinBuf();
+	// printContinBuf(continBuf_l);
 	HASH_ITER(hh_avalDstBufHTNode, dstMemNodesHT, item, temp) {
 		// printf("addr:0x%x - ptr:%p\n", item->dstNode->addr, item->dstNode);
-		extendContinBuf(continBuf, item->dstNode);
+		extendContinBuf(continBuf_l, item->dstNode);
 		// break;
 	}
-	printContinBuf(continBuf);
+	// printContinBuf(continBuf_l);
+
+	continBuf_r = initContinBuf();
+	int i = 0;
+	HASH_ITER(hh_avalDstBufHTNode, dstMemNodesHT, item, temp) {
+		// printf("addr:0x%x - ptr:%p\n", item->dstNode->addr, item->dstNode);
+		if(i == 0) {
+			i++;
+			continue;
+		}
+		extendContinBuf(continBuf_r, item->dstNode);
+		i++;
+		if(i == 2)
+			break;
+	}
 
 	/* test cont buf ary*/
-	contBufAry = initContBufAry();
-	printContinBufAry(contBufAry);
+	contBufAry_l = initContBufAry();
+	// printContinBufAry(contBufAry_l);
+	add2ContBufAry(contBufAry_l, continBuf_l);
+	printContinBufAry(contBufAry_l);
 
-	add2ContBufAry(contBufAry, continBuf);
-	printContinBufAry(contBufAry);
+	contBufAry_r = initContBufAry();
+	add2ContBufAry(contBufAry_r, continBuf_r);
+	printContinBufAry(contBufAry_r);
 
-	delContinBufAry(&contBufAry);
-	printContinBufAry(contBufAry);
+	bufAryIntersect = getBufAryIntersect(contBufAry_l, contBufAry_r);
+	printf("Intersect buf ary:\n");
+	printContinBufAry(bufAryIntersect);
+
+	delContinBufAry(&contBufAry_l);
+	delContinBufAry(&contBufAry_r);
+	// printContinBufAry(contBufAry_l);
 }
 
 static void 
