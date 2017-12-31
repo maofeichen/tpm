@@ -422,7 +422,7 @@ handle_src_mem(struct TPMContext *tpm, struct Record *rec, union TPMNode **src)
 
     }
     else { // not found
-        *src = create1stVersionMemNode(rec->s_addr, rec->s_val, rec->ts);
+        *src = create1stVersionMemNode(rec->s_addr, rec->s_val, rec->ts, rec->bytesz);
 
 #ifdef DEBUG
         printf("\taddr:0x%-8x not found in hash table, creates new mem node\n", rec->s_addr);
@@ -475,7 +475,7 @@ handle_src_reg(struct TPMContext *tpm, struct Record *rec, struct TPMNode1 *regC
 
     if((id = get_regcntxt_idx(rec->s_addr) ) >= 0) {
         if(regCntxt[id] == NULL) { // not found
-            *src = createTPMNode(TPM_Type_Register, rec->s_addr, rec->s_val, rec->ts);
+            *src = createTPMNode(TPM_Type_Register, rec->s_addr, rec->s_val, rec->ts, 0);
             regCntxt[id] = &( (*src)->tpmnode1); // updates reg context
             tpm->seqNo2NodeHash[rec->s_ts] = *src; // updates seqNo hash table
             n++;
@@ -537,7 +537,7 @@ handle_src_temp(struct TPMContext *tpm, struct Record *rec, struct TPMNode1 *tem
     }
 
     if(tempCntxt[rec->s_addr] == NULL) { // not found, creates new node
-        *src = createTPMNode(TPM_Type_Temprary, rec->s_addr, rec->s_val, rec->ts);
+        *src = createTPMNode(TPM_Type_Temprary, rec->s_addr, rec->s_val, rec->ts, 0);
         tempCntxt[rec->s_addr] = &( (*src)->tpmnode1);    // updates temp context
         tpm->seqNo2NodeHash[rec->s_ts] = *src; // updates seqNo hash table
         n++;
@@ -611,7 +611,7 @@ handle_dst_mem(struct TPMContext *tpm, struct Record *rec, union TPMNode **dst)
 
     if(isPropagationOverwriting(rec->flag, rec) ) { // overwrite
         if( is_addr_in_ht(tpm, &dst_hn, rec->d_addr) ) { // in TPM 
-            *dst = createTPMNode(TPM_Type_Memory, rec->d_addr, rec->d_val, rec->ts);
+            *dst = createTPMNode(TPM_Type_Memory, rec->d_addr, rec->d_val, rec->ts, rec->bytesz);
             version = getMemNodeVersion(dst_hn->toMem);
             setMemNodeVersion(*dst, version+1); // set version accordingly
             addNextVerMemNode(dst_hn->toMem, &( (*dst)->tpmnode2) );             
@@ -624,7 +624,7 @@ handle_dst_mem(struct TPMContext *tpm, struct Record *rec, union TPMNode **dst)
 #endif      
         }
         else { // not found
-            *dst = create1stVersionMemNode(rec->d_addr, rec->d_val, rec->ts);
+            *dst = create1stVersionMemNode(rec->d_addr, rec->d_val, rec->ts, rec->bytesz);
         }
 
         // updates mem hash table
@@ -643,7 +643,7 @@ handle_dst_mem(struct TPMContext *tpm, struct Record *rec, union TPMNode **dst)
             return -1;  // TODO
         }
         else { // not found
-            *dst = create1stVersionMemNode(rec->d_addr, rec->d_val, rec->ts);
+            *dst = create1stVersionMemNode(rec->d_addr, rec->d_val, rec->ts, rec->bytesz);
             tpm->seqNo2NodeHash[rec->d_ts] = *dst;   // updates seqNo hash table
             n++;
         }
@@ -688,14 +688,14 @@ handle_dst_reg(struct TPMContext *tpm, struct Record *rec, struct TPMNode1 *regC
 
     if((id = get_regcntxt_idx(rec->d_addr) ) >= 0) {
         if(regCntxt[id] == NULL){ // not in tpm
-            *dst = createTPMNode(TPM_Type_Register, rec->d_addr, rec->d_val, rec->ts);
+            *dst = createTPMNode(TPM_Type_Register, rec->d_addr, rec->d_val, rec->ts, 0);
             regCntxt[id] = &( (*dst)->tpmnode1);
             tpm->seqNo2NodeHash[rec->d_ts] = *dst;   // updates seqNo hash table
             n++;
         }
         else { // in tpm
             if(isPropagationOverwriting(rec->flag, rec) ) { // overwrite
-                *dst = createTPMNode(TPM_Type_Register, rec->d_addr, rec->d_val, rec->ts);
+                *dst = createTPMNode(TPM_Type_Register, rec->d_addr, rec->d_val, rec->ts, 0);
                 regCntxt[id] = &( (*dst)->tpmnode1);
                 tpm->seqNo2NodeHash[rec->d_ts] = *dst;   // updates seqNo hash table
                 n++;
@@ -755,14 +755,14 @@ handle_dst_temp(struct TPMContext *tpm, struct Record *rec, struct TPMNode1 *tem
     }
 
     if(tempCntxt[rec->d_addr] == NULL) { // Not in TPM
-        *dst = createTPMNode(TPM_Type_Temprary, rec->d_addr, rec->d_val, rec->ts);
+        *dst = createTPMNode(TPM_Type_Temprary, rec->d_addr, rec->d_val, rec->ts, 0);
         tempCntxt[rec->d_addr] = &( (*dst)->tpmnode1);
         tpm->seqNo2NodeHash[rec->d_ts] = *dst;   // updates seqNo hash table
         n++;
     }
     else { // in TPM
         if(isPropagationOverwriting(rec->flag, rec) ) { // overwrite
-            *dst = createTPMNode(TPM_Type_Temprary, rec->d_addr, rec->d_val, rec->ts);
+            *dst = createTPMNode(TPM_Type_Temprary, rec->d_addr, rec->d_val, rec->ts, 0);
             tempCntxt[rec->d_addr] = &( (*dst)->tpmnode1);
             tpm->seqNo2NodeHash[rec->d_ts] = *dst;   // updates seqNo hash table
             n++;

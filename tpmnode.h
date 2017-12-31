@@ -28,7 +28,8 @@ struct TPMNode2		// for memory address
     u32	lastUpdateTS;	// the TS (seq#) of last update of the node
     struct Transition *firstChild;  // points to structure that points to the first child
     /* the following fields are only for TPMNode for memory */
-    struct TPMNode2 *leftNBR;	    // point to node of adjacent, smaller memory address
+    u32 bytesz;                   // byte sz
+    struct TPMNode2 *leftNBR;	  // point to node of adjacent, smaller memory address
     struct TPMNode2 *rightNBR;	  // point to node of adjacent, bigger memory address
     struct TPMNode2 *nextVersion; // point to node of the same addr buf of different version or age. Forms circular link
     u32 version;	// the version of current node, monotonically increasing from 0.
@@ -54,14 +55,14 @@ typedef struct taintedBuf TaintedBuf;
 
 /* Generic node prototype */
 union TPMNode*
-createTPMNode(u32 type, u32 addr, u32 val, u32 TS);
+createTPMNode(u32 type, u32 addr, u32 val, u32 TS, u32 bytesz);
 
 int
 getNodeType(u32 flag);
 
 /* Mem node operation*/
 union TPMNode *
-create1stVersionMemNode(u32 addr, u32 val, u32 ts);
+create1stVersionMemNode(u32 addr, u32 val, u32 ts, u32 bytesz);
 
 bool 
 addNextVerMemNode(struct TPMNode2 *front, struct TPMNode2 *next);

@@ -5,7 +5,7 @@
 #include <string.h>
 
 union TPMNode *
-createTPMNode(u32 type, u32 addr, u32 val, u32 TS)
+createTPMNode(u32 type, u32 addr, u32 val, u32 TS, u32 bytesz)
 {
     union TPMNode *tpmnode;
     
@@ -17,6 +17,7 @@ createTPMNode(u32 type, u32 addr, u32 val, u32 TS)
 	tpmnode->tpmnode2.addr = addr;
     tpmnode->tpmnode2.val  = val;   // add val
 	tpmnode->tpmnode2.lastUpdateTS = TS;
+    tpmnode->tpmnode2.bytesz = bytesz;
     }
     else if ((type & TPM_Type_Register) || (type & TPM_Type_Temprary))
     {
@@ -44,11 +45,11 @@ getNodeType(u32 addr)
 
 
 union TPMNode *
-create1stVersionMemNode(u32 addr, u32 val, u32 ts)
+create1stVersionMemNode(u32 addr, u32 val, u32 ts, u32 bytesz)
 // creates first version (0) memory node 
 {
     union TPMNode *n;
-    n = createTPMNode(TPM_Type_Memory, addr, val, ts);
+    n = createTPMNode(TPM_Type_Memory, addr, val, ts, bytesz);
     setMemNodeVersion(n, 0);   
     n->tpmnode2.nextVersion = &(n->tpmnode2); // init points to itself
     return n; 
