@@ -163,3 +163,12 @@ printMemNodeAllVersion(struct TPMNode2 *head)
         head = head->nextVersion;
     } while(head == NULL || head->version != 0);
 }
+
+void 
+printTaintedBuf(TaintedBuf *head)
+{
+    while(head != NULL) {
+        printf("TaintedBuf: bufstart:%x - next:%p\n", head->bufstart->addr, head->next);
+        head = head->next;
+    }
+}

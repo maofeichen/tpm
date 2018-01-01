@@ -1,6 +1,7 @@
 #ifndef CONTINBUF_H
 #define CONTINBUF_H 
 
+#include <stdbool.h>
 #include "tpmnode.h"
 #include "type.h"
 
@@ -51,6 +52,12 @@ add2BufAry(ContinBufAry *contBufAry, ContinBuf *contBuf);
 ContinBufAry *
 getBufAryIntersect(ContinBufAry *l, ContinBufAry *r);
 // computes intersection between the two continuous buf arraies
+
+bool 
+hasMinSzContBuf(ContinBufAry *contBufAry, u32 minBufSz);
+// Returns:
+//	true: if any buffer in the buffer any size is larger then min buf sz
+//	false: otherwise
 
 void 
 delContinBufAry(ContinBufAry **contBufAry);

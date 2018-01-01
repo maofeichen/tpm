@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -42,7 +43,7 @@ extendContinBuf(ContinBuf *contBuf, TPMNode2 *nodeptr)
 
 	if(contBuf->nodeAryUsed == 0) {
 		contBuf->bufStart = nodeptr->addr;
-		contBuf->bufEnd = contBuf->bufStart + 4;
+		contBuf->bufEnd = contBuf->bufStart + nodeptr->bytesz;
 		contBuf->contBufNodeAry[contBuf->nodeAryUsed] = nodeHead;
 		(contBuf->nodeAryUsed)++;
 	}
@@ -51,7 +52,7 @@ extendContinBuf(ContinBuf *contBuf, TPMNode2 *nodeptr)
 			growContBufNodeAry(contBuf);
 		}
 
-		contBuf->bufEnd = nodeptr->addr + 4;
+		contBuf->bufEnd = nodeptr->addr + nodeptr->bytesz;
 		contBuf->contBufNodeAry[contBuf->nodeAryUsed] = nodeHead;
 		(contBuf->nodeAryUsed)++;	
 	}
@@ -67,16 +68,15 @@ getContBufIntersect(ContinBuf *l, u32 intersectStart, u32 intersectEnd)
 
 	for(i = 0; i < l->nodeAryUsed; i++) {
 		head = l->contBufNodeAry[i];
+
+		if( (head->bufstart->addr + head->bufstart->bytesz) > intersectEnd) {
+			break;
+		}
+
 		if(head->bufstart->addr >= intersectStart) {
 			extendContinBuf(contBuf, head->bufstart);
 		} 
-	
-		// TODO: hardcode 4 bytes, should use size instead	
-		if( (head->bufstart->addr + 4) > intersectEnd) {
-			break;
-		}
 	}
-
 	return contBuf;
 }
 
@@ -199,6 +199,22 @@ getBufAryIntersect(ContinBufAry *l, ContinBufAry *r)
 
 
 	return bufAryIntrsct;
+}
+
+
+bool 
+hasMinSzContBuf(ContinBufAry *contBufAry, u32 minBufSz)
+{
+	assert(contBufAry != NULL);
+
+	int i;
+	for(i = 0; i < contBufAry->bufAryUsed; i++) {
+		ContinBuf *contBuf = contBufAry->contBufAryHead[i];
+		u32 bufsz = contBuf->bufEnd - contBuf->bufStart;
+		if(bufsz >= minBufSz)
+			return true;
+	}
+	return false;
 }
 
 void 

@@ -92,4 +92,7 @@ printNonmemNode(struct TPMNode1 *n);
 void 
 printMemNodeAllVersion(struct TPMNode2 *head);
 
+void 
+printTaintedBuf(TaintedBuf *head);
+
 #endif
