@@ -15,6 +15,7 @@
 // static int
 // memNodePropagationSearch(struct AvalancheSearchCtxt *avalsctxt, struct TPMNode2 *srcNode, struct taintedBuf *dstBuf);
 
+/* search propagation of in to the out buffers */
 static void 
 searchPropagateInOutBuf(TPMContext *tpm, AvalancheSearchCtxt *avalsctxt, Addr2NodeItem **dstMemNodesHT);
 
@@ -24,8 +25,15 @@ createAddr2NodeItem(u32 addr, TPMNode2 *memNode, Addr2NodeItem *subHash, Tainted
 static int 
 initSourceNode(u32 *srcAddr, TPMNode2 **srcNode);
 
+/* detect avalanche of in buffer*/
 static void 
 detectAvalancheInOutBuf(TPMContext *tpm, AvalancheSearchCtxt *avalsctxt);
+
+static void 
+detectAvalacheOfSource(AvalancheSearchCtxt *avalsctxt, Addr2NodeItem *sourceNode, Addr2NodeItem *addrHashStartSearch);
+
+static void 
+storeAllAddrHashChildren(Addr2NodeItem *addrHash);
 
 static AvalDstBufHTNode *
 createAvalDstBufHTNode(TPMNode2 *dstNode, u32 hitcnt);
@@ -34,13 +42,35 @@ static int
 cmpAvalDstBufHTNode(AvalDstBufHTNode *l, AvalDstBufHTNode *r);
 
 static void 
-initSlidingWindow(TaintedBuf *dstMemNodesLst, u32 dstAddrStart, u32 dstAddrEnd, AvalDstBufHTNode **avalDstBufHT);
+initDstMemNodeHT(TaintedBuf *dstMemNodesLst, u32 dstAddrStart, u32 dstAddrEnd, AvalDstBufHTNode **avalDstBufHT);
+
+static ContinBufAry *
+buildContinBufAry(AvalDstBufHTNode *dstMemNodesHT);
 
 static bool 
 isInMemRange(TPMNode2 *node, u32 addrBegin, u32 addrEnd);
 
 static void 
 t_createDstContinBuf(AvalDstBufHTNode *dstMemNodesHT);
+
+/* Stack of Addr2NodeItem operaion */
+StackAddr2NodeItem *stackAddr2NodeItemTop = NULL;
+u32 stackAddr2NodeItemCount = 0;
+
+static void 
+addr2NodeItemStackPush(Addr2NodeItem *addr2NodeItem);
+
+static Addr2NodeItem *
+addr2NodeItemStackPop();
+
+static void 
+addr2NodeItemStackDisplay();
+
+static void 
+addr2NodeItemStackPopAll();
+
+static bool 
+isAddr2NodeItemStackEmpty();
 
 /* print */
 static void 
@@ -108,28 +138,7 @@ searchAvalancheInOutBuf(TPMContext *tpm, AvalancheSearchCtxt *avalsctxt)
 	printDstMemNodesHTTotal(avalsctxt->addr2Node);
 	printDstMemNodesHT(avalsctxt->addr2Node);
 #endif
-
-	AvalDstBufHTNode *avalDstBufHT = NULL;
-
-	Addr2NodeItem *item, *subitem, *temp, *subTemp;
-	TaintedBuf *itr, *dstMemNodesLst;
-	int count, totalSubItem;
-
-	HASH_ITER(hh_addr2NodeItem, avalsctxt->addr2Node, item, temp) {
-		HASH_ITER(hh_addr2NodeItem, item->subHash, subitem, subTemp) {
-			dstMemNodesLst = subitem->toMemNode;
-			initSlidingWindow(dstMemNodesLst, 0x804c170, 0x804c1B0, &avalDstBufHT);
-			HASH_SRT(hh_avalDstBufHTNode, avalDstBufHT, cmpAvalDstBufHTNode);
-
-			printAvalDstBufHTTotal(avalDstBufHT);
-			printAvalDstBufHT(avalDstBufHT);
-
-			t_createDstContinBuf(avalDstBufHT);
-
-			break;
-		}
-		break;
-	}
+	detectAvalancheInOutBuf(tpm, avalsctxt);
 }
 
 static void 
@@ -201,6 +210,54 @@ static void
 detectAvalancheInOutBuf(TPMContext *tpm, AvalancheSearchCtxt *avalsctxt)
 {
 
+	Addr2NodeItem *item, *subitem, *temp, *subTemp;
+
+	HASH_ITER(hh_addr2NodeItem, avalsctxt->addr2Node, item, temp) { // for each addr
+		HASH_ITER(hh_addr2NodeItem, item->subHash, subitem, subTemp) { // for each version node
+			Addr2NodeItem *next = item->hh_addr2NodeItem.next;
+			detectAvalacheOfSource(avalsctxt, subitem, next);
+			break;
+		}
+		break;
+	}
+}
+
+static void 
+detectAvalacheOfSource(AvalancheSearchCtxt *avalsctxt, Addr2NodeItem *sourceNode, Addr2NodeItem *addrHashStartSrch)
+{
+	AvalDstBufHTNode *avalDstBufHT = NULL;
+	TaintedBuf *dstMemNodesLst;
+	ContinBufAry *contBufAry;
+
+	dstMemNodesLst = sourceNode->toMemNode;
+	initDstMemNodeHT(dstMemNodesLst, 0x804c170, 0x804c1B0, &avalDstBufHT);
+	contBufAry = buildContinBufAry(avalDstBufHT);
+	// t_createDstContinBuf(avalDstBufHT);
+
+#ifdef DEBUG
+	printAvalDstBufHTTotal(avalDstBufHT);
+	printAvalDstBufHT(avalDstBufHT);
+	printContinBufAry(contBufAry);
+#endif
+
+	printf("addr:%x\n", addrHashStartSrch->addr);
+	Addr2NodeItem *addrHash, *nodeHash;
+	for(nodeHash = addrHashStartSrch->subHash; nodeHash != NULL; nodeHash = nodeHash->hh_addr2NodeItem.next) {
+		printf("node ptr:%p - node addr:%x - dstMemNodesLst ptr:%p\n", nodeHash->node, nodeHash->node->addr, nodeHash->toMemNode);
+	}
+
+	stackAddr2NodeItemTop = NULL;
+
+
+}
+
+static void 
+storeAllAddrHashChildren(Addr2NodeItem *addrHash)
+{
+	Addr2NodeItem *nodeHash;
+	for(nodeHash = addrHash->subHash; nodeHash != NULL; nodeHash = nodeHash->hh_addr2NodeItem.next) {
+		
+	}
 }
 
 static AvalDstBufHTNode *
@@ -222,7 +279,7 @@ cmpAvalDstBufHTNode(AvalDstBufHTNode *l, AvalDstBufHTNode *r)
 }
 
 static void 
-initSlidingWindow(TaintedBuf *dstMemNodesLst, u32 dstAddrStart, u32 dstAddrEnd, AvalDstBufHTNode **avalDstBufHT)
+initDstMemNodeHT(TaintedBuf *dstMemNodesLst, u32 dstAddrStart, u32 dstAddrEnd, AvalDstBufHTNode **avalDstBufHT)
 {
 	TaintedBuf *itr;
 
@@ -232,6 +289,53 @@ initSlidingWindow(TaintedBuf *dstMemNodesLst, u32 dstAddrStart, u32 dstAddrEnd, 
 			HASH_ADD(hh_avalDstBufHTNode, *avalDstBufHT, dstNode, 4, dstMemNode);
 		}
 	}
+	HASH_SRT(hh_avalDstBufHTNode, *avalDstBufHT, cmpAvalDstBufHTNode);
+}
+
+static ContinBufAry *
+buildContinBufAry(AvalDstBufHTNode *dstMemNodesHT)
+// Returns:
+//	Continuous buffers array, based on the dst mem nodes hash table
+{
+	ContinBufAry *contBufAry;
+	ContinBuf *contBuf;
+	AvalDstBufHTNode *item, *temp;
+
+	contBufAry = initContBufAry();
+	contBuf = initContinBuf();
+
+	// init first node
+	u32 bufstart = dstMemNodesHT->dstNode->addr; 
+	u32 bufsz    = dstMemNodesHT->dstNode->bytesz;
+	extendContinBuf(contBuf, dstMemNodesHT->dstNode);
+
+	for(item = dstMemNodesHT->hh_avalDstBufHTNode.next; item != NULL; item = item->hh_avalDstBufHTNode.next) {
+		// printf("addr:%x size:%u\n", item->dstNode->addr, item->dstNode->bytesz);
+
+		TPMNode2 *dstNode = item->dstNode;
+		u32 currNodeStart = dstNode->addr;
+		u32 currBufRange = bufstart + bufsz;
+
+		if(currBufRange > currNodeStart) {
+			// TODO: propagate to multiple version of same addr, handles latter
+			printf("buildContinBufAry: TODO: multiple version of same addr:%x\n", currNodeStart);
+		}
+		else if(currBufRange == currNodeStart) {
+			extendContinBuf(contBuf, item->dstNode);
+			bufsz += item->dstNode->bytesz;
+		}
+		else { // a new buffer
+			appendContBufAry(contBufAry, contBuf);
+			contBuf = initContinBuf();
+			extendContinBuf(contBuf, dstNode);
+
+			bufstart = dstNode->addr;
+			bufsz = dstNode->bytesz;
+		} 
+	}
+
+	appendContBufAry(contBufAry, contBuf);	// add the last continuous buffer
+	return contBufAry;
 }
 
 static bool 
@@ -290,6 +394,60 @@ t_createDstContinBuf(AvalDstBufHTNode *dstMemNodesHT)
 	delContinBufAry(&contBufAry_l);
 	delContinBufAry(&contBufAry_r);
 	// printContinBufAry(contBufAry_l);
+}
+
+static void
+addr2NodeItemStackPush(Addr2NodeItem *addr2NodeItem)
+{
+	StackAddr2NodeItem *n = calloc(1, sizeof(StackAddr2NodeItem) );
+	n->addr2NodeItem = addr2NodeItem;
+	n->next = stackAddr2NodeItemTop;
+	stackAddr2NodeItemTop = n;
+	stackAddr2NodeItemCount++;
+}
+
+static Addr2NodeItem *
+addr2NodeItemStackPop()
+{
+	StackAddr2NodeItem *toDel;
+	Addr2NodeItem *addr2NodeItem = NULL;
+
+	if(stackAddr2NodeItemTop != NULL) {
+		toDel = stackAddr2NodeItemTop;
+		stackAddr2NodeItemTop = toDel->next;
+		addr2NodeItem = toDel->addr2NodeItem;
+		free(toDel);
+		stackAddr2NodeItemCount--;
+	}
+	return addr2NodeItem;
+}
+
+static void 
+addr2NodeItemStackDisplay()
+{
+	StackAddr2NodeItem *n = stackAddr2NodeItemTop;
+	while(n != NULL) {
+		printf("addr2NodeItem:%p - node ptr:%p - node addr:%x - dstMemNodesLst:%p\n", 
+			n->addr2NodeItem, n->addr2NodeItem->node, n->addr2NodeItem->node->addr, n->addr2NodeItem->toMemNode);
+		n = n->next;
+	}
+}
+
+static void 
+addr2NodeItemStackPopAll()
+{
+	while(stackAddr2NodeItemTop != NULL) {
+		addr2NodeItemStackPop();
+	}
+}
+
+static bool 
+isAddr2NodeItemStackEmpty()
+{
+	if(stackAddr2NodeItemTop == NULL)
+		return true;
+	else
+		return false;	
 }
 
 static void 
