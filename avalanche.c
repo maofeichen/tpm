@@ -30,7 +30,7 @@ static void
 detectAvalancheInOutBuf(TPMContext *tpm, AvalancheSearchCtxt *avalsctxt);
 
 static void 
-detectAvalacheOfSource(AvalancheSearchCtxt *avalsctxt, Addr2NodeItem *sourceNode, Addr2NodeItem *addrHashStartSearch);
+detectAvalancheOfSource(AvalancheSearchCtxt *avalsctxt, Addr2NodeItem *sourceNode, Addr2NodeItem *addrHashStartSearch);
 
 static void 
 storeAllAddrHashChildren(Addr2NodeItem *addrHash);
@@ -215,7 +215,7 @@ detectAvalancheInOutBuf(TPMContext *tpm, AvalancheSearchCtxt *avalsctxt)
 	HASH_ITER(hh_addr2NodeItem, avalsctxt->addr2Node, item, temp) { // for each addr
 		HASH_ITER(hh_addr2NodeItem, item->subHash, subitem, subTemp) { // for each version node
 			Addr2NodeItem *next = item->hh_addr2NodeItem.next;
-			detectAvalacheOfSource(avalsctxt, subitem, next);
+			detectAvalancheOfSource(avalsctxt, subitem, next);
 			break;
 		}
 		break;
@@ -223,7 +223,7 @@ detectAvalancheInOutBuf(TPMContext *tpm, AvalancheSearchCtxt *avalsctxt)
 }
 
 static void 
-detectAvalacheOfSource(AvalancheSearchCtxt *avalsctxt, Addr2NodeItem *sourceNode, Addr2NodeItem *addrHashStartSrch)
+detectAvalancheOfSource(AvalancheSearchCtxt *avalsctxt, Addr2NodeItem *sourceNode, Addr2NodeItem *addrHashStartSrch)
 {
 	AvalDstBufHTNode *avalDstBufHT = NULL;
 	TaintedBuf *dstMemNodesLst;
@@ -240,23 +240,32 @@ detectAvalacheOfSource(AvalancheSearchCtxt *avalsctxt, Addr2NodeItem *sourceNode
 	printContinBufAry(contBufAry);
 #endif
 
-	printf("addr:%x\n", addrHashStartSrch->addr);
-	Addr2NodeItem *addrHash, *nodeHash;
-	for(nodeHash = addrHashStartSrch->subHash; nodeHash != NULL; nodeHash = nodeHash->hh_addr2NodeItem.next) {
-		printf("node ptr:%p - node addr:%x - dstMemNodesLst ptr:%p\n", nodeHash->node, nodeHash->node->addr, nodeHash->toMemNode);
-	}
-
 	stackAddr2NodeItemTop = NULL;
+	u32 currSearchAddr = addrHashStartSrch->addr;
+	storeAllAddrHashChildren(addrHashStartSrch);
+	while(!isAddr2NodeItemStackEmpty() ) {
+		Addr2NodeItem *nodeHash = addr2NodeItemStackPop();
+		printf("node ptr:%p - node addr:%x - dstMemNodesLst ptr:%p\n", nodeHash->node, nodeHash->node->addr, nodeHash->toMemNode);
 
-
+		if(addrHashStartSrch != NULL) {
+			addrHashStartSrch = addrHashStartSrch->hh_addr2NodeItem.next;
+			if(addrHashStartSrch != NULL 
+			   && addrHashStartSrch->addr > currSearchAddr) { // for each addr hash, only push its sub hash nodes once (at first time)
+				storeAllAddrHashChildren(addrHashStartSrch);
+				currSearchAddr = addrHashStartSrch->addr;
+			}
+		}
+	}
 }
 
 static void 
 storeAllAddrHashChildren(Addr2NodeItem *addrHash)
+// No need mark visited node, because for each addr hash, only need to
+// push once 
 {
 	Addr2NodeItem *nodeHash;
 	for(nodeHash = addrHash->subHash; nodeHash != NULL; nodeHash = nodeHash->hh_addr2NodeItem.next) {
-		
+		addr2NodeItemStackPush(nodeHash);	
 	}
 }
 
