@@ -3,6 +3,7 @@
 
 #include "uthash.h"
 
+#include "continbuf.h"
 #include "propagate.h"
 #include "tpmnode.h"
 #include "tpm.h"
@@ -51,6 +52,20 @@ struct StackAddr2NodeItem
     struct StackAddr2NodeItem *next;
 };
 typedef struct StackAddr2NodeItem StackAddr2NodeItem;
+
+struct StackDstBufHT
+{
+    AvalDstBufHTNode *dstBufHT;
+    struct StackDstBufHT *next;
+};
+typedef struct StackDstBufHT StackDstBufHT;
+
+struct StackBufAry
+{
+    ContinBufAry *contBufAry;
+    struct StackBufAry *next; 
+};
+typedef struct StackBufAry StackBufAry;
 
 int
 init_AvalancheSearchCtxt(struct AvalancheSearchCtxt **avalsctxt, u32 minBufferSz, struct TPMNode2 *srcBuf, 
