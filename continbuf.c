@@ -183,8 +183,7 @@ getBufAryIntersect(ContinBufAry *l, ContinBufAry *r)
 		u32 intrsctAddrEnd 	 = getMinAddr(buf_l->bufEnd, buf_r->bufEnd);
 
 		if(intrsctAddrStart < intrsctAddrEnd) { // gets the intersection buf
-			// TODO: add the bufAryIntrsct buf
-			printf("intersection: addr start:%x - addr end:%x\n", intrsctAddrStart, intrsctAddrEnd);
+			// printf("intersection: addr start:%x - addr end:%x\n", intrsctAddrStart, intrsctAddrEnd);
 			bufIntrsct = getContBufIntersect(buf_l, intrsctAddrStart, intrsctAddrEnd);
 			// appendContBufAry(bufAryIntrsct, bufIntrsct);
 			add2BufAry(bufAryIntrsct, bufIntrsct);
@@ -227,46 +226,6 @@ delContinBufAry(ContinBufAry **contBufAry)
 	free( (*contBufAry)->contBufAryHead);
 	free(*contBufAry);
 	*contBufAry = NULL;
-}
-
-void 
-printContinBuf(ContinBuf *contBuf)
-{
-	TaintedBuf *nodeHead, *elt;
-	int i;
-
-	printf("cont bufstart:%x - bufend:%x - node ary sz:%u - total buf nodes:%u\n", 
-		contBuf->bufStart, contBuf->bufEnd, contBuf->nodeArySz, contBuf->nodeAryUsed);
-
-	for(i = 0; i < contBuf->nodeArySz; i++) {
-		if(contBuf->contBufNodeAry[i] != NULL) {
-			nodeHead = contBuf->contBufNodeAry[i];
-			printf("node head:%p addr:%x next:%p\n", nodeHead, nodeHead->bufstart->addr, nodeHead->next);
-			LL_FOREACH(nodeHead, elt) {
-				printf("TaintedBuf:%p - addr:%x\n", elt, elt->bufstart->addr);
-			}
-
-		}
-		else { printf("node head:%p\n", contBuf->contBufNodeAry[i]); }
-	}
-}
-
-void 
-printContinBufAry(ContinBufAry *contBufAry)
-{
-	if(contBufAry == NULL){
-		fprintf(stderr, "error: continuous buf ary is empty:%p\n", contBufAry);
-		return;
-	}
-
-	int i;
-	printf("cont buf ary: sz:%u - total cont buf:%u\n", 
-		contBufAry->bufArySz, contBufAry->bufAryUsed);
-	for(i = 0; i < contBufAry->bufArySz; i++) {
-		if(contBufAry->contBufAryHead[i] != NULL) {
-			printContinBuf(contBufAry->contBufAryHead[i]);
-		}
-	}
 }
 
 static void 
@@ -322,4 +281,56 @@ getMinAddr(u32 addr_l, u32 addr_r)
 		return addr_l;
 	else
 		return addr_r;
+}
+
+void 
+printContinBuf(ContinBuf *contBuf)
+{
+	TaintedBuf *nodeHead, *elt;
+	int i;
+
+	printf("cont bufstart:%x - bufend:%x - node ary sz:%u - total buf nodes:%u\n", 
+		contBuf->bufStart, contBuf->bufEnd, contBuf->nodeArySz, contBuf->nodeAryUsed);
+
+	for(i = 0; i < contBuf->nodeArySz; i++) {
+		if(contBuf->contBufNodeAry[i] != NULL) {
+			nodeHead = contBuf->contBufNodeAry[i];
+			printf("node head:%p addr:%x next:%p\n", nodeHead, nodeHead->bufstart->addr, nodeHead->next);
+			LL_FOREACH(nodeHead, elt) {
+				printf("TaintedBuf:%p - addr:%x\n", elt, elt->bufstart->addr);
+			}
+
+		}
+		else { printf("node head:%p\n", contBuf->contBufNodeAry[i]); }
+	}
+}
+
+void 
+printContinBufAry(ContinBufAry *contBufAry)
+{
+	if(contBufAry == NULL){
+		fprintf(stderr, "error: continuous buf ary is empty:%p\n", contBufAry);
+		return;
+	}
+
+	int i;
+	printf("cont buf ary: sz:%u - total cont buf:%u\n", 
+		contBufAry->bufArySz, contBufAry->bufAryUsed);
+	for(i = 0; i < contBufAry->bufArySz; i++) {
+		if(contBufAry->contBufAryHead[i] != NULL) {
+			printContinBuf(contBufAry->contBufAryHead[i]);
+		}
+	}
+}
+
+void 
+printContBufAry_lit(char *s, ContinBufAry *contBufAry)
+{
+	for(int i = 0; i < contBufAry->bufAryUsed; i++) {
+		ContinBuf *contBuf = contBufAry->contBufAryHead[i];
+		if(contBuf != NULL) {
+			printf("%sbufstart:%x bufend:%x size:%u\n", 
+				s, contBuf->bufStart, contBuf->bufEnd, contBuf->bufEnd - contBuf->bufStart);
+		}
+	}	
 }

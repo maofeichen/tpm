@@ -68,4 +68,7 @@ printContinBuf(ContinBuf *contBuf);
 void 
 printContinBufAry(ContinBufAry *contBufAry);
 
+void 
+printContBufAry_lit(char *s, ContinBufAry *contBufAry);
+
 #endif
