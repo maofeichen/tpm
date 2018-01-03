@@ -67,6 +67,15 @@ struct StackBufAry
 };
 typedef struct StackBufAry StackBufAry;
 
+struct PropagateStat
+{
+    u32 minstep;
+    u32 maxstep;
+    u32 totalstep;
+    u32 numOfSearch;    
+};
+typedef struct PropagateStat PropagateStat;
+
 int
 init_AvalancheSearchCtxt(struct AvalancheSearchCtxt **avalsctxt, u32 minBufferSz, struct TPMNode2 *srcBuf, 
 			 struct TPMNode2 *dstBuf, u32 srcAddrStart, u32 srcAddrEnd, u32 dstAddrStart, u32 dstAddrEnd);
@@ -79,7 +88,7 @@ searchAllAvalancheInTPM(TPMContext *tpm);
 // Searches avalanche between all pair <in, out> buffer in the tpm
 
 int
-searchAvalancheInOutBuf(TPMContext *tpm, AvalancheSearchCtxt *avalsctxt);
+searchAvalancheInOutBuf(TPMContext *tpm, AvalancheSearchCtxt *avalsctxt, PropagateStat *propaStat);
 // Searches avalanche given in and out buffers (stored in AvalancheSearchCtxt)
 // Retures:
 //	0: success

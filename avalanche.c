@@ -14,10 +14,7 @@
 // static int
 // memNodePropagationSearch(struct AvalancheSearchCtxt *avalsctxt, struct TPMNode2 *srcNode, struct taintedBuf *dstBuf);
 
-    u32 srcMinSeqN;		// minimum seq# of the source buffer
-    u32 srcMaxSeqN;		// maximum seq# of the source buffer
-    u32 dstMinSeqN;		// minimum seq# of the destination buffer
-    u32 dstMaxSeqN;		// maximum seq# of the destination buffer
+
 
 /* avalanche context */
 static void 
@@ -25,7 +22,7 @@ setSeqNo(AvalancheSearchCtxt *avalsctxt, u32 srcMinSeqN, u32 srcMaxSeqN, u32 dst
 
 /* search propagation of in to the out buffers */
 static void 
-searchPropagateInOutBuf(TPMContext *tpm, AvalancheSearchCtxt *avalsctxt, Addr2NodeItem **dstMemNodesHT);
+searchPropagateInOutBuf(TPMContext *tpm, AvalancheSearchCtxt *avalsctxt, Addr2NodeItem **dstMemNodesHT, PropagateStat *propaStat);
 
 static Addr2NodeItem *
 createAddr2NodeItem(u32 addr, TPMNode2 *memNode, Addr2NodeItem *subHash, TaintedBuf *toMemNode);
@@ -152,6 +149,8 @@ searchAllAvalancheInTPM(TPMContext *tpm)
 	tpmBufHT = getAllTPMBuf(tpm);
 	// printTPMBufHT(tpmBufHT);
 
+	PropagateStat propaStat = {0};
+
 	for(srcBuf = tpmBufHT; srcBuf != NULL; srcBuf = srcBuf->hh_tpmBufHT.next) {
 		for(dstBuf = srcBuf->hh_tpmBufHT.next; dstBuf != NULL; dstBuf = dstBuf->hh_tpmBufHT.next) {
 #ifdef DEBUG
@@ -166,24 +165,18 @@ searchAllAvalancheInTPM(TPMContext *tpm)
 			if(srcBuf->baddr == 0xde911000 && dstBuf->baddr == 0x804c170){ // test signle buf
 	            init_AvalancheSearchCtxt(&avalsctxt, MIN_BUF_SZ, srcBuf->headNode, dstBuf->headNode, srcBuf->baddr, srcBuf->eaddr, dstBuf->baddr, dstBuf->eaddr);
 				setSeqNo(avalsctxt, srcBuf->minseq, srcBuf->maxseq, dstBuf->minseq, dstBuf->maxseq);
-	    		searchAvalancheInOutBuf(tpm, avalsctxt);
+	    		searchAvalancheInOutBuf(tpm, avalsctxt, &propaStat);
 	    		free_AvalancheSearchCtxt(avalsctxt);     
 			}
 #endif
-			if(srcBuf->baddr == 0xde911000 && dstBuf->baddr == 0x804c170){ // test signle buf
-	            init_AvalancheSearchCtxt(&avalsctxt, MIN_BUF_SZ, srcBuf->headNode, dstBuf->headNode, srcBuf->baddr, srcBuf->eaddr, dstBuf->baddr, dstBuf->eaddr);
-				setSeqNo(avalsctxt, srcBuf->minseq, srcBuf->maxseq, dstBuf->minseq, dstBuf->maxseq);
-	    		searchAvalancheInOutBuf(tpm, avalsctxt);
-	    		free_AvalancheSearchCtxt(avalsctxt);     
-			}
-
-			// init_AvalancheSearchCtxt(&avalsctxt, MIN_BUF_SZ, srcBuf->headNode, dstBuf->headNode, srcBuf->baddr, srcBuf->eaddr, dstBuf->baddr, dstBuf->eaddr);
-			// setSeqNo(avalsctxt, srcBuf->minseq, srcBuf->maxseq, dstBuf->minseq, dstBuf->maxseq);
-	  //   	searchAvalancheInOutBuf(tpm, avalsctxt);
-	  //   	free_AvalancheSearchCtxt(avalsctxt);     
+			init_AvalancheSearchCtxt(&avalsctxt, MIN_BUF_SZ, srcBuf->headNode, dstBuf->headNode, srcBuf->baddr, srcBuf->eaddr, dstBuf->baddr, dstBuf->eaddr);
+			setSeqNo(avalsctxt, srcBuf->minseq, srcBuf->maxseq, dstBuf->minseq, dstBuf->maxseq);
+	    	searchAvalancheInOutBuf(tpm, avalsctxt, &propaStat);
+	    	free_AvalancheSearchCtxt(avalsctxt);     
 		}
 	}
-
+	printf("minstep:%u maxstep:%u avgstep:%u\n", 
+		propaStat.minstep, propaStat.maxstep, propaStat.totalstep / propaStat.numOfSearch);
 	/* test one buffer */
     // srcBuf = mem2NodeSearch(tpm, 0xde911000);
     // getMemNode1stVersion(&srcBuf);
@@ -193,19 +186,19 @@ searchAllAvalancheInTPM(TPMContext *tpm)
 }
 
 int 
-searchAvalancheInOutBuf(TPMContext *tpm, AvalancheSearchCtxt *avalsctxt)
+searchAvalancheInOutBuf(TPMContext *tpm, AvalancheSearchCtxt *avalsctxt, PropagateStat *propaStat)
 {
-	printf("----------------------------------------\n");
-	printf("src buf: bufstart:%x bufend:%x sz:%u\n", 
-		avalsctxt->srcAddrStart, avalsctxt->srcAddrEnd, avalsctxt->srcAddrEnd - avalsctxt->srcAddrStart);
-	printf("dst buf: bufstart:%x bufend:%x sz:%u\n", 
-		avalsctxt->dstAddrStart, avalsctxt->dstAddrEnd, avalsctxt->dstAddrEnd - avalsctxt->dstAddrStart);
-	searchPropagateInOutBuf(tpm, avalsctxt, &(avalsctxt->addr2Node) );
+	// printf("----------------------------------------\n");
+	// printf("src buf: bufstart:%x bufend:%x sz:%u\n", 
+	// 	avalsctxt->srcAddrStart, avalsctxt->srcAddrEnd, avalsctxt->srcAddrEnd - avalsctxt->srcAddrStart);
+	// printf("dst buf: bufstart:%x bufend:%x sz:%u\n", 
+	// 	avalsctxt->dstAddrStart, avalsctxt->dstAddrEnd, avalsctxt->dstAddrEnd - avalsctxt->dstAddrStart);
+	searchPropagateInOutBuf(tpm, avalsctxt, &(avalsctxt->addr2Node), propaStat);
 #ifdef DEBUG
 	printDstMemNodesHTTotal(avalsctxt->addr2Node);
 	printDstMemNodesHT(avalsctxt->addr2Node);
 #endif
-	detectAvalancheInOutBuf(tpm, avalsctxt);
+	// detectAvalancheInOutBuf(tpm, avalsctxt);
 }
 
 static void 
@@ -218,7 +211,7 @@ setSeqNo(AvalancheSearchCtxt *avalsctxt, u32 srcMinSeqN, u32 srcMaxSeqN, u32 dst
 }
 
 static void 
-searchPropagateInOutBuf(TPMContext *tpm, AvalancheSearchCtxt *avalsctxt, Addr2NodeItem **dstMemNodesHT)
+searchPropagateInOutBuf(TPMContext *tpm, AvalancheSearchCtxt *avalsctxt, Addr2NodeItem **dstMemNodesHT, PropagateStat *propaStat)
 // Searches propagations of source buffer (all version of each node), results store in dstMemNodesHT
 {
 	TPMNode2 *srcNode;
@@ -238,8 +231,19 @@ searchPropagateInOutBuf(TPMContext *tpm, AvalancheSearchCtxt *avalsctxt, Addr2No
 		do {
 			dstMemNodesLst = NULL;
 			// store result in utlist
+			stepCount = 0;
 			srcNodeHitcnt = memNodePropagate(tpm, srcNode, &dstMemNodesLst, avalsctxt->dstMaxSeqN, &stepCount);	
 			srcNode->hitcnt = srcNodeHitcnt;
+
+			if(propaStat->numOfSearch == 0)
+				propaStat->minstep = stepCount;
+
+			propaStat->numOfSearch += 1;
+			propaStat->totalstep += stepCount;
+			if(propaStat->minstep > stepCount)
+				propaStat->minstep = stepCount;
+			if(propaStat->maxstep < stepCount)
+				propaStat->maxstep = stepCount; 
 #ifdef DEBUG
 			printf("source node hit count:%d\n", srcNodeHitcnt);
 			printDstMemNodesListTotal(dstMemNodesLst);
