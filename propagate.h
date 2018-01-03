@@ -22,7 +22,7 @@ typedef struct StackTransitionNode
 } StackTransitionNode;
 
 int 
-memNodePropagate(TPMContext *tpm, TPMNode2 *s, TaintedBuf **dstMemNodes);
+memNodePropagate(TPMContext *tpm, TPMNode2 *s, TaintedBuf **dstMemNodes, u32 dstMaxseq, u32 *stepCount);
 // Returns:
 //  >=0: dst mem nodes hit count
 //  <0: error

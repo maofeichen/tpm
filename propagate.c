@@ -36,7 +36,7 @@ isTransStackEmpty();
 
 /* mem node propagate implement */
 static int 
-dfs(TPMContext *tpm, TPMNode2 *s, TaintedBuf **dstMemNodes);
+dfs(TPMContext *tpm, TPMNode2 *s, TaintedBuf **dstMemNodes, u32 dstMaxseq, u32 *stepCount);
 
 static int 
 dfsPrintResult(TPMContext *tpm, TPMNode2 *s);
@@ -56,9 +56,9 @@ storePropagateDstMemNode(TPMNode2 *memNode, TaintedBuf **dstMemNodes);
 
 /* functions */
 int 
-memNodePropagate(TPMContext *tpm, TPMNode2 *s, TaintedBuf **dstMemNodes)
+memNodePropagate(TPMContext *tpm, TPMNode2 *s, TaintedBuf **dstMemNodes, u32 dstMaxseq, u32 *stepCount)
 {
-	return dfs(tpm, s, dstMemNodes);
+	return dfs(tpm, s, dstMemNodes, dstMaxseq, stepCount);
 }
 
 int 
@@ -68,7 +68,7 @@ printMemNodePropagate(TPMContext *tpm, TPMNode2 *s)
 }
 
 static int
-dfs(TPMContext *tpm, TPMNode2 *s, TaintedBuf **dstMemNodes)
+dfs(TPMContext *tpm, TPMNode2 *s, TaintedBuf **dstMemNodes, u32 dstMaxseq, u32 *stepCount)
 // Returns:
 //  >=0: dst mem nodes hit count
 //  <0: error
@@ -86,7 +86,7 @@ dfs(TPMContext *tpm, TPMNode2 *s, TaintedBuf **dstMemNodes)
 
 	TransitionHashTable *markVisitTransHT = NULL;
 	Transition *source_trans = s->firstChild;
-	int stepCount = 0, hitCount = 0;
+	int hitCount = 0;
 
 	if(source_trans != NULL) {
 		storeAllUnvisitChildren(&markVisitTransHT, source_trans);
@@ -100,8 +100,10 @@ dfs(TPMContext *tpm, TPMNode2 *s, TaintedBuf **dstMemNodes)
 				hitCount++;
 			}
 // #endif
-			stepCount++;
-			storeAllUnvisitChildren(&markVisitTransHT, dst->tpmnode1.firstChild);
+			(*stepCount)++;
+			if(dst->tpmnode1.lastUpdateTS <= dstMaxseq * 1.0001){ // only propagates with max seq no of dst buffer
+				storeAllUnvisitChildren(&markVisitTransHT, dst->tpmnode1.firstChild);
+			}
 		}
 	}
 	else { 
@@ -112,12 +114,11 @@ dfs(TPMContext *tpm, TPMNode2 *s, TaintedBuf **dstMemNodes)
 	}
 
 #ifdef DEBUG
-	printf("total:%u traverse steps\n", stepCount);
+	printf("total:%u traverse steps\n", *stepCount);
 #endif
 	delTransitionHT(&markVisitTransHT);
 	transStackPopAll();
 
-	// return stepCount;
 	return hitCount;	
 }
 
