@@ -57,7 +57,7 @@ static bool
 isInMemRange(TPMNode2 *node, u32 addrBegin, u32 addrEnd);
 
 static void 
-t_createDstContinBuf(AvalDstBufHTNode *dstMemNodesHT);
+test_createDstContinBuf(AvalDstBufHTNode *dstMemNodesHT);
 
 /* Stack of Addr2NodeItem operaion */
 static void 
@@ -116,8 +116,7 @@ int
 init_AvalancheSearchCtxt(struct AvalancheSearchCtxt **avalsctxt, u32 minBufferSz, struct TPMNode2 *srcBuf, 
 			 struct TPMNode2 *dstBuf, u32 srcAddrStart, u32 srcAddrEnd, u32 dstAddrStart, u32 dstAddrEnd)
 {
-	*avalsctxt = malloc(sizeof(AvalancheSearchCtxt));
-	memset(*avalsctxt, 0, sizeof(AvalancheSearchCtxt) );
+	*avalsctxt = calloc(1, sizeof(AvalancheSearchCtxt));
 	(*avalsctxt)->minBufferSz 	= minBufferSz;
 	(*avalsctxt)->srcBuf 		= srcBuf;
 	(*avalsctxt)->dstBuf 		= dstBuf;
@@ -134,25 +133,55 @@ free_AvalancheSearchCtxt(struct AvalancheSearchCtxt *avalsctxt)
 	free(avalsctxt);	
 }
 
-
 void 
 searchAllAvalancheInTPM(TPMContext *tpm)
 {
     AvalancheSearchCtxt *avalsctxt;
-	TPMNode2 *srcBuf;
+    TPMBufHashTable *tpmBufHT, *srcBuf, *dstBuf;
+	// TPMNode2 *srcBuf;
+
+	tpmBufHT = getAllTPMBuf(tpm);
+	// printTPMBufHT(tpmBufHT);
+
+	for(srcBuf = tpmBufHT; srcBuf != NULL; srcBuf = srcBuf->hh_tpmBufHT.next) {
+		for(dstBuf = srcBuf->hh_tpmBufHT.next; dstBuf != NULL; dstBuf = dstBuf->hh_tpmBufHT.next) {
+#ifdef DEBUG
+			printf("---------------\n");
+			printf("src:\n");
+			printf("\tbegin addr:0x%-8x end addr:0x%-8x minseq:%u maxseq:%u\n", 
+                srcBuf->baddr, srcBuf->eaddr, srcBuf->minseq, srcBuf->maxseq);      
+            printf("dst:\n");
+			printf("\tbegin addr:0x%-8x end addr:0x%-8x minseq:%u maxseq:%u\n", 
+                dstBuf->baddr, dstBuf->eaddr, dstBuf->minseq, dstBuf->maxseq);       
+
+			if(srcBuf->baddr == 0xde911000 && dstBuf->baddr == 0x804c170){
+	            init_AvalancheSearchCtxt(&avalsctxt, MIN_BUF_SZ, srcBuf->headNode, dstBuf->headNode, srcBuf->baddr, srcBuf->eaddr, dstBuf->baddr, dstBuf->eaddr);
+	    		searchAvalancheInOutBuf(tpm, avalsctxt);
+	    		free_AvalancheSearchCtxt(avalsctxt);     
+			}
+#endif
+			init_AvalancheSearchCtxt(&avalsctxt, MIN_BUF_SZ, srcBuf->headNode, dstBuf->headNode, srcBuf->baddr, srcBuf->eaddr, dstBuf->baddr, dstBuf->eaddr);
+	    	searchAvalancheInOutBuf(tpm, avalsctxt);
+	    	free_AvalancheSearchCtxt(avalsctxt);     
+		}
+	}
 
 	/* test one buffer */
-    srcBuf = mem2NodeSearch(tpm, 0xde911000);
-    getMemNode1stVersion(&srcBuf);
-
-    init_AvalancheSearchCtxt(&avalsctxt, 8, srcBuf, NULL, 0, 0, 0, 0);
-    searchAvalancheInOutBuf(tpm, avalsctxt);
-    free_AvalancheSearchCtxt(avalsctxt);    
+    // srcBuf = mem2NodeSearch(tpm, 0xde911000);
+    // getMemNode1stVersion(&srcBuf);
+    // init_AvalancheSearchCtxt(&avalsctxt, 8, srcBuf, NULL, 0, 0, 0, 0);
+    // searchAvalancheInOutBuf(tpm, avalsctxt);
+    // free_AvalancheSearchCtxt(avalsctxt);    
 }
 
 int 
 searchAvalancheInOutBuf(TPMContext *tpm, AvalancheSearchCtxt *avalsctxt)
 {
+	printf("----------------------------------------\n");
+	printf("src buf: bufstart:%x bufend:%x sz:%u\n", 
+		avalsctxt->srcAddrStart, avalsctxt->srcAddrEnd, avalsctxt->srcAddrEnd - avalsctxt->srcAddrStart);
+	printf("dst buf: bufstart:%x bufend:%x sz:%u\n", 
+		avalsctxt->dstAddrStart, avalsctxt->dstAddrEnd, avalsctxt->dstAddrEnd - avalsctxt->dstAddrStart);
 	searchPropagateInOutBuf(tpm, avalsctxt, &(avalsctxt->addr2Node) );
 #ifdef DEBUG
 	printDstMemNodesHTTotal(avalsctxt->addr2Node);
@@ -230,24 +259,6 @@ static void
 detectAvalancheInOutBuf(TPMContext *tpm, AvalancheSearchCtxt *avalsctxt)
 {
 	u32 maxNumOfAddrAdvanced = 0, numOfAddrAdvanced = 0;
-	// Addr2NodeItem *item, *subitem, *temp, *subTemp;
-	// HASH_ITER(hh_addr2NodeItem, avalsctxt->addr2Node, item, temp) { // for each addr
-	// 	HASH_ITER(hh_addr2NodeItem, item->subHash, subitem, subTemp) { // for each version node
-	// 		if(item->hh_addr2NodeItem.next != NULL) {
-	// 			printf("node ptr:%p - node addr:%x\n", subitem->node, subitem->node->addr);
-	// 			Addr2NodeItem *next = item->hh_addr2NodeItem.next;
-	// 			detectAvalancheOfSource(avalsctxt, subitem, next, &numOfAddrAdvanced);
-	// 			if(numOfAddrAdvanced > maxNumOfAddrAdvanced)
-	// 				maxNumOfAddrAdvanced = numOfAddrAdvanced;
-	// 		}
-	// 	}
-	// 	for(int i = 0; i < maxNumOfAddrAdvanced-1; i++){ // already found avalanche, skip search
-	// 		if(item->hh_addr2NodeItem.next != NULL)
-	// 			item = item->hh_addr2NodeItem.next;
-	// 	}
-	// 	// break;
-	// }
-
 
 	Addr2NodeItem *addrHash, *nodeHash;
 	for(addrHash = avalsctxt->addr2Node; addrHash != NULL; addrHash = addrHash->hh_addr2NodeItem.next) {
@@ -299,8 +310,16 @@ detectAvalancheOfSource(AvalancheSearchCtxt *avalsctxt, Addr2NodeItem *sourceNod
 	TaintedBuf *dstMemNodesLst;
 
 	dstMemNodesLst = sourceNode->toMemNode;
-	initDstMemNodeHT(dstMemNodesLst, 0x804c170, 0x804c1B0, &oldAvalDstBufHT); // TODO: intersect with dst buf range
+
+	if(dstMemNodesLst == NULL)
+		return;
+
+	// initDstMemNodeHT(dstMemNodesLst, 0x804c170, 0x804c1B0, &oldAvalDstBufHT); // TODO: intersect with dst buf range
+	initDstMemNodeHT(dstMemNodesLst, avalsctxt->dstAddrStart, avalsctxt->dstAddrEnd, &oldAvalDstBufHT); // TODO: intersect with dst buf range
 	dstBufHTStackPush(&stackDstBufHTTop, &stackDstBufHTCnt, oldAvalDstBufHT); // stores source node's propagation that common with dst buf
+
+	if(HASH_CNT(hh_avalDstBufHTNode, oldAvalDstBufHT) == 0)
+		return;
 
 	oldContBufAry = buildContinBufAry(oldAvalDstBufHT);	// init the buf ary based on the dst buf hash table
 	bufAryStackPush(&stackBufAryTop, &stackBufAryCnt, oldContBufAry);
@@ -328,7 +347,7 @@ detectAvalancheOfSource(AvalancheSearchCtxt *avalsctxt, Addr2NodeItem *sourceNod
 													  // can stop due to prefer longest input buffer
 			*numOfAddrAdvanced = stackSourceCount;	// num of addr advanced
 			printf("--------------------\n");		  
-			addr2NodeItemStackDispRange(stackSourceTop, "avalanche found: source buf:");
+			addr2NodeItemStackDispRange(stackSourceTop, "avalanche found:\nsrc buf:");
 			printf("aval to dst buf:\n");
 			printContBufAry_lit("\t", oldContBufAry);
 			break;
@@ -387,7 +406,10 @@ static ContinBufAry *
 buildContinBufAry(AvalDstBufHTNode *dstMemNodesHT)
 // Returns:
 //	Continuous buffers array, based on the dst mem nodes hash table
-{
+{	
+	// if(dstMemNodesHT == NULL)
+	// 	return NULL;
+
 	ContinBufAry *contBufAry;
 	ContinBuf *contBuf;
 	AvalDstBufHTNode *item, *temp;
@@ -409,7 +431,7 @@ buildContinBufAry(AvalDstBufHTNode *dstMemNodesHT)
 
 		if(currBufRange > currNodeStart) {
 			// TODO: propagate to multiple version of same addr, handles latter
-			printf("buildContinBufAry: TODO: multiple version of same addr:%x\n", currNodeStart);
+			// printf("buildContinBufAry: TODO: multiple version of same addr:%x\n", currNodeStart);
 		}
 		else if(currBufRange == currNodeStart) {
 			extendContinBuf(contBuf, item->dstNode);
@@ -508,7 +530,7 @@ isInMemRange(TPMNode2 *node, u32 addrBegin, u32 addrEnd)
 }
 
 static void 
-t_createDstContinBuf(AvalDstBufHTNode *dstMemNodesHT)
+test_createDstContinBuf(AvalDstBufHTNode *dstMemNodesHT)
 {
 	ContinBuf *continBuf_l = NULL, *continBuf_r;
 	ContinBufAry *contBufAry_l = NULL, *contBufAry_r = NULL, *bufAryIntersect;

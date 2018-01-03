@@ -19,6 +19,17 @@ static void
 print_ver_ht(struct AddrHT **addrHT);
 
 /* Continuous Buf hash table */
+static struct ContBufHT
+{
+	u32 baddr;
+	u32 eaddr;
+	u32 minseq;
+	u32 maxseq;
+	TPMNode2 *firstNode;
+	UT_hash_handle hh_cont;
+};
+
+
 static int
 add_buf_ht(struct ContBufHT **contbufHT, u32 baddr, u32 eaddr, u32 minseq, u32 maxseq, TPMNode2 *firstNode);
 
@@ -157,7 +168,7 @@ compute_cont_buf(struct TPMContext *tpm)
 	}
 	printf("traverse numbers (begin node first version): min step:%u avg step:%u max step:%u\n", minstep, totalstep/num, maxstep);
 
-	// print_buf_ht(&bufHT);
+	print_buf_ht(&bufHT);
 	del_buf_ht(&bufHT);
 }
 

@@ -47,6 +47,7 @@ struct Transition
     union TPMNode *child;
     struct Transition *next;
 };
+typedef struct Transition Transition;
 
 struct TPMContext
 {
@@ -62,6 +63,7 @@ struct TPMContext
     u32 taintedBufNum;	// number of tainted buffers in the TPM.
     struct taintedBuf *taintedbuf;	// point to the tainted buffers in TPM
 };
+typedef struct TPMContext TPMContext;
 
 /* mem hash tables, according to uthash */
 struct MemHT
@@ -70,13 +72,20 @@ struct MemHT
     struct TPMNode2 *toMem; // val, latest version node of the addr
     UT_hash_handle hh_mem;  // hash table head, required by uthash
 };
-
-typedef struct Transition Transition;
-typedef struct TPMContext TPMContext;
 typedef struct MemHT MemHT;
 
-/* TPM function prototypes */
+struct TPMBufHashTable
+{
+    u32 baddr;
+    u32 eaddr;
+    u32 minseq;
+    u32 maxseq;
+    TPMNode2 *headNode;
+    UT_hash_handle hh_tpmBufHT;   
+};
+typedef struct TPMBufHashTable TPMBufHashTable; // stores all different bufs in a tpm in hash table
 
+/* TPM function prototypes */
 int 
 isPropagationOverwriting(u32 flag, Record *rec);
 
@@ -94,6 +103,9 @@ mem2NodeSearch(struct TPMContext *tpm, u32 memaddr);
 union TPMNode *
 seqNo2NodeSearch(struct TPMContext *tpm, u32 seqNo);
 
+TPMBufHashTable *
+getAllTPMBuf(TPMContext *tpm);
+
 void 
 delTPM(struct TPMContext *tpm);
 
@@ -110,4 +122,7 @@ printTrans1stChild(union TPMNode *head);
 
 void 
 printTransAllChildren(Transition *transition);
+
+void 
+printTPMBufHT(TPMBufHashTable *tpmBufHT);
 #endif

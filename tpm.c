@@ -88,6 +88,16 @@ print_mem_ht(struct MemHT **mem2NodeHT);
 static bool  
 is_addr_in_ht(struct TPMContext *tpm, struct MemHT **item, u32 addr);
 
+/* computes all buffers in tpm */
+static void 
+compBufStat(TPMNode2 *memNode, u32 *baddr, u32 *eaddr, u32 *minseq, u32 *maxseq, TPMNode2 **firstnode);
+
+static TPMBufHashTable *
+initTPMBufHTNode(u32 baddr, u32 eaddr, u32 minseq, u32 maxseq, TPMNode2 *firstnode);
+
+static int 
+cmpTPMBufHTNode(TPMBufHashTable *l, TPMBufHashTable *r);
+
 int 
 isPropagationOverwriting(u32 flag, Record *rec)
 /* return:
@@ -293,10 +303,38 @@ seqNo2NodeSearch(struct TPMContext *tpm, u32 seqNo)
     }
 }
 
+TPMBufHashTable *
+getAllTPMBuf(TPMContext *tpm)
+{
+    MemHT *memNodeHT;
+    TPMBufHashTable *tpmBufHT = NULL, *tpmBufNode, *tpmBufFound;
+
+    TPMNode2 *memNode, *firstMemNode;
+    u32 baddr, eaddr, minseq, maxseq;
+
+    for(memNodeHT = tpm->mem2NodeHT; memNodeHT != NULL; memNodeHT = memNodeHT->hh_mem.next) {
+        memNode = memNodeHT->toMem;
+        compBufStat(memNode, &baddr, &eaddr, &minseq, &maxseq, &firstMemNode);
+        tpmBufNode = initTPMBufHTNode(baddr, eaddr, minseq, maxseq, firstMemNode);
+
+        HASH_FIND(hh_tpmBufHT, tpmBufHT, &baddr, 4, tpmBufFound);
+        if(tpmBufFound == NULL) {
+            HASH_ADD(hh_tpmBufHT, tpmBufHT, baddr, 4, tpmBufNode);
+        }
+    }
+
+    HASH_SRT(hh_tpmBufHT, tpmBufHT, cmpTPMBufHTNode);
+    // printTPMBufHT(tpmBufHT);
+    return tpmBufHT;
+}
+
 void delTPM(struct TPMContext *tpm)
 {
     del_mem_ht(&(tpm->mem2NodeHT) ); // clear mem addr hash table
     free(tpm);                       // TODO: merge in delTPM()
+
+    // TODO:
+    // - free TPMBufHashTable
 }
 
 TPMNode *
@@ -348,7 +386,16 @@ printTransAllChildren(Transition *transition)
     }
 }
 
-
+void 
+printTPMBufHT(TPMBufHashTable *tpmBufHT)
+{
+    TPMBufHashTable *node, *temp;
+    HASH_ITER(hh_tpmBufHT, tpmBufHT, node, temp) {
+        if((node->eaddr - node->baddr) >= 8)
+            printf("begin addr:0x%-8x end addr:0x%-8x minseq:%u maxseq:%u\n", 
+                node->baddr, node->eaddr, node->minseq, node->maxseq);       
+    }
+}
 
 
 static void 
@@ -1081,3 +1128,62 @@ is_addr_in_ht(struct TPMContext *tpm, struct MemHT **item, u32 addr)
     else { return 0; }
 }
 
+static void 
+compBufStat(TPMNode2 *memNode, u32 *baddr, u32 *eaddr, u32 *minseq, u32 *maxseq, TPMNode2 **firstnode)
+{
+    TPMNode2 *b, *e;
+    *minseq = memNode->lastUpdateTS;
+    *maxseq = 0;
+
+    b = e = memNode;
+
+    while(b->leftNBR != NULL) { // traverse left neighbor
+        u32 seq = b->lastUpdateTS;
+
+        if(*minseq > seq)
+            *minseq = seq;
+
+        if(*maxseq < seq)
+            *maxseq = seq;
+
+        b = b->leftNBR;
+    }
+    *baddr = b->addr;
+
+    while(e->rightNBR != NULL) {
+        u32 seq = e->lastUpdateTS;
+        if(*minseq > seq)
+            *minseq = seq;
+
+        if(*maxseq < seq)
+            *maxseq = seq;
+
+        e = e->rightNBR;
+    }
+    *eaddr = e->addr + 4;   // assume end addr always 4 bytes
+
+    *firstnode = b;
+    getMemNode1stVersion(firstnode); // get first node first version
+    // print_mem_node(*firstnode);
+    // if((*eaddr - *baddr) >= 8)
+    //  printf("begin addr:0x%-8x end addr:0x%-8x minseq:%u maxseq:%u\n", *baddr, *eaddr, *minseq, *maxseq);       
+}
+
+static TPMBufHashTable *
+initTPMBufHTNode(u32 baddr, u32 eaddr, u32 minseq, u32 maxseq, TPMNode2 *firstnode)
+{
+   TPMBufHashTable *node = calloc(1, sizeof(TPMBufHashTable));
+   node->baddr = baddr;
+   node->eaddr = eaddr;
+   node->minseq = minseq;
+   node->maxseq = maxseq;
+   node->headNode= firstnode; 
+}
+
+static int 
+cmpTPMBufHTNode(TPMBufHashTable *l, TPMBufHashTable *r)
+{
+    if(l->minseq < r->minseq) { return -1; }
+    else if(l->minseq == r->minseq) { return 0; }
+    else { return 1; }
+}

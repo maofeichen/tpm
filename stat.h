@@ -24,17 +24,6 @@ struct AddrHT
     UT_hash_handle hh_ver;  // hash table head, required by uthash
 };
 
-/* Continuous Buf hash table */
-struct ContBufHT
-{
-	u32 baddr;
-	u32 eaddr;
-	u32 minseq;
-	u32 maxseq;
-	TPMNode2 *firstNode;
-	UT_hash_handle hh_cont;
-};
-
 /* continuous buf */
 void get_cont_buf(struct TPMNode2 *node, u32 *baddr, u32 *eaddr, u32 *minseq, u32 *maxseq, TPMNode2 **firstnode);
 void compute_cont_buf(struct TPMContext *tpm);
