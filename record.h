@@ -39,7 +39,7 @@ equalRecordMark(char *flag, char *mark);
 //	f: otherwise
 
 bool
-isRecordMark(char *flag);
+isControlRecord(char *flag);
 // Returns:
 //	true: if given flag is a mark record
 //	false: otherwise
@@ -75,7 +75,7 @@ getRecDstTS(u32 ts);
 //	dst ts given the record ts
 
 int
-splitRecord(char *s, char c, struct Record *rec);
+analyzeRecord(char *s, char c, struct Record *rec);
 // Returns:
 //	0: success
 //	<0: error

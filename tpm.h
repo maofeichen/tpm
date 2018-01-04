@@ -12,24 +12,24 @@
 #define TPM_H
 
 #include "uthash.h"
-
-// #include "avalanche.h"
 #include "flag.h"   // XTaint record flag
 #include "record.h"
 #include "tpmnode.h"
-
-#define u32	unsigned int
+#include "type.h"
 
 /* need to add all the XTaint record flag definition here */
 
 /* TPM related constants */
-#define MIN_BUF_SZ          8
+#define MIN_BUF_SZ          8   // minimum buffer size
+#define INIT_SEQNO          -1  // seqNo initialize to -1
+
+#define MAX_REC_SZ          128 // assume max record size to 128 chars
+#define REC_FLAG_SZ         3   // flag size of each record
 
 #define NUM_REG             14  // num of register (global temps)  
 #define REG_IDX_MASK        0xf
 #define MAX_TEMPIDX         128 // the max temp index that Qemu uses
                                 // need to be adjuested based on XTaint log: 
-
 
 #define BYTE                1
 #define WORD                2
@@ -39,7 +39,7 @@
 #define mem2NodeHashSize	90000
 #define seqNo2NodeHashSize	50000000
 
-struct MemHT;
+struct Mem2NodeHT;
 
 struct Transition
 {
@@ -56,7 +56,7 @@ struct TPMContext
     u32 tempVarNum;	// number of different temporary variables encounted
 
     // struct TPMNode2 *mem2NodeHash[mem2NodeHashSize];	// maps mem addr to TPMNode2 of the latest version of a mem addr
-    struct MemHT *mem2NodeHT;          // uses uthash, maps mem addr to TPMNode2 of the latest version of a mem addr
+    struct Mem2NodeHT *mem2NodeHT;          // uses uthash, maps mem addr to TPMNode2 of the latest version of a mem addr
     union TPMNode *seqNo2NodeHash[seqNo2NodeHashSize];	// maps seq no. to TPMNode of the source of the transision
 
     u32 minBufferSz;	// minimum buffer size (such as 8) considered for avalanche effect search
@@ -65,14 +65,14 @@ struct TPMContext
 };
 typedef struct TPMContext TPMContext;
 
-/* mem hash tables, according to uthash */
-struct MemHT
+/* mem to node hash tables, according to uthash */
+struct Mem2NodeHT
 {
     u32 addr;               // key
     struct TPMNode2 *toMem; // val, latest version node of the addr
     UT_hash_handle hh_mem;  // hash table head, required by uthash
 };
-typedef struct MemHT MemHT;
+typedef struct Mem2NodeHT Mem2NodeHT;
 
 struct TPMBufHashTable
 {
@@ -89,11 +89,6 @@ typedef struct TPMBufHashTable TPMBufHashTable; // stores all different bufs in 
 int 
 isPropagationOverwriting(u32 flag, Record *rec);
 
-// u32 
-// processOneXTaintRecord(struct TPMContext *tpm, u32 seqNo, u32 size, u32 srcflg, u32 srcaddr, u32 dstflag, u32 dstaddr);
-int 
-processOneXTaintRecord(struct TPMContext *tpm, struct Record *rec, struct TPMNode1 *regCntxt[], struct TPMNode1 *tempCntxt[]);
-
 int
 buildTPM(FILE *taintfp, struct TPMContext *tpm);
 
@@ -105,6 +100,7 @@ seqNo2NodeSearch(struct TPMContext *tpm, u32 seqNo);
 
 TPMBufHashTable *
 getAllTPMBuf(TPMContext *tpm);
+// computes all the bufs in tpm
 
 void 
 delTPM(struct TPMContext *tpm);

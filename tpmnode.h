@@ -15,7 +15,7 @@ struct TPMNode1		// for temp, register addresses
     u32	type;		  // indicating the type of the node
     u32	addr;		  // mem addr, id of temp or register
     u32 val;        
-    u32	lastUpdateTS;	// the TS (seq#) of last update of the node
+    int lastUpdateTS;	// the TS (seq#) of last update of the node
     struct Transition *firstChild;  // points to structure that points to the first child
 };
 typedef struct TPMNode1 TPMNode1;
@@ -25,7 +25,7 @@ struct TPMNode2		// for memory address
     u32	type;		  // indicating the type of the node
     u32	addr;		  // mem addr, id of temp or register
     u32 val;
-    u32	lastUpdateTS;	// the TS (seq#) of last update of the node
+    int lastUpdateTS;	// the TS (seq#) of last update of the node
     struct Transition *firstChild;  // points to structure that points to the first child
     /* the following fields are only for TPMNode for memory */
     u32 bytesz;                   // byte sz
@@ -55,14 +55,17 @@ typedef struct taintedBuf TaintedBuf;
 
 /* Generic node prototype */
 union TPMNode*
-createTPMNode(u32 type, u32 addr, u32 val, u32 TS, u32 bytesz);
+createTPMNode(u32 type, u32 addr, u32 val, int TS, u32 bytesz);
 
 int
 getNodeType(u32 flag);
 
+void 
+setLastUpdateTS(TPMNode *tpmnode, int lastUpdateTS);
+
 /* Mem node operation*/
 union TPMNode *
-create1stVersionMemNode(u32 addr, u32 val, u32 ts, u32 bytesz);
+create1stVersionMemNode(u32 addr, u32 val, int ts, u32 bytesz);
 
 bool 
 addNextVerMemNode(struct TPMNode2 *front, struct TPMNode2 *next);

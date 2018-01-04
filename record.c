@@ -31,7 +31,7 @@ equalRecordMark(char *flag, char *mark)
 }
 
 bool 
-isRecordMark(char *flag)
+isControlRecord(char *flag)
 {
 	// printf("flag: %s\n", flag);
 	if( (strcmp(flag,INSN_MARK) == 0) || 
@@ -80,7 +80,7 @@ u32 getRecDstTS(u32 ts)
 }
 
 int 
-splitRecord(char *s, char c, struct Record *rec)
+analyzeRecord(char *s, char c, struct Record *rec)
 {
 	if(s == NULL)
 		return -1;

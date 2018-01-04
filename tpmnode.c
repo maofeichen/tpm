@@ -5,7 +5,7 @@
 #include <string.h>
 
 union TPMNode *
-createTPMNode(u32 type, u32 addr, u32 val, u32 TS, u32 bytesz)
+createTPMNode(u32 type, u32 addr, u32 val, int TS, u32 bytesz)
 {
     union TPMNode *tpmnode;
     
@@ -43,9 +43,14 @@ getNodeType(u32 addr)
     else { fprintf(stderr, "error: unkown addr type: addr: %u\n", addr); return -1; }
 }
 
+void 
+setLastUpdateTS(TPMNode *tpmnode, int lastUpdateTS)
+{
+    tpmnode->tpmnode1.lastUpdateTS = lastUpdateTS;
+}
 
 union TPMNode *
-create1stVersionMemNode(u32 addr, u32 val, u32 ts, u32 bytesz)
+create1stVersionMemNode(u32 addr, u32 val, int ts, u32 bytesz)
 // creates first version (0) memory node 
 {
     union TPMNode *n;
@@ -136,7 +141,7 @@ printNode(TPMNode *tpmnode)
 void 
 printMemNode(struct TPMNode2 *n)
 {
-    printf("mem: type:%-1u addr:0x%-8x val:%-8x lastUpdateTS:%-16u"
+    printf("mem: type:%-1u addr:0x%-8x val:%-8x lastUpdateTS:%-16d"
             " firstChild:%-8p leftNBR:%-8p rightNBR:%-8p nextVersion:%-8p"
             " version:%-9u hitcnt:%-8u\n", 
             n->type, n->addr, n->val, n->lastUpdateTS, 
@@ -147,7 +152,7 @@ printMemNode(struct TPMNode2 *n)
 void 
 printNonmemNode(struct TPMNode1 *n)
 {
-     printf("non-mem: type:%-1u addr:0x%-8x val:%-8x lastUpdateTS:%-16u\n", 
+     printf("non-mem: type:%-1u addr:0x%-8x val:%-8x lastUpdateTS:%-16d\n", 
             n->type, n->addr, n->val, n->lastUpdateTS);   
 }
 

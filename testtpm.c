@@ -3,7 +3,7 @@
 
 #define u32 unsigned int
 
-struct MemHT *hh = NULL;
+struct Mem2NodeHT *hh = NULL;
 
 void t_tpmhash(void);
 void t_tpm_mem(void);
@@ -20,7 +20,7 @@ void t_tpmhash()
 	u32 val  = 0xbeef;
 	u32 seq  = 0;
 
-	struct MemHT *s;
+	struct Mem2NodeHT *s;
 	union TPMNode *n; 
 
 	n = createTPMNode(TPM_Type_Memory, addr, val, seq);
@@ -45,7 +45,7 @@ void t_tpm_mem()
 {
 	struct TPMContext* tpm = NULL;
 	union TPMNode *n; 
-	struct MemHT *l, *r;
+	struct Mem2NodeHT *l, *r;
 
 	u32 addr1 = 0xbffff7a0;
 	u32 val1  = 0xbeef;
@@ -171,7 +171,7 @@ void t_has_adjacent()
 {
 	struct TPMContext* tpm = NULL;
 	union TPMNode *n1, *n2, *n3, *n4, *n5; 
-	struct MemHT *l, *r;
+	struct Mem2NodeHT *l, *r;
 	u32 ver; 
 
 	u32 addr1 = 0xbffff7a0;
