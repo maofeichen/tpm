@@ -67,34 +67,29 @@ get_cont_buf(struct TPMNode2 *node, u32 *baddr, u32 *eaddr, int *minseq, int *ma
 
 	b = e = node;
 
-	while(b->leftNBR != NULL) {
-		u32 seq = b->lastUpdateTS;
+    while(b->leftNBR != NULL) { b = b->leftNBR; }; // traverse to left most
+    *baddr = b->addr;
+    *firstnode = b;
+    getMemNode1stVersion(firstnode);
 
-		if(*minseq > seq)
-			*minseq = seq;
+    e = *firstnode;
+    while(e->rightNBR != NULL) { // traverse to right most
+        u32 currVersion = e->version;
+        do{
+            int seqNo = e->lastUpdateTS;
+            if(*minseq > seqNo)
+                *minseq = seqNo;
 
-		if(*maxseq < seq)
-			*maxseq = seq;
+            if(*maxseq < seqNo)
+                *maxseq = seqNo;
 
-		b = b->leftNBR;
-	}
-	*baddr = b->addr;
+            e = e->nextVersion;
+        } while(e->version != currVersion); // go through each version
 
-	while(e->rightNBR != NULL) {
-		u32 seq = e->lastUpdateTS;
-		if(*minseq > seq)
-			*minseq = seq;
+        e = e->rightNBR;
+    }
+    *eaddr = e->addr + e->bytesz;
 
-		if(*maxseq < seq)
-			*maxseq = seq;
-
-		e = e->rightNBR;
-	}
-	*eaddr = e->addr + 4;	// assume end addr always 4 bytes
-
-	// get first node first version
-	*firstnode = b;
-	getMemNode1stVersion(firstnode);
 	// print_mem_node(*firstnode);
 	// if((*eaddr - *baddr) >= 8)
 	// 	printf("begin addr:0x%-8x end addr:0x%-8x minseq:%u maxseq:%u\n", *baddr, *eaddr, *minseq, *maxseq);	

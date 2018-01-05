@@ -9,7 +9,9 @@
 #include "record.h"
 #include <stdbool.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
+
 
 static int initSeqNo = INIT_SEQNO;  // init seqNo
 
@@ -103,10 +105,10 @@ is_addr_in_ht(struct TPMContext *tpm, struct Mem2NodeHT **item, u32 addr);
 
 /* computes all buffers in tpm */
 static void 
-compBufStat(TPMNode2 *memNode, u32 *baddr, u32 *eaddr, u32 *minseq, u32 *maxseq, TPMNode2 **firstnode);
+compBufStat(TPMNode2 *memNode, u32 *baddr, u32 *eaddr, int *minseq, int *maxseq, TPMNode2 **firstnode);
 
 static TPMBufHashTable *
-initTPMBufHTNode(u32 baddr, u32 eaddr, u32 minseq, u32 maxseq, TPMNode2 *firstnode);
+initTPMBufHTNode(u32 baddr, u32 eaddr, int minseq, int maxseq, TPMNode2 *firstnode);
 
 static int 
 cmpTPMBufHTNode(TPMBufHashTable *l, TPMBufHashTable *r);
@@ -196,7 +198,8 @@ getAllTPMBuf(TPMContext *tpm)
     TPMBufHashTable *tpmBufHT = NULL, *tpmBufNode, *tpmBufFound;
 
     TPMNode2 *memNode, *firstMemNode;
-    u32 baddr, eaddr, minseq, maxseq;
+    u32 baddr, eaddr;
+    int minseq, maxseq;
 
     for(memNodeHT = tpm->mem2NodeHT; memNodeHT != NULL; memNodeHT = memNodeHT->hh_mem.next) {
         memNode = memNodeHT->toMem;
@@ -278,8 +281,8 @@ printTPMBufHT(TPMBufHashTable *tpmBufHT)
     TPMBufHashTable *node, *temp;
     HASH_ITER(hh_tpmBufHT, tpmBufHT, node, temp) {
         if((node->eaddr - node->baddr) >= 8)
-            printf("begin addr:0x%-8x end addr:0x%-8x minseq:%u maxseq:%u\n", 
-                node->baddr, node->eaddr, node->minseq, node->maxseq);       
+            printf("begin addr:0x%-8x end addr:0x%-8x minseq:%d maxseq:%d diffseq:%d\n", 
+                node->baddr, node->eaddr, node->minseq, node->maxseq, node->maxseq - node->minseq);       
     }
 }
 
@@ -1097,48 +1100,45 @@ is_addr_in_ht(struct TPMContext *tpm, struct Mem2NodeHT **item, u32 addr)
 }
 
 static void 
-compBufStat(TPMNode2 *memNode, u32 *baddr, u32 *eaddr, u32 *minseq, u32 *maxseq, TPMNode2 **firstnode)
+compBufStat(TPMNode2 *memNode, u32 *baddr, u32 *eaddr, int *minseq, int *maxseq, TPMNode2 **firstnode)
+// retruns the begin/end addresses, minseq(>0) maxseq of a given buffer(mem node)
 {
     TPMNode2 *b, *e;
-    *minseq = memNode->lastUpdateTS;
-    *maxseq = 0;
 
+    *minseq = INT32_MAX;
+    *maxseq = 0;
     b = e = memNode;
 
-    while(b->leftNBR != NULL) { // traverse left neighbor
-        u32 seq = b->lastUpdateTS;
-
-        if(*minseq > seq)
-            *minseq = seq;
-
-        if(*maxseq < seq)
-            *maxseq = seq;
-
-        b = b->leftNBR;
-    }
+    while(b->leftNBR != NULL) { b = b->leftNBR; }; // traverse to left most
     *baddr = b->addr;
+    *firstnode = b;
+    getMemNode1stVersion(firstnode);
 
-    while(e->rightNBR != NULL) {
-        u32 seq = e->lastUpdateTS;
-        if(*minseq > seq)
-            *minseq = seq;
+    e = *firstnode;
+    while(e->rightNBR != NULL) { // traverse to right most
+        u32 currVersion = e->version;
+        do{
+            int seqNo = e->lastUpdateTS;
+            if(seqNo > 0 && *minseq > seqNo)
+                *minseq = seqNo;
 
-        if(*maxseq < seq)
-            *maxseq = seq;
+            if(*maxseq < seqNo)
+                *maxseq = seqNo;
+
+            e = e->nextVersion;
+        } while(e->version != currVersion); // go through each version
 
         e = e->rightNBR;
     }
-    *eaddr = e->addr + 4;   // assume end addr always 4 bytes
+    *eaddr = e->addr + e->bytesz;
 
-    *firstnode = b;
-    getMemNode1stVersion(firstnode); // get first node first version
     // print_mem_node(*firstnode);
     // if((*eaddr - *baddr) >= 8)
-    //  printf("begin addr:0x%-8x end addr:0x%-8x minseq:%u maxseq:%u\n", *baddr, *eaddr, *minseq, *maxseq);       
+    //  printf("begin:0x%-8x end:0x%-8x minseq:%d maxseq:%d\n", *baddr, *eaddr, *minseq, *maxseq);       
 }
 
 static TPMBufHashTable *
-initTPMBufHTNode(u32 baddr, u32 eaddr, u32 minseq, u32 maxseq, TPMNode2 *firstnode)
+initTPMBufHTNode(u32 baddr, u32 eaddr, int minseq, int maxseq, TPMNode2 *firstnode)
 {
    TPMBufHashTable *node = calloc(1, sizeof(TPMBufHashTable));
    node->baddr = baddr;

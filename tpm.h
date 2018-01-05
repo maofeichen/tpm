@@ -78,8 +78,8 @@ struct TPMBufHashTable
 {
     u32 baddr;
     u32 eaddr;
-    u32 minseq;
-    u32 maxseq;
+    int minseq;
+    int maxseq;
     TPMNode2 *headNode;
     UT_hash_handle hh_tpmBufHT;   
 };

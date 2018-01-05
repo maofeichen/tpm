@@ -10,9 +10,9 @@
 #undef STAT 
 #endif
 
-#ifndef STAT
-#define STAT
-#endif
+// #ifndef STAT
+// #define STAT
+// #endif
 
 #define MIN_BUF_SZ	8
 

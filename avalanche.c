@@ -147,8 +147,10 @@ searchAllAvalancheInTPM(TPMContext *tpm)
 	// TPMNode2 *srcBuf;
 
 	tpmBufHT = getAllTPMBuf(tpm);
-	// printTPMBufHT(tpmBufHT);
+	printTPMBufHT(tpmBufHT);
 
+	return;
+	
 	PropagateStat propaStat = {0};
 
 	for(srcBuf = tpmBufHT; srcBuf != NULL; srcBuf = srcBuf->hh_tpmBufHT.next) {
@@ -177,6 +179,7 @@ searchAllAvalancheInTPM(TPMContext *tpm)
 	}
 	printf("minstep:%u maxstep:%u avgstep:%u\n", 
 		propaStat.minstep, propaStat.maxstep, propaStat.totalstep / propaStat.numOfSearch);
+
 	/* test one buffer */
     // srcBuf = mem2NodeSearch(tpm, 0xde911000);
     // getMemNode1stVersion(&srcBuf);

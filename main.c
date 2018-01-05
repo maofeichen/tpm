@@ -30,12 +30,10 @@ int main(int argc, char const *argv[])
 				printf("build TPM successful, total number nodes:%d\n", numOfNode);
 			}
 			else { fprintf(stderr, "error build TPM\n"); }
-
 #ifdef STAT
 			stat(tpm);
 #endif
-
-			// searchAllAvalancheInTPM(tpm);
+			searchAllAvalancheInTPM(tpm);
 			printf("del TPM\n");
 			delTPM(tpm);
 		} 
