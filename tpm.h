@@ -86,9 +86,6 @@ struct TPMBufHashTable
 typedef struct TPMBufHashTable TPMBufHashTable; // stores all different bufs in a tpm in hash table
 
 /* TPM function prototypes */
-int 
-isPropagationOverwriting(u32 flag, Record *rec);
-
 int
 buildTPM(FILE *taintfp, struct TPMContext *tpm);
 

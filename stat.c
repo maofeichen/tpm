@@ -53,7 +53,7 @@ static union TPMNode *
 get_firstnode_in_ht(struct TPMContext *tpm, u32 type);
 
 void 
-get_cont_buf(struct TPMNode2 *node, u32 *baddr, u32 *eaddr, u32 *minseq, u32 *maxseq, TPMNode2 **firstnode)
+get_cont_buf(struct TPMNode2 *node, u32 *baddr, u32 *eaddr, int *minseq, int *maxseq, TPMNode2 **firstnode)
 // Computes 
 //	- baddr
 //	- eaddr
@@ -80,8 +80,6 @@ get_cont_buf(struct TPMNode2 *node, u32 *baddr, u32 *eaddr, u32 *minseq, u32 *ma
 	}
 	*baddr = b->addr;
 
-
-
 	while(e->rightNBR != NULL) {
 		u32 seq = e->lastUpdateTS;
 		if(*minseq > seq)
@@ -98,7 +96,6 @@ get_cont_buf(struct TPMNode2 *node, u32 *baddr, u32 *eaddr, u32 *minseq, u32 *ma
 	*firstnode = b;
 	getMemNode1stVersion(firstnode);
 	// print_mem_node(*firstnode);
-
 	// if((*eaddr - *baddr) >= 8)
 	// 	printf("begin addr:0x%-8x end addr:0x%-8x minseq:%u maxseq:%u\n", *baddr, *eaddr, *minseq, *maxseq);	
 }
@@ -107,7 +104,8 @@ void
 compute_cont_buf(struct TPMContext *tpm)
 {
 	struct ContBufHT *bufHT = NULL, *s;
-	u32 baddr, eaddr, minseq, maxseq;
+	u32 baddr, eaddr;
+	int minseq, maxseq;
 	TPMNode2 *firstnode = NULL; 
 
 	for(int i = 0; i < seqNo2NodeHashSize; i++) {
@@ -532,7 +530,7 @@ print_buf_ht(struct ContBufHT **contbufHT)
 	struct ContBufHT *s;
 	for(s = *contbufHT; s != NULL; s = s->hh_cont.next) {
 		// printf("--------------------\n");
-		printf("begin:0x%-8x end:0x%-8x sz:%-4u minseq:%-6u maxseq:%-6u diffseq:%u\n", 
+		printf("begin:0x%-8x end:0x%-8x sz:%-4u minseq:%-6d maxseq:%-6d diffseq:%d\n", 
 				s->baddr, s->eaddr, s->eaddr-s->baddr, s->minseq, s->maxseq, s->maxseq-s->minseq);
 		// printf("firt node first version:\n");
 		// print_mem_node(s->firstNode);	

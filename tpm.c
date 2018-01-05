@@ -24,6 +24,9 @@ static int
 processOneXTaintRecord(struct TPMContext *tpm, struct Record *rec, struct TPMNode1 *regCntxt[], struct TPMNode1 *tempCntxt[]);
 
 static int 
+isPropagationOverwriting(u32 flag, Record *rec);
+
+static int 
 handle_src_mem(struct TPMContext *tpm, struct Record *rec, union TPMNode **src);
 
 static int 
@@ -42,7 +45,7 @@ static int
 handle_dst_temp(struct TPMContext *tpm, struct Record *rec, struct TPMNode1 *tempCntxt[], union TPMNode **dst);
 
 static void 
-increaseInitSeqNoByOne();
+decreaseInitSeqNoByOne();
 
 /* transition node */
 static struct Transition *
@@ -107,62 +110,6 @@ initTPMBufHTNode(u32 baddr, u32 eaddr, u32 minseq, u32 maxseq, TPMNode2 *firstno
 
 static int 
 cmpTPMBufHTNode(TPMBufHashTable *l, TPMBufHashTable *r);
-
-int 
-isPropagationOverwriting(u32 flag, Record *rec)
-/* return:
- * 	0: not overwriting
- *  1: overwriting
- *  <0: error
- */
-{
-    // Due to allow source and destination are same. always overwrite
-    if(flag == TCG_XOR_i32 && rec->s_addr != rec->d_addr)
-        return 0;
-    else
-        return 1;
-  /* to be added */
-  switch(flag) {
-    case TCG_LD_i32:
-    case TCG_ST_i32:
-    case TCG_LD_POINTER_i32:
-    case TCG_ST_POINTER_i32: 
-    case TCG_NOT_i32:
-    case TCG_NEG_i32:
-    case TCG_EXT8S_i32:
-    case TCG_EXT16S_i32:
-    case TCG_EXT8U_i32:
-    case TCG_EXT16U_i32:
-    case TCG_BSWAP16_i32:
-    case TCG_BSWAP32_i32:
-    case TCG_SHL_i32:
-    case TCG_SHR_i32:
-    case TCG_SAR_i32:
-    case TCG_ROTL_i32:
-    case TCG_ROTR_i32:
-    case TCG_MOV_i32:
-    case TCG_DEPOSIT_i32:
-        return 1;
-    case TCG_ADD_i32:
-    case TCG_SUB_i32:
-    case TCG_MUL_i32:
-    case TCG_DIV_i32:
-    case TCG_DIVU_i32:
-    case TCG_REM_i32:
-    case TCG_REMU_i32:
-    case TCG_MUL2_i32:
-    case TCG_DIV2_i32:
-    case TCG_DIVU2_i32:
-    case TCG_AND_i32:
-    case TCG_OR_i32:
-    case TCG_XOR_i32:
-    case TCG_SETCOND_i32:
-        return 0;
-    default:
-        fprintf(stderr, "unkown Qemu IR enode:%-2u\n", flag);
-        return 1; 
-  }
-}
 
 int 
 buildTPM(FILE *taintfp, struct TPMContext *tpm)
@@ -414,6 +361,61 @@ processOneXTaintRecord(struct TPMContext *tpm, struct Record *rec, struct TPMNod
     return newsrc+newdst;
 }
 
+static int 
+isPropagationOverwriting(u32 flag, Record *rec)
+/* return:
+ *  0: not overwriting
+ *  1: overwriting
+ *  <0: error
+ */
+{
+    // Due to allow source and destination are same. always overwrite
+    if(flag == TCG_XOR_i32 && rec->s_addr != rec->d_addr)
+        return 0;
+    else
+        return 1;
+  /* to be added */
+  switch(flag) {
+    case TCG_LD_i32:
+    case TCG_ST_i32:
+    case TCG_LD_POINTER_i32:
+    case TCG_ST_POINTER_i32: 
+    case TCG_NOT_i32:
+    case TCG_NEG_i32:
+    case TCG_EXT8S_i32:
+    case TCG_EXT16S_i32:
+    case TCG_EXT8U_i32:
+    case TCG_EXT16U_i32:
+    case TCG_BSWAP16_i32:
+    case TCG_BSWAP32_i32:
+    case TCG_SHL_i32:
+    case TCG_SHR_i32:
+    case TCG_SAR_i32:
+    case TCG_ROTL_i32:
+    case TCG_ROTR_i32:
+    case TCG_MOV_i32:
+    case TCG_DEPOSIT_i32:
+        return 1;
+    case TCG_ADD_i32:
+    case TCG_SUB_i32:
+    case TCG_MUL_i32:
+    case TCG_DIV_i32:
+    case TCG_DIVU_i32:
+    case TCG_REM_i32:
+    case TCG_REMU_i32:
+    case TCG_MUL2_i32:
+    case TCG_DIV2_i32:
+    case TCG_DIVU2_i32:
+    case TCG_AND_i32:
+    case TCG_OR_i32:
+    case TCG_XOR_i32:
+    case TCG_SETCOND_i32:
+        return 0;
+    default:
+        fprintf(stderr, "unkown Qemu IR enode:%-2u\n", flag);
+        return 1; 
+  }
+}
 
 static int 
 handle_src_mem(struct TPMContext *tpm, struct Record *rec, union TPMNode **src)
@@ -467,7 +469,7 @@ handle_src_mem(struct TPMContext *tpm, struct Record *rec, union TPMNode **src)
     }
     else { // not found
         *src = create1stVersionMemNode(rec->s_addr, rec->s_val, initSeqNo, rec->bytesz);
-        increaseInitSeqNoByOne();
+        decreaseInitSeqNoByOne();
 #ifdef DEBUG
         printf("\taddr:0x%-8x not found in hash table, creates new mem node\n", rec->s_addr);
         printMemNode(&( (*src)->tpmnode2) );
@@ -604,7 +606,7 @@ handle_dst_mem(struct TPMContext *tpm, struct Record *rec, union TPMNode **dst)
 //  1.1 overwrite operation (mov)
 //      1) detects if its addr is in mem hash table
 //         a) yes
-//            - creates a new node
+//            - creates a new node (set the lastUpdateTS to rec #)
 //            - set the version accordingly
 //            - attach it to the version list 
 //         b) no: a new addr
@@ -615,6 +617,7 @@ handle_dst_mem(struct TPMContext *tpm, struct Record *rec, union TPMNode **dst)
 //      1) detects if its addr is in the mem hash table
 //         a) yes
 //            !!! verifies if the value equals the val of the latest version
+//            updates the lastUpdateTS to rec #
 //         b) no
 //            - creates a new node
 //            - init version number
@@ -626,14 +629,9 @@ handle_dst_mem(struct TPMContext *tpm, struct Record *rec, union TPMNode **dst)
 //      b) no, do nothing
 //  2.2 detects if its right neighbour exist, similar to 2.1, and updates it's rightNBR accordingly
 {
-    int n = 0;
+    int numNewNode = 0;
     u32 version = 0;
     struct Mem2NodeHT *dst_hn = NULL, *left = NULL, *right = NULL;
-
-#ifdef DEBUG
-    printf("\thandle dst mem:");
-    print_dst(rec);
-#endif      
 
     if(isPropagationOverwriting(rec->flag, rec) ) { // overwrite
         if( is_addr_in_ht(tpm, &dst_hn, rec->d_addr) ) { // in TPM 
@@ -641,7 +639,6 @@ handle_dst_mem(struct TPMContext *tpm, struct Record *rec, union TPMNode **dst)
             version = getMemNodeVersion(dst_hn->toMem);
             setMemNodeVersion(*dst, version+1); // set version accordingly
             addNextVerMemNode(dst_hn->toMem, &( (*dst)->tpmnode2) );             
-
 #ifdef DEBUG
             printMemNode(dst_hn->toMem);
             printMemNode(&( (*dst)->tpmnode2) );
@@ -649,7 +646,7 @@ handle_dst_mem(struct TPMContext *tpm, struct Record *rec, union TPMNode **dst)
             printMemNodeAllVersion(dst_hn->toMem);
 #endif      
         }
-        else { // not found
+        else { // not in TPM 
             *dst = create1stVersionMemNode(rec->d_addr, rec->d_val, rec->ts, rec->bytesz);
         }
 
@@ -658,12 +655,9 @@ handle_dst_mem(struct TPMContext *tpm, struct Record *rec, union TPMNode **dst)
         else { fprintf(stderr, "error: handle destination mem: add_mem_ht\n"); return -1; }
 
         tpm->seqNo2NodeHash[rec->d_ts] = *dst;   // updates seqNo hash table
-        n++;
+        numNewNode++;
     } 
     else {  // non overwring
-#ifdef DEBUG
-        printf("\thandle destination mem: non overwring\n");
-#endif      
         if(is_addr_in_ht(tpm, &dst_hn, rec->d_addr) ) {
             printf("handle dst mem - non overwriting - TODO: verifies if values are same\n");
             return -1;  // TODO
@@ -671,9 +665,8 @@ handle_dst_mem(struct TPMContext *tpm, struct Record *rec, union TPMNode **dst)
         else { // not found
             *dst = create1stVersionMemNode(rec->d_addr, rec->d_val, rec->ts, rec->bytesz);
             tpm->seqNo2NodeHash[rec->d_ts] = *dst;   // updates seqNo hash table
-            n++;
+            numNewNode++;
         }
-
         // both cases, updates mem hash table
         if(add_mem_ht( &(tpm->mem2NodeHT), rec->d_addr, &( (*dst)->tpmnode2) ) >= 0) {}
         else { return -1; }
@@ -683,7 +676,7 @@ handle_dst_mem(struct TPMContext *tpm, struct Record *rec, union TPMNode **dst)
     if(update_adjacent(tpm, *dst, &left, &right, rec->d_addr, rec->bytesz) >= 0) {}
     else { return -1; }
 
-    return n;
+    return numNewNode;
 }
 
 static int 
@@ -694,37 +687,32 @@ handle_dst_reg(struct TPMContext *tpm, struct Record *rec, struct TPMNode1 *regC
 //  the created node stores in dst
 //  1 determines if it's in TPM: regCntxt has its register id
 //  1.1 No
-//      a) creates a new node
+//      a) creates a new node (lastUpdateTS -1)
 //      b) updates the register context: regCntxt[reg_id] -> created node
 //      c) updates the seqNo hash table
 //  1.2 Yes: determines if its overwrite or "addition" operation
 //  1.2.1 overwrite (mov)
-//      a) creates a new node
+//      a) creates a new node (lastUpdateTS -1)
 //      b) updates the register context: regCntxt[reg_id] -> created node
 //      c) updates the seqNo hash table
 //  1.2.2 "addtion" (add, xor, etc)
 //      a) verifies that the value of register and the one found in the regCntxt should be same
 {
-    int id = -1, n = 0;
-
-#ifdef DEBUG
-    printf("\thandle dst reg:");
-    print_dst(rec);
-#endif      
+    int id = -1, numNewNode = 0;
 
     if((id = get_regcntxt_idx(rec->d_addr) ) >= 0) {
         if(regCntxt[id] == NULL){ // not in tpm
-            *dst = createTPMNode(TPM_Type_Register, rec->d_addr, rec->d_val, rec->ts, 0);
+            *dst = createTPMNode(TPM_Type_Register, rec->d_addr, rec->d_val, -1, 0);
             regCntxt[id] = &( (*dst)->tpmnode1);
             tpm->seqNo2NodeHash[rec->d_ts] = *dst;   // updates seqNo hash table
-            n++;
+            numNewNode++;
         }
         else { // in tpm
             if(isPropagationOverwriting(rec->flag, rec) ) { // overwrite
-                *dst = createTPMNode(TPM_Type_Register, rec->d_addr, rec->d_val, rec->ts, 0);
+                *dst = createTPMNode(TPM_Type_Register, rec->d_addr, rec->d_val, -1, 0);
                 regCntxt[id] = &( (*dst)->tpmnode1);
                 tpm->seqNo2NodeHash[rec->d_ts] = *dst;   // updates seqNo hash table
-                n++;
+                numNewNode++;
             } 
             else { // non overwrite
 #ifdef DEBUG
@@ -746,7 +734,7 @@ handle_dst_reg(struct TPMContext *tpm, struct Record *rec, struct TPMNode1 *regC
     }
     else { return -1; }
 
-    return n;
+    return numNewNode;
 }
 
 static int 
@@ -757,23 +745,18 @@ handle_dst_temp(struct TPMContext *tpm, struct Record *rec, struct TPMNode1 *tem
 //  the created node stores in dst
 //  1 determines if it's in TPM: tempCntxt has its temp id
 //  1.1 No
-//      a) creates a new node
+//      a) creates a new node (lastUpdateTS -1)
 //      b) updates the temp context: tempCntxt[temp_id] -> created node
 //      c) updates the seqNo hash table
 //  1.2 Yes: determines if its overwrite or "addition" operation
 //  1.2.1 overwrite (mov)
-//      a) creates a new node
+//      a) creates a new node (lastUpdateTS -1)
 //      b) updates the temp context: tempCntxt[temp_id] -> created node
 //      c) updates the seqNo hash table
 //  1.2.2 "addtion" (add, xor, etc)
 //      a) verifies that the value of temp and the one found in the tempCntxt should be same
 {
-    int n = 0;
-
-#ifdef DEBUG
-    printf("\thandle dst temp: ");
-    print_dst(rec);
-#endif                     
+    int numNewNode = 0;
 
     if(rec->d_addr >= 0xfff0 || rec->d_addr >= MAX_TEMPIDX) {
         fprintf(stderr, "error: temp idx larger than register idx or max temp idx\n");
@@ -781,17 +764,17 @@ handle_dst_temp(struct TPMContext *tpm, struct Record *rec, struct TPMNode1 *tem
     }
 
     if(tempCntxt[rec->d_addr] == NULL) { // Not in TPM
-        *dst = createTPMNode(TPM_Type_Temprary, rec->d_addr, rec->d_val, rec->ts, 0);
+        *dst = createTPMNode(TPM_Type_Temprary, rec->d_addr, rec->d_val, -1, 0);
         tempCntxt[rec->d_addr] = &( (*dst)->tpmnode1);
         tpm->seqNo2NodeHash[rec->d_ts] = *dst;   // updates seqNo hash table
-        n++;
+        numNewNode++;
     }
     else { // in TPM
         if(isPropagationOverwriting(rec->flag, rec) ) { // overwrite
-            *dst = createTPMNode(TPM_Type_Temprary, rec->d_addr, rec->d_val, rec->ts, 0);
+            *dst = createTPMNode(TPM_Type_Temprary, rec->d_addr, rec->d_val, -1, 0);
             tempCntxt[rec->d_addr] = &( (*dst)->tpmnode1);
             tpm->seqNo2NodeHash[rec->d_ts] = *dst;   // updates seqNo hash table
-            n++;
+            numNewNode++;
         }
         else { // non overwrite
 #ifdef DEBUG
@@ -810,13 +793,13 @@ handle_dst_temp(struct TPMContext *tpm, struct Record *rec, struct TPMNode1 *tem
                 // TODO: update the seqNo hash table                                       
         }
     }
-    return n;
+    return numNewNode;
 }
 
 static void 
-increaseInitSeqNoByOne()
+decreaseInitSeqNoByOne()
 {
-    initSeqNo++;
+    initSeqNo--;
 }
 
 static struct Transition *
