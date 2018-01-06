@@ -280,9 +280,11 @@ printTPMBufHT(TPMBufHashTable *tpmBufHT)
 {
     TPMBufHashTable *node, *temp;
     HASH_ITER(hh_tpmBufHT, tpmBufHT, node, temp) {
-        if((node->eaddr - node->baddr) >= 8)
+        if((node->eaddr - node->baddr) >= 8) {
             printf("begin addr:0x%-8x end addr:0x%-8x minseq:%d maxseq:%d diffseq:%d\n", 
-                node->baddr, node->eaddr, node->minseq, node->maxseq, node->maxseq - node->minseq);       
+                node->baddr, node->eaddr, node->minseq, node->maxseq, node->maxseq - node->minseq);
+            // printBufNode(node->headNode);
+        }
     }
 }
 
@@ -1103,7 +1105,7 @@ static void
 compBufStat(TPMNode2 *memNode, u32 *baddr, u32 *eaddr, int *minseq, int *maxseq, TPMNode2 **firstnode)
 // retruns the begin/end addresses, minseq(>0) maxseq of a given buffer(mem node)
 {
-    TPMNode2 *b, *e;
+    TPMNode2 *b, *e, *lastend;
 
     *minseq = INT32_MAX;
     *maxseq = 0;
@@ -1115,7 +1117,7 @@ compBufStat(TPMNode2 *memNode, u32 *baddr, u32 *eaddr, int *minseq, int *maxseq,
     getMemNode1stVersion(firstnode);
 
     e = *firstnode;
-    while(e->rightNBR != NULL) { // traverse to right most
+    while(e != NULL) { // traverse to right most
         u32 currVersion = e->version;
         do{
             int seqNo = e->lastUpdateTS;
@@ -1128,11 +1130,13 @@ compBufStat(TPMNode2 *memNode, u32 *baddr, u32 *eaddr, int *minseq, int *maxseq,
             e = e->nextVersion;
         } while(e->version != currVersion); // go through each version
 
+        lastend = e;
         e = e->rightNBR;
     }
-    *eaddr = e->addr + e->bytesz;
+    *eaddr = lastend->addr + lastend->bytesz;
+    // printMemNode(lastend);
+    // printf("eaddr:%x\n", *eaddr);
 
-    // print_mem_node(*firstnode);
     // if((*eaddr - *baddr) >= 8)
     //  printf("begin:0x%-8x end:0x%-8x minseq:%d maxseq:%d\n", *baddr, *eaddr, *minseq, *maxseq);       
 }

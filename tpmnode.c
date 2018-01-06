@@ -141,10 +141,10 @@ printNode(TPMNode *tpmnode)
 void 
 printMemNode(struct TPMNode2 *n)
 {
-    printf("mem: type:%-1u addr:0x%-8x val:%-8x lastUpdateTS:%-16d"
+    printf("mem: type:%-1u addr:0x%-8x val:%-8x sz:%u lastUpdateTS:%-16d"
             " firstChild:%-8p leftNBR:%-8p rightNBR:%-8p nextVersion:%-8p"
             " version:%-9u hitcnt:%-8u\n", 
-            n->type, n->addr, n->val, n->lastUpdateTS, 
+            n->type, n->addr, n->val, n->bytesz, n->lastUpdateTS, 
             n->firstChild, n->leftNBR, n->rightNBR, n->nextVersion,
             n->version, n->hitcnt);
 }
@@ -162,14 +162,25 @@ printMemNodeAllVersion(struct TPMNode2 *head)
     if(head == NULL)
         return;
 
+    u32 currVersion = head->version;
+
     do{
         // printf("version: %u\n", head->version);
         printMemNode(head);
         head = head->nextVersion;
-    } while(head == NULL || head->version != 0);
+    } while(head->version != currVersion);
 }
 
 void 
+printBufNode(TPMNode2 *head)
+{
+    while(head->rightNBR != NULL) {
+        printMemNodeAllVersion(head);
+        head = head->rightNBR;
+    }
+}
+
+void
 printTaintedBuf(TaintedBuf *head)
 {
     while(head != NULL) {

@@ -96,6 +96,9 @@ void
 printMemNodeAllVersion(struct TPMNode2 *head);
 
 void 
+printBufNode(TPMNode2 *head);
+
+void 
 printTaintedBuf(TaintedBuf *head);
 
 #endif

@@ -36,7 +36,8 @@ isTransStackEmpty();
 
 /* mem node propagate implement */
 static int 
-dfs(TPMContext *tpm, TPMNode2 *s, TaintedBuf **dstMemNodes, u32 dstMaxseq, u32 *stepCount);
+dfs(TPMContext *tpm, TPMNode2 *s, TaintedBuf **dstMemNodes, u32 dstAddrStart, u32 dstAddrEnd, 
+	int dstMinSeq, int dstMaxseq, u32 *stepCount);
 
 static int 
 dfsPrintResult(TPMContext *tpm, TPMNode2 *s);
@@ -56,9 +57,13 @@ storePropagateDstMemNode(TPMNode2 *memNode, TaintedBuf **dstMemNodes);
 
 /* functions */
 int 
-memNodePropagate(TPMContext *tpm, TPMNode2 *s, TaintedBuf **dstMemNodes, u32 dstMaxseq, u32 *stepCount)
+memNodePropagate(TPMContext *tpm, TPMNode2 *s, TaintedBuf **dstMemNodes, 
+	u32 dstAddrStart, u32 dstAddrEnd, int dstMinSeq, int dstMaxSeq, u32 *stepCount)
 {
-	return dfs(tpm, s, dstMemNodes, dstMaxseq, stepCount);
+	// printMemNode(s);
+	// printf("dststart:%-8x dstend:%-8x dstminseq:%d dstmaxseq:%d\n", 
+	// 	dstAddrStart, dstAddrEnd, dstMinSeq, dstMaxSeq);
+	return dfs(tpm, s, dstMemNodes, dstAddrStart, dstAddrEnd, dstMinSeq, dstMaxSeq, stepCount);
 }
 
 int 
@@ -68,7 +73,8 @@ printMemNodePropagate(TPMContext *tpm, TPMNode2 *s)
 }
 
 static int
-dfs(TPMContext *tpm, TPMNode2 *s, TaintedBuf **dstMemNodes, u32 dstMaxseq, u32 *stepCount)
+dfs(TPMContext *tpm, TPMNode2 *s, TaintedBuf **dstMemNodes, u32 dstAddrStart, u32 dstAddrEnd, 
+	int dstMinSeq, int dstMaxSeq, u32 *stepCount)
 // Returns:
 //  >=0: dst mem nodes hit count
 //  <0: error
@@ -86,30 +92,39 @@ dfs(TPMContext *tpm, TPMNode2 *s, TaintedBuf **dstMemNodes, u32 dstMaxseq, u32 *
 
 	TransitionHashTable *markVisitTransHT = NULL;
 	Transition *source_trans = s->firstChild;
-	int hitCount = 0;
+	int hitDstByte = 0;
 
 	if(source_trans != NULL) {
 		storeAllUnvisitChildren(&markVisitTransHT, source_trans);
 		while(!isTransStackEmpty() ) {
 			Transition *pop = transStackPop();
 			TPMNode *dst = getTransitionDst(pop);
-// #ifdef DEBUG
+
 			if(dst->tpmnode1.type == TPM_Type_Memory) {
 				// printf("propagate to addr:%x val:%x\n", dst->tpmnode2.addr, dst->tpmnode2.val);
-				storePropagateDstMemNode(&(dst->tpmnode2), dstMemNodes);
-				hitCount++;
+				// Only stores hit mem nodes in dst addr and seq range
+				if(dst->tpmnode2.addr >= dstAddrStart && dst->tpmnode2.addr <= dstAddrEnd 
+				   /*&& dst->tpmnode2.lastUpdateTS >= dstMinSeq && dst->tpmnode2.lastUpdateTS <= dstMaxSeq */) {
+					storePropagateDstMemNode(&(dst->tpmnode2), dstMemNodes);
+					hitDstByte += dst->tpmnode2.bytesz;
+				}
 			}
-// #endif
+
 			(*stepCount)++;
-			if(dst->tpmnode1.lastUpdateTS <= dstMaxseq * 1.0001){ // only propagates with max seq no of dst buffer
-				storeAllUnvisitChildren(&markVisitTransHT, dst->tpmnode1.firstChild);
-			}
+			storeAllUnvisitChildren(&markVisitTransHT, dst->tpmnode1.firstChild);
+
+			// if(dst->tpmnode1.type == TPM_Type_Memory){ // only propagates smaller than dst max seqno 
+			// 	if(dst->tpmnode2.lastUpdateTS > dstMaxSeq){
+			// 		printMemNode(&(dst->tpmnode2));
+			// 		break;
+			// 	}	
+			// }
 		}
 	}
 	else { 
 #ifdef DEBUG
 		printf("dfs: given source is a leaf\n");
-		print_mem_node(s);
+		printMemNode(s);
 #endif	 
 	}
 
@@ -119,7 +134,7 @@ dfs(TPMContext *tpm, TPMNode2 *s, TaintedBuf **dstMemNodes, u32 dstMaxseq, u32 *
 	delTransitionHT(&markVisitTransHT);
 	transStackPopAll();
 
-	return hitCount;	
+	return hitDstByte;	
 }
 
 static int 

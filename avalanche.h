@@ -28,10 +28,10 @@ struct AvalancheSearchCtxt
     u32 srcAddrEnd;		// end addr of the potential source buffer. Should be >= srcAddrStart
     u32	dstAddrStart;	// starting addr of the potential destination buffer
     u32 dstAddrEnd;		// end addr of the potential destination buffer. Should be >= dstAddrStart
-    u32 srcMinSeqN;		// minimum seq# of the source buffer
-    u32 srcMaxSeqN;		// maximum seq# of the source buffer
-    u32 dstMinSeqN;		// minimum seq# of the destination buffer
-    u32 dstMaxSeqN;		// maximum seq# of the destination buffer
+    int srcMinSeqN;		// minimum seq# of the source buffer
+    int srcMaxSeqN;		// maximum seq# of the source buffer
+    int dstMinSeqN;		// minimum seq# of the destination buffer
+    int dstMaxSeqN;		// maximum seq# of the destination buffer
     unsigned char *srcAddrHitCnt;  // array[0, srcAddrEnd-srcAddrStart] to record the aggregated hit account of all versions of each source address
     unsigned char *dstAddrHitCnt;  // array[0, dstAddrEnd-dstAddrStart] to record the aggregated hit account of all versions of each destination address
     struct addr2NodeItem *addr2Node; // array[0, dstAddrEnd-dstAddrStart] of pointers to struct addr2NodeItem (hash table)
