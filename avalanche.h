@@ -49,9 +49,10 @@ typedef struct AvalDstBufHTNode AvalDstBufHTNode; // stores the propagate destin
 struct StackAddr2NodeItem 
 {
     Addr2NodeItem *addr2NodeItem;
-    struct StackAddr2NodeItem *next;
+    struct StackAddr2NodeItem *next; 
 };
 typedef struct StackAddr2NodeItem StackAddr2NodeItem;
+// stores addr2nodeitem during avalanche search
 
 struct StackDstBufHT
 {
@@ -59,6 +60,7 @@ struct StackDstBufHT
     struct StackDstBufHT *next;
 };
 typedef struct StackDstBufHT StackDstBufHT;
+// stores dst buf hash table during avalanche search
 
 struct StackBufAry
 {

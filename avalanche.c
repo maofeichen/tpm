@@ -28,7 +28,10 @@ static Addr2NodeItem *
 createAddr2NodeItem(u32 addr, TPMNode2 *memNode, Addr2NodeItem *subHash, TaintedBuf *toMemNode);
 
 static int 
-initSourceNode(u32 *srcAddr, TPMNode2 **srcNode);
+initSearchPropagateSource(u32 *srcAddr, TPMNode2 **srcNode);
+
+static void 
+initDstBufHitByte(TPMNode2 *dstfirstnode, u32 dststart, u32 dstend, int minseq, int maxseq);
 
 /* detect avalanche of in buffer */
 static void 
@@ -191,6 +194,7 @@ searchAvalancheInOutBuf(TPMContext *tpm, AvalancheSearchCtxt *avalsctxt, Propaga
 	printf("dst buf: start:%-8x end:%-8x sz:%u minseq:%d maxseq:%d diffSeq:%d\n", 
 		avalsctxt->dstAddrStart, avalsctxt->dstAddrEnd, avalsctxt->dstAddrEnd - avalsctxt->dstAddrStart, 
 		avalsctxt->dstMinSeqN, avalsctxt->dstMaxSeqN, avalsctxt->dstMaxSeqN - avalsctxt->dstMinSeqN);
+
 	searchPropagateInOutBuf(tpm, avalsctxt, &(avalsctxt->addr2Node), propaStat);
 #ifdef DEBUG
 	printDstMemNodesHTTotal(avalsctxt->addr2Node);
@@ -216,20 +220,23 @@ searchPropagateInOutBuf(TPMContext *tpm, AvalancheSearchCtxt *avalsctxt, Addr2No
 	u32 srcAddr;
 	int srcNodeHitByte = 0;
 	TaintedBuf *dstMemNodesLst;
+	u32 stepCount;
 
 	srcNode = avalsctxt->srcBuf;
-	initSourceNode(&srcAddr, &srcNode);
-
-	u32 stepCount;
+	initSearchPropagateSource(&srcAddr, &srcNode);
+	initDstBufHitByte(avalsctxt->dstBuf, avalsctxt->dstAddrStart, avalsctxt->dstAddrEnd, 
+		avalsctxt->dstMinSeqN, avalsctxt->dstMaxSeqN);
+	// printBufNode(avalsctxt->dstBuf);
 
 	while(srcNode != NULL) {
 		Addr2NodeItem *addrItem = createAddr2NodeItem(srcAddr, NULL, NULL, NULL);
 		HASH_ADD(hh_addr2NodeItem, *dstMemNodesHT, addr, 4, addrItem);	// 1st level hash: key: addr
 
 		do {
-			dstMemNodesLst = NULL;
-			// store result in utlist
+			dstMemNodesLst = NULL; // store result in utlist
 			stepCount = 0;
+			srcNode->hitcnt = 0; // init before each search propagation
+
 			srcNodeHitByte = memNodePropagate(tpm, srcNode, &dstMemNodesLst, 
 				avalsctxt->dstAddrStart, avalsctxt->dstAddrEnd, avalsctxt->dstMinSeqN, 
 				avalsctxt->dstMaxSeqN, &stepCount);	
@@ -256,7 +263,7 @@ searchPropagateInOutBuf(TPMContext *tpm, AvalancheSearchCtxt *avalsctxt, Addr2No
 		} while(srcNode->version != 0); // go through all versions of the src nodes
 
 		srcNode = srcNode->rightNBR;
-		initSourceNode(&srcAddr, &srcNode);
+		initSearchPropagateSource(&srcAddr, &srcNode);
 	}
 }
 
@@ -273,12 +280,12 @@ createAddr2NodeItem(u32 addr, TPMNode2 *memNode, Addr2NodeItem *subHash, Tainted
 }
 
 static int 
-initSourceNode(u32 *srcAddr, TPMNode2 **srcNode)
+initSearchPropagateSource(u32 *srcAddr, TPMNode2 **srcNode)
 // given a source node, get its 1st version, and init the srcAddr of the src node
 {
 	if(*srcNode == NULL) {
 #ifdef DEBUG		
-		fprintf(stderr, "error: init source node:%p\n", *srcNode);
+		fprintf(stderr, "error: init search propagate source:%p\n", *srcNode);
 #endif
 		*srcAddr = 0;
 		return -1;
@@ -287,6 +294,29 @@ initSourceNode(u32 *srcAddr, TPMNode2 **srcNode)
 	getMemNode1stVersion(srcNode);
 	*srcAddr = (*srcNode)->addr;
 	return 0;
+}
+
+static void 
+initDstBufHitByte(TPMNode2 *dstBuf, u32 dststart, u32 dstend, int minseq, int maxseq)
+// before searching propagation given <src buf, dst buf>, init dst buf hitbyte (hitcnt) to 0
+{
+	if(dstBuf == NULL){
+		fprintf(stderr, "init dst buf hit byte: error - dst buf:%p\n", dstBuf);
+		return;
+	}
+	TPMNode2 *head = dstBuf;
+	getMemNode1stVersion(&head);
+	while(head != NULL) {
+		u32 currVersion = head->version;
+		do{
+			if(head->addr >= dststart && head->addr <= dstend 
+				&& head->lastUpdateTS >= minseq && head->lastUpdateTS <= maxseq){
+				head->hitcnt = 0;
+			}
+			head = head->nextVersion;
+		}while(head->version != currVersion);
+		head = head->rightNBR;
+	}
 }
 
 static void 

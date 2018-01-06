@@ -163,7 +163,6 @@ printMemNodeAllVersion(struct TPMNode2 *head)
         return;
 
     u32 currVersion = head->version;
-
     do{
         // printf("version: %u\n", head->version);
         printMemNode(head);
@@ -174,7 +173,7 @@ printMemNodeAllVersion(struct TPMNode2 *head)
 void 
 printBufNode(TPMNode2 *head)
 {
-    while(head->rightNBR != NULL) {
+    while(head != NULL) {
         printMemNodeAllVersion(head);
         head = head->rightNBR;
     }
