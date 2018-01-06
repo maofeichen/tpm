@@ -104,21 +104,14 @@ dfs(TPMContext *tpm, TPMNode2 *s, TaintedBuf **dstMemNodes, u32 dstAddrStart, u3
 				// printf("propagate to addr:%x val:%x\n", dst->tpmnode2.addr, dst->tpmnode2.val);
 				// Only stores hit mem nodes in dst addr and seq range
 				if(dst->tpmnode2.addr >= dstAddrStart && dst->tpmnode2.addr <= dstAddrEnd 
-				   /*&& dst->tpmnode2.lastUpdateTS >= dstMinSeq && dst->tpmnode2.lastUpdateTS <= dstMaxSeq */) {
+				   && dst->tpmnode2.lastUpdateTS >= dstMinSeq && dst->tpmnode2.lastUpdateTS <= dstMaxSeq) {
 					storePropagateDstMemNode(&(dst->tpmnode2), dstMemNodes);
 					hitDstByte += dst->tpmnode2.bytesz;
 				}
 			}
-
 			(*stepCount)++;
 			storeAllUnvisitChildren(&markVisitTransHT, dst->tpmnode1.firstChild);
-
-			// if(dst->tpmnode1.type == TPM_Type_Memory){ // only propagates smaller than dst max seqno 
-			// 	if(dst->tpmnode2.lastUpdateTS > dstMaxSeq){
-			// 		printMemNode(&(dst->tpmnode2));
-			// 		break;
-			// 	}	
-			// }
+			// TODO: if search node seqNo larger than dst max seqNo, no need to search further
 		}
 	}
 	else { 

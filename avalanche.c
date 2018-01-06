@@ -196,7 +196,7 @@ searchAvalancheInOutBuf(TPMContext *tpm, AvalancheSearchCtxt *avalsctxt, Propaga
 	printDstMemNodesHTTotal(avalsctxt->addr2Node);
 	printDstMemNodesHT(avalsctxt->addr2Node);
 #endif
-	// detectAvalancheInOutBuf(tpm, avalsctxt);
+	detectAvalancheInOutBuf(tpm, avalsctxt);
 }
 
 static void 
