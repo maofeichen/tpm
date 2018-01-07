@@ -204,14 +204,15 @@ getAllTPMBuf(TPMContext *tpm)
     for(memNodeHT = tpm->mem2NodeHT; memNodeHT != NULL; memNodeHT = memNodeHT->hh_mem.next) {
         memNode = memNodeHT->toMem;
         compBufStat(memNode, &baddr, &eaddr, &minseq, &maxseq, &numOfAddr, &firstMemNode);
-        tpmBufNode = initTPMBufHTNode(baddr, eaddr, minseq, maxseq, numOfAddr, firstMemNode);
+        if(eaddr - baddr >= tpm->minBufferSz){
+            tpmBufNode = initTPMBufHTNode(baddr, eaddr, minseq, maxseq, numOfAddr, firstMemNode);
 
-        HASH_FIND(hh_tpmBufHT, tpmBufHT, &baddr, 4, tpmBufFound);
-        if(tpmBufFound == NULL) {
-            HASH_ADD(hh_tpmBufHT, tpmBufHT, baddr, 4, tpmBufNode);
+            HASH_FIND(hh_tpmBufHT, tpmBufHT, &baddr, 4, tpmBufFound);
+            if(tpmBufFound == NULL) {
+                HASH_ADD(hh_tpmBufHT, tpmBufHT, baddr, 4, tpmBufNode);
+            }
         }
     }
-
     HASH_SRT(hh_tpmBufHT, tpmBufHT, cmpTPMBufHTNode);
     // printTPMBufHT(tpmBufHT);
     return tpmBufHT;
@@ -280,10 +281,8 @@ printTPMBufHT(TPMBufHashTable *tpmBufHT)
 {
     TPMBufHashTable *node, *temp;
     HASH_ITER(hh_tpmBufHT, tpmBufHT, node, temp) {
-        if((node->eaddr - node->baddr) >= 8) {
-            printf("begin addr:0x%-8x end addr:0x%-8x numofaddr:%-2u minseq:%d maxseq:%d diffseq:%d\n", 
-                node->baddr, node->eaddr, node->numOfAddr, node->minseq, node->maxseq, (node->maxseq - node->minseq));
-        }
+        printf("begin addr:0x%-8x end addr:0x%-8x sz:%u numofaddr:%-2u minseq:%d maxseq:%d diffseq:%d\n", 
+            node->baddr, node->eaddr, node->eaddr - node->baddr, node->numOfAddr, node->minseq, node->maxseq, (node->maxseq - node->minseq));
     }
 }
 

@@ -160,7 +160,7 @@ searchAllAvalancheInTPM(TPMContext *tpm)
 	// TPMNode2 *srcBuf;
 
 	tpmBufHT = getAllTPMBuf(tpm);
-	// printTPMBufHT(tpmBufHT);
+	printTPMBufHT(tpmBufHT);
 
 	PropagateStat propaStat = {0};
 
@@ -175,7 +175,8 @@ searchAllAvalancheInTPM(TPMContext *tpm)
 				goto OUTLOOP;
 			}
 #ifdef DEBUG
-			init_AvalancheSearchCtxt(&avalsctxt, MIN_BUF_SZ, srcBuf->headNode, dstBuf->headNode, srcBuf->baddr, srcBuf->eaddr, dstBuf->baddr, dstBuf->eaddr);
+			init_AvalancheSearchCtxt(&avalsctxt, MIN_BUF_SZ, srcBuf->headNode, dstBuf->headNode, srcBuf->baddr, srcBuf->eaddr, 
+				dstBuf->baddr, dstBuf->eaddr, srcBuf->numOfAddr, dstBuf->numOfAddr);
 			setSeqNo(avalsctxt, srcBuf->minseq, srcBuf->maxseq, dstBuf->minseq, dstBuf->maxseq);
 	    	searchAvalancheInOutBuf(tpm, avalsctxt, &propaStat);
 	    	free_AvalancheSearchCtxt(avalsctxt);     
@@ -289,8 +290,10 @@ searchPropagateInOutBuf(TPMContext *tpm, AvalancheSearchCtxt *avalsctxt, Addr2No
 		initSearchPropagateSource(&srcAddr, &srcNode);
 	}
 
-	// aggregates hitcnts of both src and dst bufs
-	aggregateSrcBuf(avalsctxt);
+	// printBufNode(avalsctxt->srcBuf);
+	// printBufNode(avalsctxt->dstBuf);
+
+	aggregateSrcBuf(avalsctxt); // aggregates hitcnts of both src and dst bufs
 	aggregateDstBuf(avalsctxt);
 }
 
@@ -361,7 +364,7 @@ aggregateSrcBuf(AvalancheSearchCtxt *avalsctxt)
 	while(head != NULL) {
 		u32 currVersion = head->version;
 		do{
-			// printf("addr:%x version:%u hitcnt:%u\n", head->addr, head->version, head->hitcnt);
+			// printf("src addr:%x ver:%u hitcnt:%u\n", head->addr, head->version, head->hitcnt);
 			aggreSrcHitcnt += head->hitcnt;
 			head = head->nextVersion;
 		} while(head->version != currVersion);
@@ -372,7 +375,7 @@ aggregateSrcBuf(AvalancheSearchCtxt *avalsctxt)
 		i++;
 	}
 	// for(i = 0; i < avalsctxt->numOfSrcAddr; i++) {
-	// 	printf("aggregates hit cnt:%u\n", avalsctxt->srcAddrHitCnt[i]);
+	// 	printf("src aggregates hit cnt:%u\n", avalsctxt->srcAddrHitCnt[i]);
 	// }
 }
 
@@ -392,6 +395,7 @@ aggregateDstBuf(AvalancheSearchCtxt *avalsctxt)
 	while(head != NULL) {
 		u32 currVersion = head->version;
 		do{
+			// printf("dst addr:%x ver:%u hitcnt:%u\n", head->addr, head->version, head->hitcnt);
 			aggreDstHitcnt += head->hitcnt;
 			head = head->nextVersion;
 		} while(head->version != currVersion);
@@ -402,7 +406,7 @@ aggregateDstBuf(AvalancheSearchCtxt *avalsctxt)
 		i++;
 	}
 	// for(i = 0; i < avalsctxt->numOfDstAddr; i++) {
-	// 	printf("aggregates hit cnt:%u\n", avalsctxt->dstAddrHitCnt[i]);
+	// 	printf("dst aggregates hit cnt:%u\n", avalsctxt->dstAddrHitCnt[i]);
 	// }
 }
 
@@ -410,29 +414,46 @@ static void
 detectAvalancheInOutBuf(TPMContext *tpm, AvalancheSearchCtxt *avalsctxt)
 {
 	u32 maxNumOfAddrAdvanced = 0, numOfAddrAdvanced = 0;
-
+	int addrIdx = 0;
 	Addr2NodeItem *addrHash, *nodeHash;
-	for(addrHash = avalsctxt->addr2Node; addrHash != NULL; addrHash = addrHash->hh_addr2NodeItem.next) {
-		// printf("addr:%x\n", addrHash->addr);
+
+	for(addrHash = avalsctxt->addr2Node; addrHash != NULL; addrHash = addrHash->hh_addr2NodeItem.next) { // go through each addr
+		printf("addr:%x addr hitcnt:%u\n", addrHash->addr, avalsctxt->srcAddrHitCnt[addrIdx]);
 		for(nodeHash = addrHash->subHash; nodeHash != NULL; nodeHash = nodeHash->hh_addr2NodeItem.next) {
 			TPMNode2 *node = nodeHash->node;
-			// printf("addr:%x ver:%u\n", node->addr, node->version);
-
-			if(addrHash->hh_addr2NodeItem.next != NULL) { // if has right neighbor addr
-				Addr2NodeItem *next = addrHash->hh_addr2NodeItem.next;
-				detectAvalancheOfSource(avalsctxt, nodeHash, next, &numOfAddrAdvanced);
-
-				if(numOfAddrAdvanced > maxNumOfAddrAdvanced)
-					maxNumOfAddrAdvanced = numOfAddrAdvanced;
-			}
+			// printf("addr:%x ver:%u hitcnt:%u\n", node->addr, node->version, node->hitcnt);
 		}
-
-		while(maxNumOfAddrAdvanced-1 > 0) {
-			if(addrHash->hh_addr2NodeItem.next != NULL)
-				addrHash = addrHash->hh_addr2NodeItem.next;
-			maxNumOfAddrAdvanced--;
-		}
+		addrIdx++;
 	}
+
+	for(addrIdx = 0; addrIdx < avalsctxt->numOfDstAddr; addrIdx++) {
+		printf("dst addr hitcnt:%u\n", avalsctxt->dstAddrHitCnt[addrIdx]);
+	}
+
+	// for(addrHash = avalsctxt->addr2Node; addrHash != NULL; addrHash = addrHash->hh_addr2NodeItem.next) { // go through each addr
+	// 	// printf("addr:%x\n", addrHash->addr);
+	// 	printf("addr hitcnt:%u", avalsctxt->srcAddrHitCnt[addrIdx]);
+	// 	for(nodeHash = addrHash->subHash; nodeHash != NULL; nodeHash = nodeHash->hh_addr2NodeItem.next) {	// go through each node of addr
+	// 		TPMNode2 *node = nodeHash->node;
+	// 		printf("addr:%x ver:%u hitcnt:%u\n", node->addr, node->version, node->hitcnt);
+	// 		// if(node->hitcnt < avalsctxt->minBufferSz)
+	// 		// 	continue;
+
+	// 		if(addrHash->hh_addr2NodeItem.next != NULL) { // if has right neighbor addr
+	// 			Addr2NodeItem *next = addrHash->hh_addr2NodeItem.next;
+	// 			detectAvalancheOfSource(avalsctxt, nodeHash, next, &numOfAddrAdvanced);
+
+	// 			if(numOfAddrAdvanced > maxNumOfAddrAdvanced)
+	// 				maxNumOfAddrAdvanced = numOfAddrAdvanced;
+	// 		}
+	// 	}
+	// 	addrIdx++;
+	// 	// while(maxNumOfAddrAdvanced-1 > 0) {
+	// 	// 	if(addrHash->hh_addr2NodeItem.next != NULL)
+	// 	// 		addrHash = addrHash->hh_addr2NodeItem.next;
+	// 	// 	maxNumOfAddrAdvanced--;
+	// 	// }
+	// }
 }
 
 static void 

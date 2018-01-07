@@ -329,7 +329,7 @@ printContBufAry_lit(char *s, ContinBufAry *contBufAry)
 	for(int i = 0; i < contBufAry->bufAryUsed; i++) {
 		ContinBuf *contBuf = contBufAry->contBufAryHead[i];
 		if(contBuf != NULL) {
-			printf("%sbufstart:%x bufend:%x size:%u\n", 
+			printf("%sbufstart:%x bufend:%x sz:%u\n", 
 				s, contBuf->bufStart, contBuf->bufEnd, contBuf->bufEnd - contBuf->bufStart);
 		}
 	}	
