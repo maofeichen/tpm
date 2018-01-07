@@ -379,7 +379,31 @@ aggregateSrcBuf(AvalancheSearchCtxt *avalsctxt)
 static void 
 aggregateDstBuf(AvalancheSearchCtxt *avalsctxt)
 {
-	printBufNode(avalsctxt->dstBuf);
+	TPMNode2 *head;
+	u32 aggreDstHitcnt;
+	int i;
+
+	head = avalsctxt->dstBuf;
+	getMemNode1stVersion(&head);
+	avalsctxt->dstAddrHitCnt = calloc(1, avalsctxt->numOfDstAddr * sizeof(uchar));
+
+	aggreDstHitcnt = 0;
+	i = 0;
+	while(head != NULL) {
+		u32 currVersion = head->version;
+		do{
+			aggreDstHitcnt += head->hitcnt;
+			head = head->nextVersion;
+		} while(head->version != currVersion);
+
+		avalsctxt->dstAddrHitCnt[i] = aggreDstHitcnt;
+		aggreDstHitcnt = 0;
+		head = head->rightNBR;
+		i++;
+	}
+	// for(i = 0; i < avalsctxt->numOfDstAddr; i++) {
+	// 	printf("aggregates hit cnt:%u\n", avalsctxt->dstAddrHitCnt[i]);
+	// }
 }
 
 static void 
