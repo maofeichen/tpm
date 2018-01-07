@@ -25,7 +25,7 @@ int
 memNodePropagate(TPMContext *tpm, TPMNode2 *s, TaintedBuf **dstMemNodes, 
 	u32 dstAddrStart, u32 dstAddrEnd, int dstMinSeq, int dstMaxseq, u32 *stepCount);
 // Returns:
-//  >=0: dst mem nodes hit count
+//  >=0: dst mem nodes hit byte count
 //  <0: error
 // searches mem node propagation given tpm, source node. Stores results
 // (destination mem nodes) in dstBuf

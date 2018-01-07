@@ -93,6 +93,7 @@ dfs(TPMContext *tpm, TPMNode2 *s, TaintedBuf **dstMemNodes, u32 dstAddrStart, u3
 	TransitionHashTable *markVisitTransHT = NULL;
 	Transition *source_trans = s->firstChild;
 	int hitDstByte = 0;
+	int srcbyte = s->bytesz;
 
 	if(source_trans != NULL) {
 		storeAllUnvisitChildren(&markVisitTransHT, source_trans);
@@ -105,6 +106,7 @@ dfs(TPMContext *tpm, TPMNode2 *s, TaintedBuf **dstMemNodes, u32 dstAddrStart, u3
 				// Only stores hit mem nodes in dst addr and seq range
 				if(dst->tpmnode2.addr >= dstAddrStart && dst->tpmnode2.addr <= dstAddrEnd 
 				   && dst->tpmnode2.lastUpdateTS >= dstMinSeq && dst->tpmnode2.lastUpdateTS <= dstMaxSeq) {
+				   	dst->tpmnode2.hitcnt += srcbyte;
 					storePropagateDstMemNode(&(dst->tpmnode2), dstMemNodes);
 					hitDstByte += dst->tpmnode2.bytesz;
 				}

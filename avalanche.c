@@ -173,6 +173,10 @@ searchAllAvalancheInTPM(TPMContext *tpm)
 	}
 OUTLOOP:
 	printf("out of loop\n");
+#ifdef DEBUG
+	printBufNode(avalsctxt->srcBuf);
+	printBufNode(avalsctxt->dstBuf);
+#endif
 	// printf("minstep:%u maxstep:%u avgstep:%u\n", 
 	// 	propaStat.minstep, propaStat.maxstep, propaStat.totalstep / propaStat.numOfSearch);
 
