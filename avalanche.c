@@ -33,6 +33,12 @@ initSearchPropagateSource(u32 *srcAddr, TPMNode2 **srcNode);
 static void 
 initDstBufHitByte(TPMNode2 *dstfirstnode, u32 dststart, u32 dstend, int minseq, int maxseq);
 
+static void 
+aggregateSrcBuf(AvalancheSearchCtxt *avalsctxt);
+
+static void 
+aggregateDstBuf(AvalancheSearchCtxt *avalsctxt);
+
 /* detect avalanche of in buffer */
 static void 
 detectAvalancheInOutBuf(TPMContext *tpm, AvalancheSearchCtxt *avalsctxt);
@@ -123,7 +129,8 @@ printAvalDstBufHT(AvalDstBufHTNode *avalDstBufHT);
 /* functions */
 int
 init_AvalancheSearchCtxt(struct AvalancheSearchCtxt **avalsctxt, u32 minBufferSz, struct TPMNode2 *srcBuf, 
-			 struct TPMNode2 *dstBuf, u32 srcAddrStart, u32 srcAddrEnd, u32 dstAddrStart, u32 dstAddrEnd)
+			 struct TPMNode2 *dstBuf, u32 srcAddrStart, u32 srcAddrEnd, u32 dstAddrStart, u32 dstAddrEnd,
+			 u32 numOfSrcAddr, u32 numOfDstAddr)
 {
 	*avalsctxt = calloc(1, sizeof(AvalancheSearchCtxt));
 	(*avalsctxt)->minBufferSz 	= minBufferSz;
@@ -133,7 +140,10 @@ init_AvalancheSearchCtxt(struct AvalancheSearchCtxt **avalsctxt, u32 minBufferSz
 	(*avalsctxt)->srcAddrEnd 	= srcAddrEnd;
 	(*avalsctxt)->dstAddrStart 	= dstAddrStart;
 	(*avalsctxt)->dstAddrEnd 	= dstAddrEnd;
+	(*avalsctxt)->numOfSrcAddr	= numOfSrcAddr;
+	(*avalsctxt)->numOfDstAddr	= numOfDstAddr;
 	(*avalsctxt)->addr2Node		= NULL;
+	return 0;
 }
 
 void
@@ -157,7 +167,8 @@ searchAllAvalancheInTPM(TPMContext *tpm)
 	for(srcBuf = tpmBufHT; srcBuf != NULL; srcBuf = srcBuf->hh_tpmBufHT.next) {
 		for(dstBuf = srcBuf->hh_tpmBufHT.next; dstBuf != NULL; dstBuf = dstBuf->hh_tpmBufHT.next) {
 			if(srcBuf->baddr == 0xde911000 && dstBuf->baddr == 0x804c170){ // test signle buf
-	            init_AvalancheSearchCtxt(&avalsctxt, MIN_BUF_SZ, srcBuf->headNode, dstBuf->headNode, srcBuf->baddr, srcBuf->eaddr, dstBuf->baddr, dstBuf->eaddr);
+	            init_AvalancheSearchCtxt(&avalsctxt, MIN_BUF_SZ, srcBuf->headNode, dstBuf->headNode, srcBuf->baddr, srcBuf->eaddr, 
+	            	dstBuf->baddr, dstBuf->eaddr, srcBuf->numOfAddr, dstBuf->numOfAddr);
 				setSeqNo(avalsctxt, srcBuf->minseq, srcBuf->maxseq, dstBuf->minseq, dstBuf->maxseq);
 	    		searchAvalancheInOutBuf(tpm, avalsctxt, &propaStat);
 	    		free_AvalancheSearchCtxt(avalsctxt);   
@@ -205,6 +216,7 @@ searchAvalancheInOutBuf(TPMContext *tpm, AvalancheSearchCtxt *avalsctxt, Propaga
 	printDstMemNodesHT(avalsctxt->addr2Node);
 #endif
 	detectAvalancheInOutBuf(tpm, avalsctxt);
+	return 0;
 }
 
 static void 
@@ -218,7 +230,14 @@ setSeqNo(AvalancheSearchCtxt *avalsctxt, int srcMinSeqN, int srcMaxSeqN, int dst
 
 static void 
 searchPropagateInOutBuf(TPMContext *tpm, AvalancheSearchCtxt *avalsctxt, Addr2NodeItem **dstMemNodesHT, PropagateStat *propaStat)
-// Searches propagations of source buffer (all version of each node), results store in dstMemNodesHT
+// Searches propagations of source buffer (all version of each node) to dst buf, 
+// results store in dstMemNodesHT
+// 1. Search propagation 
+// For each version node of each addr of input buffer as source
+// 1.1 searches the source node propagations to destination buffers (within addr/seqNo range)
+// 1.2 a) updates soruce hitcnt (hit byte) if source hits any dst nodes
+//	   b) updates the dst node hitcnt as well if any source hits to it
+// 2. Aggregates all version node hitcnt of same address for both source and destinations  
 {
 	TPMNode2 *srcNode;
 	u32 srcAddr;
@@ -269,6 +288,10 @@ searchPropagateInOutBuf(TPMContext *tpm, AvalancheSearchCtxt *avalsctxt, Addr2No
 		srcNode = srcNode->rightNBR;
 		initSearchPropagateSource(&srcAddr, &srcNode);
 	}
+
+	// aggregates hitcnts of both src and dst bufs
+	aggregateSrcBuf(avalsctxt);
+	aggregateDstBuf(avalsctxt);
 }
 
 static Addr2NodeItem *
@@ -321,6 +344,42 @@ initDstBufHitByte(TPMNode2 *dstBuf, u32 dststart, u32 dstend, int minseq, int ma
 		}while(head->version != currVersion);
 		head = head->rightNBR;
 	}
+}
+
+static void 
+aggregateSrcBuf(AvalancheSearchCtxt *avalsctxt)
+{
+	TPMNode2 *head = avalsctxt->srcBuf;
+	getMemNode1stVersion(&head);
+	u32 aggreSrcHitcnt;
+	int i;
+
+	aggreSrcHitcnt = 0;
+	avalsctxt->srcAddrHitCnt = calloc(1, avalsctxt->numOfSrcAddr * sizeof(uchar));
+	i = 0;
+
+	while(head != NULL) {
+		u32 currVersion = head->version;
+		do{
+			// printf("addr:%x version:%u hitcnt:%u\n", head->addr, head->version, head->hitcnt);
+			aggreSrcHitcnt += head->hitcnt;
+			head = head->nextVersion;
+		} while(head->version != currVersion);
+
+		avalsctxt->srcAddrHitCnt[i] = aggreSrcHitcnt;
+		aggreSrcHitcnt = 0;
+		head = head->rightNBR;
+		i++;
+	}
+	// for(i = 0; i < avalsctxt->numOfSrcAddr; i++) {
+	// 	printf("aggregates hit cnt:%u\n", avalsctxt->srcAddrHitCnt[i]);
+	// }
+}
+
+static void 
+aggregateDstBuf(AvalancheSearchCtxt *avalsctxt)
+{
+	printBufNode(avalsctxt->dstBuf);
 }
 
 static void 

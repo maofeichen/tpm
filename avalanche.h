@@ -34,6 +34,8 @@ struct AvalancheSearchCtxt
     int dstMaxSeqN;		// maximum seq# of the destination buffer
     unsigned char *srcAddrHitCnt;  // array[0, srcAddrEnd-srcAddrStart] to record the aggregated hit account of all versions of each source address
     unsigned char *dstAddrHitCnt;  // array[0, dstAddrEnd-dstAddrStart] to record the aggregated hit account of all versions of each destination address
+    u32 numOfSrcAddr;   // number of souce addresses in the source buf
+    u32 numOfDstAddr;   // number of destination addresses in the dst buf
     struct addr2NodeItem *addr2Node; // array[0, dstAddrEnd-dstAddrStart] of pointers to struct addr2NodeItem (hash table)
 };
 typedef struct AvalancheSearchCtxt AvalancheSearchCtxt;
@@ -80,7 +82,8 @@ typedef struct PropagateStat PropagateStat;
 
 int
 init_AvalancheSearchCtxt(struct AvalancheSearchCtxt **avalsctxt, u32 minBufferSz, struct TPMNode2 *srcBuf, 
-			 struct TPMNode2 *dstBuf, u32 srcAddrStart, u32 srcAddrEnd, u32 dstAddrStart, u32 dstAddrEnd);
+			 struct TPMNode2 *dstBuf, u32 srcAddrStart, u32 srcAddrEnd, u32 dstAddrStart, u32 dstAddrEnd, 
+             u32 numOfSrcAddr, u32 numOfDstAddr);
 
 void
 free_AvalancheSearchCtxt(struct AvalancheSearchCtxt *avalsctxt);

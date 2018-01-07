@@ -76,10 +76,11 @@ typedef struct Mem2NodeHT Mem2NodeHT;
 
 struct TPMBufHashTable
 {
-    u32 baddr;
-    u32 eaddr;
-    int minseq;
-    int maxseq;
+    u32 baddr;      // start addr
+    u32 eaddr;      // end addr
+    int minseq;     // minimum seqNo
+    int maxseq;     // maximum seqNo
+    u32 numOfAddr;  // num of diff addr in the buf
     TPMNode2 *headNode;
     UT_hash_handle hh_tpmBufHT;   
 };
