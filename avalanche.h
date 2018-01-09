@@ -9,15 +9,16 @@
 #include "tpm.h"
 #include "type.h"
 
-struct addr2NodeItem
-{
-    u32 addr;				/* 32-bit address: src addr in 1st level hash; dst addr in 2nd level hash */
-    struct TPMNode2 *node;	/* used as key to hash: src node in 1st level hash; dst node in 2nd level hash */
-    struct addr2NodeItem *subHash;	  /* next level hash */
-    TaintedBuf *toMemNode; 			  // the mem node that the source node can propagate
-    UT_hash_handle hh_addr2NodeItem;  /* makes this structure hashable */
-};
-typedef struct addr2NodeItem Addr2NodeItem;
+/* move to propagate.h */
+//struct addr2NodeItem
+//{
+//    u32 addr;				/* 32-bit address: src addr in 1st level hash; dst addr in 2nd level hash */
+//    struct TPMNode2 *node;	/* used as key to hash: src node in 1st level hash; dst node in 2nd level hash */
+//    struct addr2NodeItem *subHash;	  /* next level hash */
+//    TaintedBuf *toMemNode; 			  // the mem node that the source node can propagate
+//    UT_hash_handle hh_addr2NodeItem;  /* makes this structure hashable */
+//};
+//typedef struct addr2NodeItem Addr2NodeItem;
 
 struct AvalancheSearchCtxt
 {
@@ -36,6 +37,7 @@ struct AvalancheSearchCtxt
     unsigned char *dstAddrHitCnt;  // array[0, dstAddrEnd-dstAddrStart] to record the aggregated hit account of all versions of each destination address
     u32 numOfSrcAddr;   // number of souce addresses in the source buf
     u32 numOfDstAddr;   // number of destination addresses in the dst buf
+    struct addr2NodeItem **addr2NodeAry; // array[0, dstAddrEnd-dstAddrStart] of pointers to struct addr2NodeItem (hash table)
     struct addr2NodeItem *addr2Node; // array[0, dstAddrEnd-dstAddrStart] of pointers to struct addr2NodeItem (hash table)
 };
 typedef struct AvalancheSearchCtxt AvalancheSearchCtxt;
