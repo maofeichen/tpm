@@ -74,7 +74,10 @@ printHitcntRange(ContHitcntRange *lstHead);
 
 /* detect avalanche of source fast */
 static void
-detectAvalancheOfSrouceFast(AvalancheSearchCtxt *avalsctxt, Addr2NodeItem *srcnode, u32 addrIdxStartSearch);
+detectAvalancheOfSourceFast(AvalancheSearchCtxt *avalsctxt, Addr2NodeItem *srcnode, u32 addrIdxStartSearch);
+
+static void
+storeAllAddrHashChildrenFast(Addr2NodeItem *addrHash, StackAddr2NodeItem **stackAddr2NodeItemTop, u32 *stackAddr2NodeItemCount, u32 minBufSz);
 
 RangeArray *buildRangeArray(Addr2NodeItem *dstNodes);
 
@@ -478,17 +481,23 @@ detectAvalancheInOutBufFast(TPMContext *tpm, AvalancheSearchCtxt *avalsctxt)
 
 	ContHitcntRange *range;
 	Addr2NodeItem *srcnode;
+
+
+
 	LL_FOREACH(lst_srcHitcntRange, range) {
 	    for(addridx = range->addrIdxStart; addridx <= range->addrIdxEnd; addridx++) { // go through each addr in range
 	        for(srcnode = avalsctxt->addr2NodeAry[addridx]; srcnode != NULL; srcnode = srcnode->hh_addr2NodeItem.next) { // go throught each node
 	            if(srcnode->node->hitcnt >= avalsctxt->minBufferSz)  {
 	                printf("src node: ");
 	                printMemNode(srcnode->node);
-	                detectAvalancheOfSrouceFast(avalsctxt, srcnode, addridx+1);
+	                detectAvalancheOfSourceFast(avalsctxt, srcnode, addridx+1);
+	                goto OUTLOOP;
 	            }
 	        }
 	    }
 	}
+OUTLOOP:
+    printf("out loop\n");
 }
 
 static void 
@@ -619,19 +628,100 @@ printHitcntRange(ContHitcntRange *lstHead)
 }
 
 static void 
-detectAvalancheOfSrouceFast(AvalancheSearchCtxt *avalsctxt, Addr2NodeItem *srcnode, u32 addrIdxStartSearch)
+detectAvalancheOfSourceFast(AvalancheSearchCtxt *avalsctxt, Addr2NodeItem *srcnode, u32 addrIdxStartSearch)
 {
-    Addr2NodeItem *dst;
-    for(dst = srcnode->subHash; dst != NULL; dst = dst->hh_addr2NodeItem.next) {
-        printMemNode(dst->node);
-    }
+    Addr2NodeItem *oldsrcnode, *newsrcnode;
+    RangeArray *oldra, *newra, *oldintersct_ra, *newintersct_ra;
+
+    StackAddr2NodeItem *stckTravrsTop = NULL; // maintains the nodes during search
+	u32 stckTravrsCnt = 0;
+
+	StackAddr2NodeItem *stckSrcTop = NULL; // maintains the source nodes that has avalanche
+	u32 stckSrcCnt = 0;
+
+	bool hasPrint = false;  // if avalanche has been printed, avoid duplication
+
+	oldsrcnode = srcnode;
+	addr2NodeItemStackPush(&stckSrcTop, &stckSrcCnt, oldsrcnode);
+	oldra = buildRangeArray(oldsrcnode->subHash);
+	// printRangeArray(oldra);
+
+	storeAllAddrHashChildrenFast(avalsctxt->addr2NodeAry[addrIdxStartSearch], &stckTravrsTop, &stckTravrsCnt, avalsctxt->minBufferSz);
+	while(!isAddr2NodeItemStackEmpty(stckTravrsTop) ) {
+	    newsrcnode = addr2NodeItemStackPop(&stckTravrsTop, &stckTravrsCnt);
+	    // printMemNode(newsrcnode->node);
+	    // printMemNode(oldsrcnode->node);
+
+	    // TODO: add comment
+	    if(newsrcnode->node->addr <= oldsrcnode->node->addr) {
+		    while(newsrcnode->node->addr <= stckSrcTop->addr2NodeItem->node->addr) {
+		        addr2NodeItemStackPop(&stckSrcTop, &stckSrcCnt);
+		        addrIdxStartSearch--;
+		    }
+		    oldsrcnode = stckSrcTop->addr2NodeItem;
+		    oldra = buildRangeArray(oldsrcnode->subHash);
+		    // printMemNode(oldsrcnode->node);
+		    // printRangeArray(oldra);
+	    }
+
+	    newra = buildRangeArray(newsrcnode->subHash);
+	    newintersct_ra = getIntersectRangeArray(oldsrcnode, oldra, newsrcnode, newra);
+	    // printRangeArray(newra);
+	    // printRangeArray(newintersct_ra);
+
+	    // if valid intersect ra, continue to next addr node
+	    // otherwise if the source node > min buf sz, get avalnche, print out
+	    //           else rewind to prev node?
+	    if(newintersct_ra->rangeAryUsed > 0) { // valid intersection range array
+	        oldsrcnode = newsrcnode;
+	        addr2NodeItemStackPush(&stckSrcTop, &stckSrcCnt, oldsrcnode);
+
+	        oldra = newra;
+	        oldintersct_ra = newintersct_ra;
+
+	        hasPrint = false;
+	    }
+	    else {
+	        if(!hasPrint){
+		        // print avalanche?
+	            printf("--------------------\n");
+	            addr2NodeItemStackDispRange(stckSrcTop, "avalanche found:\nsrc buf:");
+	            printf("aval to dst buf:\n");
+	            printRangeArray(oldintersct_ra);
+
+	            hasPrint = true;
+	        }
+	        continue;
+	    }
+
+	    if(addrIdxStartSearch < avalsctxt->numOfSrcAddr){ // push nodes of rightNBR only once
+	        addrIdxStartSearch++;
+	        storeAllAddrHashChildrenFast(avalsctxt->addr2NodeAry[addrIdxStartSearch], &stckTravrsTop, &stckTravrsCnt, avalsctxt->minBufferSz);
+	    }
+	}
 }
+
+static void
+storeAllAddrHashChildrenFast(Addr2NodeItem *addrHash, StackAddr2NodeItem **stackAddr2NodeItemTop, u32 *stackAddr2NodeItemCount,
+        u32 minBufSz)
+{
+ 	Addr2NodeItem *nodeHash;
+	for(nodeHash = addrHash; nodeHash != NULL; nodeHash = nodeHash->hh_addr2NodeItem.next) {
+	    if(nodeHash->node->hitcnt >= minBufSz){ // only push nodes satisfy the min sz requirement
+	        addr2NodeItemStackPush(stackAddr2NodeItemTop, stackAddr2NodeItemCount, nodeHash);
+	    }
+	}
+}
+
 
 RangeArray *
 buildRangeArray(Addr2NodeItem *dstNodes)
 {
     RangeArray *ra;
     Range *r;
+
+    if(dstNodes == NULL)
+        return NULL;
 
     ra = initRangeArray();
     r = initRange();
@@ -654,19 +744,19 @@ buildRangeArray(Addr2NodeItem *dstNodes)
             currRangeEnd += node->bytesz;
         }
         else{ // new range
+            add2Range(ra, r);
 
+            r = initRange();
+            r->start = node->addr;
+            r->end = node->addr + node->bytesz;
+
+            currRangeStart = r->start;
+            currRangeEnd = r->end;
         }
     }
+    add2Range(ra, r);   // add the last range
     return ra;
 }
-
-			appendContBufAry(contBufAry, contBuf);
-			contBuf = initContinBuf();
-			extendContinBuf(contBuf, dstNode);
-
-			bufstart = dstNode->addr;
-			bufsz = dstNode->bytesz;
-
 
 static void
 detectAvalancheOfSource(AvalancheSearchCtxt *avalsctxt, Addr2NodeItem *sourceNode, Addr2NodeItem *addrHashStartSearch, u32 *numOfAddrAdvanced)
@@ -1017,12 +1107,17 @@ addr2NodeItemStackDispRange(StackAddr2NodeItem *stackAddr2NodeItemTop, char *s)
 	node = n->addr2NodeItem->node;
 	bufend = node->addr + node->bytesz;
 
+	printf("%s\n", s);
 	while(n != NULL && n->next != NULL) {
 		node = n->addr2NodeItem->node;
+		printf("\t");
+		printMemNode(node);
 		n = n->next;
 	}
+	printf("\t");
+	printMemNode(n->addr2NodeItem->node);
 	bufstart = n->addr2NodeItem->node->addr;
-	printf("%s\n\tbufstart:%x bufend:%x sz:%u\n", s, bufstart, bufend, bufend-bufstart);
+	printf("\tbufstart:%x bufend:%x sz:%u\n", bufstart, bufend, bufend-bufstart);
 }
 
 static void 

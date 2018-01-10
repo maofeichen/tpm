@@ -89,8 +89,14 @@ printContBufAry_lit(char *s, ContinBufAry *contBufAry);
 Range *
 initRange();
 
+Range *
+getIntersectRange(Addr2NodeItem *l, Addr2NodeItem *r, u32 start, u32 end);
+
 void
 delRange(Range *r);
+
+void
+printRange(Range *r);
 
 /* range array */
 RangeArray *
@@ -99,6 +105,12 @@ initRangeArray();
 void
 add2Range(RangeArray *ra, Range *r);
 
+RangeArray *
+getIntersectRangeArray(Addr2NodeItem *l, RangeArray *lra, Addr2NodeItem *r, RangeArray *rra);
+
 void
 delRangeArray(RangeArray *ra);
+
+void
+printRangeArray(RangeArray *ra);
 #endif

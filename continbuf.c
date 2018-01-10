@@ -23,6 +23,9 @@ getMinAddr(u32 addr_l, u32 addr_r);
 static void
 addRange(RangeArray *ra, Range *r, int pos);
 
+static void
+growRangeArray(RangeArray *ra);
+
 ContinBuf *
 initContinBuf()
 {
@@ -347,6 +350,77 @@ initRange()
     return r;
 }
 
+Range *
+getIntersectRange(Addr2NodeItem *l, Addr2NodeItem *r, u32 start, u32 end)
+{
+    Range *intersect_r = NULL;
+    Addr2NodeItem *lnode, *rnode;
+    u32 intersectStart = 0, intersectEnd = 0;
+
+    // print2ndLevelHash(l);
+    // print2ndLevelHash(r);
+
+    for(lnode = l->subHash; lnode != NULL; lnode = lnode->hh_addr2NodeItem.next) {
+        if(lnode->addr == start)
+            break;
+    }
+    for(rnode = r->subHash; rnode != NULL; rnode = rnode->hh_addr2NodeItem.next) {
+        if(rnode->addr == start)
+            break;
+    }
+    if(lnode == NULL || rnode == NULL)
+        return NULL;
+
+    u32 currend = start + lnode->node->bytesz;
+    while(currend <= end){
+        if(lnode == NULL || rnode == NULL)
+            break;
+
+        if(lnode->node == rnode->node){
+            if(intersectStart == 0){
+                intersectStart = lnode->node->addr;
+                intersectEnd = intersectStart + lnode->node->bytesz;
+            }
+            else {
+                intersectEnd = intersectEnd + lnode->node->bytesz;
+            }
+        }
+
+        u32 lend = lnode->node->addr + lnode->node->bytesz;
+        u32 rend = rnode->node->addr + rnode->node->bytesz;
+        if(lend < rend) {
+            lnode = lnode->hh_addr2NodeItem.next;
+            currend = lend;
+        }
+        else if(lend > rend) {
+            rnode = rnode->hh_addr2NodeItem.next;
+            currend = rend;
+        }
+        else{
+            lnode = lnode->hh_addr2NodeItem.next;
+            rnode = rnode->hh_addr2NodeItem.next;
+            currend = lend;
+        }
+    }
+
+    // printf("common start:%x end:%x\n", intersectStart, intersectEnd);
+    if(intersectStart != 0){
+        intersect_r = initRange();
+        intersect_r->start = intersectStart;
+        intersect_r->end = intersectEnd;
+    }
+
+    return intersect_r;
+}
+
+
+void
+printRange(Range *r)
+{
+    printf("range: start:%x end:%x\n", r->start, r->end);
+}
+
+
 RangeArray *
 initRangeArray()
 {
@@ -373,6 +447,43 @@ add2Range(RangeArray *ra, Range *r)
    addRange(ra, r, lo);
 }
 
+RangeArray *
+getIntersectRangeArray(Addr2NodeItem *l, RangeArray *lra, Addr2NodeItem *r, RangeArray *rra)
+{
+	u32 idx_l = 0, idx_r = 0;
+	u32 aryUsed_l = lra->rangeAryUsed, aryUsed_r = rra->rangeAryUsed;
+	RangeArray *intersect_ra;
+	Range *rl, *rr, *intersect_r;
+
+	intersect_ra = initRangeArray();
+	while(true) {
+	    if(idx_l >= aryUsed_l || idx_r >= aryUsed_r)
+	        break;
+
+	    rl = lra->rangeAry[idx_l];
+	    rr = rra->rangeAry[idx_r];
+
+	    u32 intersectStart = getMaxAddr(rl->start, rr->start);
+	    u32 intersectEnd = getMinAddr(rl->end, rr->end);
+
+	    if(intersectStart < intersectEnd) { // there is intersected range
+	        intersect_r = getIntersectRange(l, r, intersectStart, intersectEnd);
+	        if(intersect_r != NULL) {
+	            add2Range(intersect_ra, intersect_r);
+	        }
+	    }
+
+        // if left buf range is smaller than right buf range, increases it
+        // notices all bufs in buf ary are in increasing order
+	    if(rl->end < rr->end) { idx_l++; }
+	    else if(rl->end > rr->end) { idx_r++; }
+	    else { idx_l++; idx_r++; }
+	}
+	// TODO: if there is no common range, return NULL
+	return intersect_ra;
+}
+
+
 static void
 addRange(RangeArray *ra, Range *r, int pos)
 {
@@ -380,20 +491,39 @@ addRange(RangeArray *ra, Range *r, int pos)
         fprintf(stderr, "addRange: pos is larger than used\n");
         return;
     }
+
+    if(ra->rangeAryUsed == ra->rangeArySz){
+        growRangeArray(ra);
+    }
+
+    for(int i = (ra->rangeAryUsed - 1); i >= pos; i--){
+        ra->rangeAry[i+1] = ra->rangeAry[i];
+    }
+    ra->rangeAry[pos] = r;
+    (ra->rangeAryUsed)++;
 }
 
-	if(pos > contBufAry->bufAryUsed) {
-		fprintf(stderr, "addContBuf: pos is larger than used\n");
-		return -1;
-	}
+static void
+growRangeArray(RangeArray *ra)
+{
+    Range **newRangeArray;
+    u32 newRangeArySz = ra->rangeArySz * 2;
 
-	if(contBufAry->bufAryUsed == contBufAry->bufArySz) {
-		growContBufAry(contBufAry);
-	}
+    newRangeArray = calloc(1, sizeof(Range) * newRangeArySz);
+    for(int i = 0; i < ra->rangeAryUsed; i++){
+        newRangeArray[i] = ra->rangeAry[i];
+    }
+    ra->rangeArySz = newRangeArySz;
 
-	for(int i = (contBufAry->bufAryUsed - 1); i >= pos; i--) {
-		contBufAry->contBufAryHead[i+1] = contBufAry->contBufAryHead[i];
-	}
-	contBufAry->contBufAryHead[pos] = contBuf;
-	(contBufAry->bufAryUsed)++;
+    free(ra->rangeAry);
+    ra->rangeAry = newRangeArray;
+}
 
+void
+printRangeArray(RangeArray *ra)
+{
+    printf("range array: total ranges:%u\n", ra->rangeAryUsed);
+    for(int i = 0; i < ra->rangeAryUsed; i++) {
+        printRange(ra->rangeAry[i]);
+    }
+}
