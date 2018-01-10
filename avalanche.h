@@ -3,6 +3,7 @@
 
 #include "uthash.h"
 
+#include "avalanchetype.h"
 #include "continbuf.h"
 #include "propagate.h"
 #include "tpmnode.h"

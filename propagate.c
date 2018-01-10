@@ -69,6 +69,18 @@ createAddr2NodeItem(u32 addr, TPMNode2 *memNode, Addr2NodeItem *subHash, Tainted
 }
 
 int 
+cmpAddr2NodeItem(Addr2NodeItem *l, Addr2NodeItem *r)
+{
+    if(l->addr < r->addr) { return -1; }
+    else if(l->addr == r->addr) {
+        if(l->node->version < r->node->version) { return -1; }
+        else if(l->node->version < r->node->version) { return 0; }
+        else { return 1; }
+    }
+    else { return 1; }
+}
+
+int
 memNodePropagate(TPMContext *tpm, TPMNode2 *s, TaintedBuf **dstMemNodes, Addr2NodeItem *addr2NodeHT,
 	u32 dstAddrStart, u32 dstAddrEnd, int dstMinSeq, int dstMaxSeq, u32 *stepCount)
 {
@@ -123,7 +135,7 @@ dfs(TPMContext *tpm, TPMNode2 *s, TaintedBuf **dstMemNodes, Addr2NodeItem *addr2
 					hitDstByte += dst->tpmnode2.bytesz;
 
 					Addr2NodeItem *addr2NodeItem = createAddr2NodeItem(dst->tpmnode2.addr, &(dst->tpmnode2), NULL, NULL);
-          HASH_ADD(hh_addr2NodeItem, addr2NodeHT->subHash, node, 4, addr2NodeItem);
+					HASH_ADD(hh_addr2NodeItem, addr2NodeHT->subHash, node, 4, addr2NodeItem);
 
 				}
 			}
@@ -144,6 +156,7 @@ dfs(TPMContext *tpm, TPMNode2 *s, TaintedBuf **dstMemNodes, Addr2NodeItem *addr2
 #endif
 	delTransitionHT(&markVisitTransHT);
 	transStackPopAll();
+	HASH_SRT(hh_addr2NodeItem, addr2NodeHT->subHash, cmpAddr2NodeItem);
 
 	return hitDstByte;	
 }

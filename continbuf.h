@@ -2,6 +2,7 @@
 #define CONTINBUF_H 
 
 #include <stdbool.h>
+#include "avalanchetype.h"
 #include "tpmnode.h"
 #include "type.h"
 
@@ -26,6 +27,19 @@ struct ContinBufAry
 	ContinBuf **contBufAryHead;	
 };
 typedef struct ContinBufAry ContinBufAry;
+
+typedef struct Range
+{
+   u32 start;
+   u32 end;
+} Range;
+
+typedef struct RangeArray
+{
+    u32 rangeArySz;
+    u32 rangeAryUsed;
+    Range **rangeAry;
+} RangeArray;
 
 ContinBuf *
 initContinBuf();
@@ -71,4 +85,20 @@ printContinBufAry(ContinBufAry *contBufAry);
 void 
 printContBufAry_lit(char *s, ContinBufAry *contBufAry);
 
+/* range */
+Range *
+initRange();
+
+void
+delRange(Range *r);
+
+/* range array */
+RangeArray *
+initRangeArray();
+
+void
+add2Range(RangeArray *ra, Range *r);
+
+void
+delRangeArray(RangeArray *ra);
 #endif

@@ -20,6 +20,9 @@ getMaxAddr(u32 addr_l, u32 addr_r);
 static u32 
 getMinAddr(u32 addr_l, u32 addr_r);
 
+static void
+addRange(RangeArray *ra, Range *r, int pos);
+
 ContinBuf *
 initContinBuf()
 {
@@ -334,3 +337,63 @@ printContBufAry_lit(char *s, ContinBufAry *contBufAry)
 		}
 	}	
 }
+
+Range *
+initRange()
+{
+    Range *r = calloc(1, sizeof(Range));
+    r->start = 0;
+    r->end = 0;
+    return r;
+}
+
+RangeArray *
+initRangeArray()
+{
+    RangeArray *ra;
+
+    ra = calloc(1, sizeof(RangeArray));
+    ra->rangeArySz = INIT_CONTBUFARY_SZ;
+    ra->rangeAryUsed = 0;
+    ra->rangeAry = calloc(1, sizeof(Range) * INIT_CONTBUFARY_SZ);
+    return ra;
+}
+
+void
+add2Range(RangeArray *ra, Range *r)
+{
+   int lo = 0, mid = lo, hi = ra->rangeAryUsed;
+   while(lo < hi) {
+       mid = lo + (hi - lo) / 2;
+       if(ra->rangeAry[mid]->start < r->start) {
+           lo = mid + 1;
+       }
+       else { hi = mid; }
+   }
+   addRange(ra, r, lo);
+}
+
+static void
+addRange(RangeArray *ra, Range *r, int pos)
+{
+    if(pos > ra->rangeAryUsed) {
+        fprintf(stderr, "addRange: pos is larger than used\n");
+        return;
+    }
+}
+
+	if(pos > contBufAry->bufAryUsed) {
+		fprintf(stderr, "addContBuf: pos is larger than used\n");
+		return -1;
+	}
+
+	if(contBufAry->bufAryUsed == contBufAry->bufArySz) {
+		growContBufAry(contBufAry);
+	}
+
+	for(int i = (contBufAry->bufAryUsed - 1); i >= pos; i--) {
+		contBufAry->contBufAryHead[i+1] = contBufAry->contBufAryHead[i];
+	}
+	contBufAry->contBufAryHead[pos] = contBuf;
+	(contBufAry->bufAryUsed)++;
+
