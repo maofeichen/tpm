@@ -3,23 +3,12 @@
 
 #include "uthash.h"
 
-#include "avalanchetype.h"
+#include "avalanchetype.h"  // addr2NodeItem
 #include "continbuf.h"
 #include "propagate.h"
 #include "tpmnode.h"
 #include "tpm.h"
 #include "type.h"
-
-/* move to propagate.h */
-//struct addr2NodeItem
-//{
-//    u32 addr;				/* 32-bit address: src addr in 1st level hash; dst addr in 2nd level hash */
-//    struct TPMNode2 *node;	/* used as key to hash: src node in 1st level hash; dst node in 2nd level hash */
-//    struct addr2NodeItem *subHash;	  /* next level hash */
-//    TaintedBuf *toMemNode; 			  // the mem node that the source node can propagate
-//    UT_hash_handle hh_addr2NodeItem;  /* makes this structure hashable */
-//};
-//typedef struct addr2NodeItem Addr2NodeItem;
 
 struct AvalancheSearchCtxt
 {
@@ -39,7 +28,7 @@ struct AvalancheSearchCtxt
     u32 numOfSrcAddr;   // number of souce addresses in the source buf
     u32 numOfDstAddr;   // number of destination addresses in the dst buf
     struct addr2NodeItem **addr2NodeAry; // array[0, dstAddrEnd-dstAddrStart] of pointers to struct addr2NodeItem (hash table)
-    struct addr2NodeItem *addr2Node; // array[0, dstAddrEnd-dstAddrStart] of pointers to struct addr2NodeItem (hash table)
+    struct addr2NodeItem *addr2Node;     // IGNORE. array[0, dstAddrEnd-dstAddrStart] of pointers to struct addr2NodeItem (hash table)
 };
 typedef struct AvalancheSearchCtxt AvalancheSearchCtxt;
 
@@ -49,30 +38,28 @@ struct AvalDstBufHTNode
     u32 hitcnt;
     UT_hash_handle hh_avalDstBufHTNode;
 };
-typedef struct AvalDstBufHTNode AvalDstBufHTNode; // stores the propagate destination mem nodes
+typedef struct AvalDstBufHTNode AvalDstBufHTNode;   // IGNORE. stores the propagate destination mem nodes
 
 struct StackAddr2NodeItem 
 {
     Addr2NodeItem *addr2NodeItem;
     struct StackAddr2NodeItem *next; 
 };
-typedef struct StackAddr2NodeItem StackAddr2NodeItem;
-// stores addr2nodeitem during avalanche search
+typedef struct StackAddr2NodeItem StackAddr2NodeItem;   // stores addr2nodeitem during avalanche search
 
 struct StackDstBufHT
 {
     AvalDstBufHTNode *dstBufHT;
     struct StackDstBufHT *next;
 };
-typedef struct StackDstBufHT StackDstBufHT;
-// stores dst buf hash table during avalanche search
+typedef struct StackDstBufHT StackDstBufHT; // IGNORE. stores dst buf hash table during avalanche search
 
 struct StackBufAry
 {
     ContinBufAry *contBufAry;
     struct StackBufAry *next; 
 };
-typedef struct StackBufAry StackBufAry;
+typedef struct StackBufAry StackBufAry; // IGNORE
 
 struct PropagateStat
 {
@@ -81,22 +68,33 @@ struct PropagateStat
     u32 totalstep;
     u32 numOfSearch;    
 };
-typedef struct PropagateStat PropagateStat;
+typedef struct PropagateStat PropagateStat; // Computes stats during avalanche search
 
 int
-init_AvalancheSearchCtxt(struct AvalancheSearchCtxt **avalsctxt, u32 minBufferSz, struct TPMNode2 *srcBuf, 
-			 struct TPMNode2 *dstBuf, u32 srcAddrStart, u32 srcAddrEnd, u32 dstAddrStart, u32 dstAddrEnd, 
-             u32 numOfSrcAddr, u32 numOfDstAddr);
-
-void
-free_AvalancheSearchCtxt(struct AvalancheSearchCtxt *avalsctxt);
+init_AvalancheSearchCtxt(
+        struct AvalancheSearchCtxt **avalsctxt,
+        u32 minBufferSz,
+        struct TPMNode2 *srcBuf,
+        struct TPMNode2 *dstBuf,
+        u32 srcAddrStart,
+        u32 srcAddrEnd,
+        u32 dstAddrStart,
+        u32 dstAddrEnd,
+        u32 numOfSrcAddr,
+        u32 numOfDstAddr);
 
 void 
 searchAllAvalancheInTPM(TPMContext *tpm);
 // Searches avalanche between all pair <in, out> buffer in the tpm
 
+void
+free_AvalancheSearchCtxt(struct AvalancheSearchCtxt *avalsctxt);
+
 int
-searchAvalancheInOutBuf(TPMContext *tpm, AvalancheSearchCtxt *avalsctxt, PropagateStat *propaStat);
+searchAvalancheInOutBuf(
+        TPMContext *tpm,
+        AvalancheSearchCtxt *avalsctxt,
+        PropagateStat *propaStat);
 // Searches avalanche given in and out buffers (stored in AvalancheSearchCtxt)
 // Retures:
 //	0: success

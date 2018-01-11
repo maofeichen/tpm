@@ -415,9 +415,9 @@ getIntersectRange(Addr2NodeItem *l, Addr2NodeItem *r, u32 start, u32 end)
 
 
 void
-printRange(Range *r)
+printRange(Range *r, char *s)
 {
-    printf("range: start:%x end:%x\n", r->start, r->end);
+    printf("%sstart:%x end:%x\n", s, r->start, r->end);
 }
 
 
@@ -520,10 +520,10 @@ growRangeArray(RangeArray *ra)
 }
 
 void
-printRangeArray(RangeArray *ra)
+printRangeArray(RangeArray *ra, char *s)
 {
-    printf("range array: total ranges:%u\n", ra->rangeAryUsed);
+    // printf("range array: total ranges:%u\n", ra->rangeAryUsed);
     for(int i = 0; i < ra->rangeAryUsed; i++) {
-        printRange(ra->rangeAry[i]);
+        printRange(ra->rangeAry[i], s);
     }
 }

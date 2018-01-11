@@ -96,7 +96,7 @@ void
 delRange(Range *r);
 
 void
-printRange(Range *r);
+printRange(Range *r, char *s);
 
 /* range array */
 RangeArray *
@@ -112,5 +112,5 @@ void
 delRangeArray(RangeArray *ra);
 
 void
-printRangeArray(RangeArray *ra);
+printRangeArray(RangeArray *ra, char *s);
 #endif

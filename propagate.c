@@ -36,8 +36,15 @@ isTransStackEmpty();
 
 /* mem node propagate implement */
 static int 
-dfs(TPMContext *tpm, TPMNode2 *s, TaintedBuf **dstMemNodes, Addr2NodeItem *addr2NodeHT,
-    u32 dstAddrStart, u32 dstAddrEnd, int dstMinSeq, int dstMaxseq, u32 *stepCount);
+dfs(TPMContext *tpm,
+    TPMNode2 *s,
+    TaintedBuf **dstMemNodes,
+    Addr2NodeItem *addr2NodeHT,
+    u32 dstAddrStart,
+    u32 dstAddrEnd,
+    int dstMinSeq,
+    int dstMaxseq,
+    u32 *stepCount);
 
 static int 
 dfsPrintResult(TPMContext *tpm, TPMNode2 *s);
@@ -56,17 +63,18 @@ static void
 storePropagateDstMemNode(TPMNode2 *memNode, TaintedBuf **dstMemNodes);
 
 /* functions */
-Addr2NodeItem *
-createAddr2NodeItem(u32 addr, TPMNode2 *memNode, Addr2NodeItem *subHash, TaintedBuf *toMemNode)
-{
-	Addr2NodeItem *i = NULL;
-	i = malloc(sizeof(Addr2NodeItem) );
-	i->addr = addr;
-	i->node = memNode;
-	i->subHash 	 = subHash;
-	i->toMemNode = toMemNode;
-	return i;
-}
+
+//Addr2NodeItem *
+//createAddr2NodeItem(u32 addr, TPMNode2 *memNode, Addr2NodeItem *subHash, TaintedBuf *toMemNode)
+//{
+//	Addr2NodeItem *i = NULL;
+//	i = malloc(sizeof(Addr2NodeItem) );
+//	i->addr = addr;
+//	i->node = memNode;
+//	i->subHash 	 = subHash;
+//	i->toMemNode = toMemNode;
+//	return i;
+//}
 
 int 
 cmpAddr2NodeItem(Addr2NodeItem *l, Addr2NodeItem *r)
@@ -81,8 +89,16 @@ cmpAddr2NodeItem(Addr2NodeItem *l, Addr2NodeItem *r)
 }
 
 int
-memNodePropagate(TPMContext *tpm, TPMNode2 *s, TaintedBuf **dstMemNodes, Addr2NodeItem *addr2NodeHT,
-	u32 dstAddrStart, u32 dstAddrEnd, int dstMinSeq, int dstMaxSeq, u32 *stepCount)
+memNodePropagate(
+        TPMContext *tpm,
+        TPMNode2 *s,
+        TaintedBuf **dstMemNodes,   // IGNORE
+        Addr2NodeItem *addr2NodeHT,
+        u32 dstAddrStart,
+        u32 dstAddrEnd,
+        int dstMinSeq,
+        int dstMaxSeq,
+        u32 *stepCount)
 {
 	// printMemNode(s);
 	// printf("dststart:%-8x dstend:%-8x dstminseq:%d dstmaxseq:%d\n", 
@@ -97,8 +113,15 @@ printMemNodePropagate(TPMContext *tpm, TPMNode2 *s)
 }
 
 static int
-dfs(TPMContext *tpm, TPMNode2 *s, TaintedBuf **dstMemNodes, Addr2NodeItem *addr2NodeHT,
-    u32 dstAddrStart, u32 dstAddrEnd, int dstMinSeq, int dstMaxSeq, u32 *stepCount)
+dfs(TPMContext *tpm,
+    TPMNode2 *s,
+    TaintedBuf **dstMemNodes,   // IGNORE
+    Addr2NodeItem *addr2NodeHT,
+    u32 dstAddrStart,
+    u32 dstAddrEnd,
+    int dstMinSeq,
+    int dstMaxSeq,
+    u32 *stepCount)
 // Returns:
 //  >=0: dst mem nodes hit count
 //  <0: error
@@ -108,7 +131,6 @@ dfs(TPMContext *tpm, TPMNode2 *s, TaintedBuf **dstMemNodes, Addr2NodeItem *addr2
 		fprintf(stderr, "error: dfs: tpm:%p s:%p\n", tpm, s);
 		return -1;
 	}
-
 #ifdef DEBUG
 	printf("--------------------\n");
 	printf("dfs: source addr:%x val:%x ts:%u version%u\n", s->addr, s->val, s->lastUpdateTS, s->version);
@@ -116,7 +138,7 @@ dfs(TPMContext *tpm, TPMNode2 *s, TaintedBuf **dstMemNodes, Addr2NodeItem *addr2
 
 	TransitionHashTable *markVisitTransHT = NULL;
 	Transition *source_trans = s->firstChild;
-	int hitDstByte = 0;
+	int srcHitDstByte = 0;
 	int srcbyte = s->bytesz;
 
 	if(source_trans != NULL) {
@@ -127,16 +149,17 @@ dfs(TPMContext *tpm, TPMNode2 *s, TaintedBuf **dstMemNodes, Addr2NodeItem *addr2
 
 			if(dst->tpmnode1.type == TPM_Type_Memory) {
 				// printf("propagate to addr:%x val:%x\n", dst->tpmnode2.addr, dst->tpmnode2.val);
-				// Only stores hit mem nodes in dst addr and seq range
-				if(dst->tpmnode2.addr >= dstAddrStart && dst->tpmnode2.addr <= dstAddrEnd 
-				   && dst->tpmnode2.lastUpdateTS >= dstMinSeq && dst->tpmnode2.lastUpdateTS <= dstMaxSeq) {
-				   	dst->tpmnode2.hitcnt += srcbyte;
-					storePropagateDstMemNode(&(dst->tpmnode2), dstMemNodes);
-					hitDstByte += dst->tpmnode2.bytesz;
+				if(dst->tpmnode2.addr >= dstAddrStart
+				   && dst->tpmnode2.addr <= dstAddrEnd
+				   && dst->tpmnode2.lastUpdateTS >= dstMinSeq
+				   && dst->tpmnode2.lastUpdateTS <= dstMaxSeq) {    // Only stores hit mem nodes in dst addr and seq range
+				   	dst->tpmnode2.hitcnt += srcbyte;        // updates dst node hitcnt
+					srcHitDstByte += dst->tpmnode2.bytesz;  // updates src node hitcnt
+					// storePropagateDstMemNode(&(dst->tpmnode2), dstMemNodes); // IGNORE: old
 
+					// adds the dst node to 2nd level of the addr2NodeItem hash
 					Addr2NodeItem *addr2NodeItem = createAddr2NodeItem(dst->tpmnode2.addr, &(dst->tpmnode2), NULL, NULL);
 					HASH_ADD(hh_addr2NodeItem, addr2NodeHT->subHash, node, 4, addr2NodeItem);
-
 				}
 			}
 			(*stepCount)++;
@@ -158,7 +181,7 @@ dfs(TPMContext *tpm, TPMNode2 *s, TaintedBuf **dstMemNodes, Addr2NodeItem *addr2
 	transStackPopAll();
 	HASH_SRT(hh_addr2NodeItem, addr2NodeHT->subHash, cmpAddr2NodeItem);
 
-	return hitDstByte;	
+	return srcHitDstByte;
 }
 
 static int 

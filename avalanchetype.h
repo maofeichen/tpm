@@ -15,6 +15,9 @@ struct addr2NodeItem
 };
 typedef struct addr2NodeItem Addr2NodeItem;
 
+Addr2NodeItem *
+createAddr2NodeItem(u32 addr, TPMNode2 *memNode, Addr2NodeItem *subHash, TaintedBuf *toMemNode);
+
 void 
 print2ndLevelHash(Addr2NodeItem *src);
 

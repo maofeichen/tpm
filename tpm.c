@@ -204,7 +204,7 @@ getAllTPMBuf(TPMContext *tpm)
     for(memNodeHT = tpm->mem2NodeHT; memNodeHT != NULL; memNodeHT = memNodeHT->hh_mem.next) {
         memNode = memNodeHT->toMem;
         compBufStat(memNode, &baddr, &eaddr, &minseq, &maxseq, &numOfAddr, &firstMemNode);
-        if(eaddr - baddr >= tpm->minBufferSz){
+        if(eaddr - baddr >= tpm->minBufferSz){ // only consider bufs with sz satisfies the min requirement
             tpmBufNode = initTPMBufHTNode(baddr, eaddr, minseq, maxseq, numOfAddr, firstMemNode);
 
             HASH_FIND(hh_tpmBufHT, tpmBufHT, &baddr, 4, tpmBufFound);
@@ -280,6 +280,8 @@ void
 printTPMBufHT(TPMBufHashTable *tpmBufHT)
 {
     TPMBufHashTable *node, *temp;
+
+    printf("min buf sz:%u\n", MIN_BUF_SZ);
     HASH_ITER(hh_tpmBufHT, tpmBufHT, node, temp) {
         printf("begin addr:0x%-8x end addr:0x%-8x sz:%u numofaddr:%-2u minseq:%d maxseq:%d diffseq:%d\n", 
             node->baddr, node->eaddr, node->eaddr - node->baddr, node->numOfAddr, node->minseq, node->maxseq, (node->maxseq - node->minseq));
