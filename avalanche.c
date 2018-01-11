@@ -685,13 +685,14 @@ detectAvalancheOfSourceFast(AvalancheSearchCtxt *avalsctxt, Addr2NodeItem *srcno
 
 	    // TODO: add comment
 	    if(newsrcnode->node->addr <= oldsrcnode->node->addr) {
-	        printf("--------------------\n");
-            addr2NodeItemStackDispRange(stckSrcTop, "avalanche found:\nsrc buf:");
-            printf("aval to dst buf:\n");
-            printRangeArray(oldintersct_ra);
+            if(stckSrcCnt >= *addrIdxInterval) {
+		        printf("--------------------\n");
+	            addr2NodeItemStackDispRange(stckSrcTop, "avalanche found:\nsrc buf:");
+	            printf("aval to dst buf:\n");
+	            printRangeArray(oldintersct_ra);
 
-            if(stckSrcCnt > *addrIdxInterval)
 	            *addrIdxInterval = stckSrcCnt;  // set to max num src node has avalanche
+            }
 
 		    while(newsrcnode->node->addr <= stckSrcTop->addr2NodeItem->node->addr) {
 		        addr2NodeItemStackPop(&stckSrcTop, &stckSrcCnt);
@@ -722,16 +723,16 @@ detectAvalancheOfSourceFast(AvalancheSearchCtxt *avalsctxt, Addr2NodeItem *srcno
 	    }
 	    else {
 	        if(!hasPrint){
-		        // print avalanche?
-	            printf("--------------------\n");
-	            addr2NodeItemStackDispRange(stckSrcTop, "avalanche found:\nsrc buf:");
-	            printf("aval to dst buf:\n");
-	            printRangeArray(oldintersct_ra);
+	            if(stckSrcCnt >= *addrIdxInterval) {
+		            printf("--------------------\n");
+		            addr2NodeItemStackDispRange(stckSrcTop, "avalanche found:\nsrc buf:");
+		            printf("aval to dst buf:\n");
+		            printRangeArray(oldintersct_ra);
+
+	                *addrIdxInterval = stckSrcCnt;  // set to max num src node has avalanche
+	            }
 
 	            hasPrint = true;
-
-	            if(stckSrcCnt > *addrIdxInterval)
-	                *addrIdxInterval = stckSrcCnt;  // set to max num src node has avalanche
 	        }
 	        continue;
 	    }
