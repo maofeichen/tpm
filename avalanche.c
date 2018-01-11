@@ -50,6 +50,9 @@ aggregateDstBuf(AvalancheSearchCtxt *avalsctxt);
 static void
 detectAvalancheInOutBufFast(TPMContext *tpm, AvalancheSearchCtxt *avalsctxt);
 
+static bool
+hasSearchAllSrc(Addr2NodeItem **srchead, u32 rangesz, u32 *startidx);
+
 static void 
 detectAvalancheInOutBuf(TPMContext *tpm, AvalancheSearchCtxt *avalsctxt);
 
@@ -74,7 +77,7 @@ printHitcntRange(ContHitcntRange *lstHead);
 
 /* detect avalanche of source fast */
 static void
-detectAvalancheOfSourceFast(AvalancheSearchCtxt *avalsctxt, Addr2NodeItem *srcnode, u32 addrIdxStartSearch);
+detectAvalancheOfSourceFast(AvalancheSearchCtxt *avalsctxt, Addr2NodeItem *srcnode, u32 addrIdxStartSearch, u32 *addrIdxInterval);
 
 static void
 storeAllAddrHashChildrenFast(Addr2NodeItem *addrHash, StackAddr2NodeItem **stackAddr2NodeItemTop, u32 *stackAddr2NodeItemCount, u32 minBufSz);
@@ -482,23 +485,51 @@ detectAvalancheInOutBufFast(TPMContext *tpm, AvalancheSearchCtxt *avalsctxt)
 	ContHitcntRange *range;
 	Addr2NodeItem *srcnode;
 
+	LL_FOREACH(lst_srcHitcntRange, range) { // addr first node second search
+	    int rangesz = range->addrIdxEnd - range->addrIdxStart + 1;
+	    Addr2NodeItem *srchead[rangesz];
+	    for(int i = 0; i < rangesz; i++){
+	        srchead[i] = avalsctxt->addr2NodeAry[i + range->addrIdxStart];
+	    }
 
-
-	LL_FOREACH(lst_srcHitcntRange, range) {
-	    for(addridx = range->addrIdxStart; addridx <= range->addrIdxEnd; addridx++) { // go through each addr in range
-	        for(srcnode = avalsctxt->addr2NodeAry[addridx]; srcnode != NULL; srcnode = srcnode->hh_addr2NodeItem.next) { // go throught each node
-	            if(srcnode->node->hitcnt >= avalsctxt->minBufferSz)  {
-	                printf("src node: ");
-	                printMemNode(srcnode->node);
-	                detectAvalancheOfSourceFast(avalsctxt, srcnode, addridx+1);
-	                goto OUTLOOP;
-	            }
-	        }
+	    int startidx = 0, addridx = 0;
+	    bool hasSearchAll = false;
+	    while(!hasSearchAll) {
+	    	addridx = startidx;
+		    while(addridx < rangesz-1) { // last addr node can't be
+		        u32 addrIdxInterval = 1;
+		        if(srchead[addridx] != NULL) {
+			    	Addr2NodeItem *srcnode = srchead[addridx];
+			    	// detects here
+			    	if(srcnode->node->hitcnt >= avalsctxt->minBufferSz){
+			    	    printMemNode(srcnode->node);
+			    	    detectAvalancheOfSourceFast(avalsctxt, srcnode, addridx+1, &addrIdxInterval);
+//			    	    goto OUTLOOP;
+			    	}
+			    	srchead[addridx] = srcnode->hh_addr2NodeItem.next;
+		        }
+		    	addridx += addrIdxInterval;
+		    }
+		    hasSearchAll = hasSearchAllSrc(srchead, rangesz, &startidx);
 	    }
 	}
+
 OUTLOOP:
-    printf("out loop\n");
+    printf("out of loop\n");
 }
+
+static bool
+hasSearchAllSrc(Addr2NodeItem **srchead, u32 rangesz, u32 *startidx)
+{
+    for(int addridx = 0; addridx < rangesz-1; addridx++){ // ignore last addr
+        if(srchead[addridx] != NULL){
+            *startidx = addridx;
+            return false;
+        }
+    }
+    return true;
+}
+
 
 static void 
 detectAvalancheInOutBuf(TPMContext *tpm, AvalancheSearchCtxt *avalsctxt)
@@ -628,7 +659,7 @@ printHitcntRange(ContHitcntRange *lstHead)
 }
 
 static void 
-detectAvalancheOfSourceFast(AvalancheSearchCtxt *avalsctxt, Addr2NodeItem *srcnode, u32 addrIdxStartSearch)
+detectAvalancheOfSourceFast(AvalancheSearchCtxt *avalsctxt, Addr2NodeItem *srcnode, u32 addrIdxStartSearch, u32 *addrIdxInterval)
 {
     Addr2NodeItem *oldsrcnode, *newsrcnode;
     RangeArray *oldra, *newra, *oldintersct_ra, *newintersct_ra;
@@ -644,13 +675,13 @@ detectAvalancheOfSourceFast(AvalancheSearchCtxt *avalsctxt, Addr2NodeItem *srcno
 	oldsrcnode = srcnode;
 	addr2NodeItemStackPush(&stckSrcTop, &stckSrcCnt, oldsrcnode);
 	oldra = buildRangeArray(oldsrcnode->subHash);
-	// printRangeArray(oldra);
+	printRangeArray(oldra);
 
 	storeAllAddrHashChildrenFast(avalsctxt->addr2NodeAry[addrIdxStartSearch], &stckTravrsTop, &stckTravrsCnt, avalsctxt->minBufferSz);
 	while(!isAddr2NodeItemStackEmpty(stckTravrsTop) ) {
 	    newsrcnode = addr2NodeItemStackPop(&stckTravrsTop, &stckTravrsCnt);
-	    // printMemNode(newsrcnode->node);
-	    // printMemNode(oldsrcnode->node);
+	    printMemNode(newsrcnode->node);
+	    printMemNode(oldsrcnode->node);
 
 	    // TODO: add comment
 	    if(newsrcnode->node->addr <= oldsrcnode->node->addr) {
@@ -660,14 +691,14 @@ detectAvalancheOfSourceFast(AvalancheSearchCtxt *avalsctxt, Addr2NodeItem *srcno
 		    }
 		    oldsrcnode = stckSrcTop->addr2NodeItem;
 		    oldra = buildRangeArray(oldsrcnode->subHash);
-		    // printMemNode(oldsrcnode->node);
-		    // printRangeArray(oldra);
+		    printMemNode(oldsrcnode->node);
+		    printRangeArray(oldra);
 	    }
 
 	    newra = buildRangeArray(newsrcnode->subHash);
 	    newintersct_ra = getIntersectRangeArray(oldsrcnode, oldra, newsrcnode, newra);
-	    // printRangeArray(newra);
-	    // printRangeArray(newintersct_ra);
+	    printRangeArray(newra);
+	    printRangeArray(newintersct_ra);
 
 	    // if valid intersect ra, continue to next addr node
 	    // otherwise if the source node > min buf sz, get avalnche, print out
@@ -690,6 +721,9 @@ detectAvalancheOfSourceFast(AvalancheSearchCtxt *avalsctxt, Addr2NodeItem *srcno
 	            printRangeArray(oldintersct_ra);
 
 	            hasPrint = true;
+
+	            if(stckSrcCnt > *addrIdxInterval)
+	                *addrIdxInterval = stckSrcCnt;  // set to max num src node has avalanche
 	        }
 	        continue;
 	    }

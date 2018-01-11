@@ -15,4 +15,7 @@ struct addr2NodeItem
 };
 typedef struct addr2NodeItem Addr2NodeItem;
 
+void 
+print2ndLevelHash(Addr2NodeItem *src);
+
 #endif
