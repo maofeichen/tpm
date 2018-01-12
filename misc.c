@@ -6,7 +6,7 @@ printTime()
     time_t rawtime;
 	struct tm *timeinfo;
 
- 	time ( rawtime );
-	timeinfo = localtime ( rawtime );
+ 	time ( &rawtime );
+	timeinfo = localtime ( &rawtime );
 	printf ( "local time: %s", asctime (timeinfo) );
 }
