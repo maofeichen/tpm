@@ -297,8 +297,9 @@ searchAvalancheInOutBuf(TPMContext *tpm, AvalancheSearchCtxt *avalsctxt, Propaga
 	printf("finish searching propagation\n");
     if(propaStat->numOfSearch > 0) {
         printf("--------------------\n");
-        printf("minstep:%u maxstep:%u avgstep:%u\n",
-                propaStat->minstep, propaStat->maxstep, propaStat->totalstep / propaStat->numOfSearch);
+        printf("minstep:%u maxstep:%u avgstep:%u totalstep:%u numofsearch:%u\n",
+                propaStat->minstep, propaStat->maxstep, propaStat->totalstep / propaStat->numOfSearch,
+                propaStat->totalstep, propaStat->numOfSearch);
     }
 
 	printTime();
