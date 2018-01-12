@@ -1,9 +1,9 @@
 #include <assert.h>
 #include <stdbool.h>
 #include <stdio.h>
-#include <time.h>
 #include "utlist.h"
 #include "avalanche.h"
+#include "misc.h"
 
 static struct ContHitcntRange
 {
@@ -184,9 +184,6 @@ printAvalDstBufHT(AvalDstBufHTNode *avalDstBufHT);
 static void
 print2LevelHashTable(struct addr2NodeItem **addr2NodeAry, u32 numOfAddr);
 
-static void
-printTime(time_t *rawtime, struct tm *timeinfo);
-
 /* functions */
 int
 init_AvalancheSearchCtxt(
@@ -222,9 +219,6 @@ searchAllAvalancheInTPM(TPMContext *tpm)
     AvalancheSearchCtxt *avalsctxt;
     TPMBufHashTable *tpmBufHT, *srcBuf, *dstBuf;
 
-    time_t rawtime;
-	struct tm *timeinfo;
-
 	tpmBufHT = getAllTPMBuf(tpm);
 	printTPMBufHT(tpmBufHT);
 	// TODO: free tpmBufHT
@@ -253,10 +247,10 @@ searchAllAvalancheInTPM(TPMContext *tpm)
 		            srcBuf->headNode, dstBuf->headNode, srcBuf->baddr, srcBuf->eaddr,
 		            dstBuf->baddr, dstBuf->eaddr, srcBuf->numOfAddr, dstBuf->numOfAddr);
 			setSeqNo(avalsctxt, srcBuf->minseq, srcBuf->maxseq, dstBuf->minseq, dstBuf->maxseq);
+
 			printf("----------------------------------------%d pair-buf search\n", searchcnt);
-			// printTime(&rawtime, timeinfo);
+	    	printTime();
 	    	searchAvalancheInOutBuf(tpm, avalsctxt, &propaStat);
-	    	// printTime(&rawtime, timeinfo);
 	    	free_AvalancheSearchCtxt(avalsctxt);     
 
             if(propaStat.numOfSearch > 0) {
@@ -306,6 +300,7 @@ searchAvalancheInOutBuf(TPMContext *tpm, AvalancheSearchCtxt *avalsctxt, Propaga
 	searchPropagateInOutBuf(tpm, avalsctxt, &(avalsctxt->addr2Node), propaStat);
 	printf("--------------------\n");
 	printf("finish searching propagation\n");
+	printTime();
 #ifdef DEBUG
 	printDstMemNodesHTTotal(avalsctxt->addr2Node);
 	printDstMemNodesHT(avalsctxt->addr2Node);
@@ -546,6 +541,7 @@ detectAvalancheInOutBufFast(TPMContext *tpm, AvalancheSearchCtxt *avalsctxt)
 		        if(srcnode->node->hitcnt >= avalsctxt->minBufferSz){    // only considers nodes satisfy min buf sz
 		            printf("--------------------%d detect avalanche\n", detectcnt);
 		            printf("begin node:addr:%x version:%u\n", srcnode->node->addr, srcnode->node->version);
+		            printTime();
 	                detectAvalancheOfSourceFast(avalsctxt, srcnode, addridx+1, &addrIdxInterval);
 
 	                if(addrIdxInterval > maxAddrIdxInterval)
@@ -1427,12 +1423,4 @@ print2LevelHashTable(struct addr2NodeItem **addr2NodeAry, u32 numOfAddr)
       }
     }
   }
-}
-
-static void
-printTime(time_t *rawtime, struct tm *timeinfo)
-{
-  	time ( rawtime );
-	timeinfo = localtime ( rawtime );
-	printf ( "Current local time and date: %s", asctime (timeinfo) );
 }
