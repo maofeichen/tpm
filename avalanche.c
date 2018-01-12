@@ -253,11 +253,6 @@ searchAllAvalancheInTPM(TPMContext *tpm)
 	    	searchAvalancheInOutBuf(tpm, avalsctxt, &propaStat);
 	    	free_AvalancheSearchCtxt(avalsctxt);     
 
-            if(propaStat.numOfSearch > 0) {
-                printf("--------------------\n");
-                printf("minstep:%u maxstep:%u avgstep:%u\n",
-                        propaStat.minstep, propaStat.maxstep, propaStat.totalstep / propaStat.numOfSearch);
-            }
 	    	searchcnt++;
 		}
 	}
@@ -300,6 +295,12 @@ searchAvalancheInOutBuf(TPMContext *tpm, AvalancheSearchCtxt *avalsctxt, Propaga
 	searchPropagateInOutBuf(tpm, avalsctxt, &(avalsctxt->addr2Node), propaStat);
 	printf("--------------------\n");
 	printf("finish searching propagation\n");
+    if(propaStat->numOfSearch > 0) {
+        printf("--------------------\n");
+        printf("minstep:%u maxstep:%u avgstep:%u\n",
+                propaStat->minstep, propaStat->maxstep, propaStat->totalstep / propaStat->numOfSearch);
+    }
+
 	printTime();
 #ifdef DEBUG
 	printDstMemNodesHTTotal(avalsctxt->addr2Node);

@@ -1,4 +1,5 @@
 #include "misc.h"
+#include <stdio.h>
 
 void
 printTime()
