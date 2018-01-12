@@ -1,5 +1,6 @@
 #include "propagate.h"
 #include <stdbool.h>
+#include <stdint.h>
 #include "utlist.h"
 
 /* Transition hash table operation */
@@ -57,7 +58,10 @@ static bool
 isTransitionVisited(TransitionHashTable *transitionht, Transition *transition);
 
 static void 
-storeAllUnvisitChildren(TransitionHashTable **transitionht, Transition *firstChild);
+storeAllUnvisitChildren(
+        TransitionHashTable **transitionht,
+        Transition *firstChild,
+        int maxseq);
 
 static void 
 storePropagateDstMemNode(TPMNode2 *memNode, TaintedBuf **dstMemNodes);
@@ -142,7 +146,7 @@ dfs(TPMContext *tpm,
 	int srcbyte = s->bytesz;
 
 	if(source_trans != NULL) {
-		storeAllUnvisitChildren(&markVisitTransHT, source_trans);
+		storeAllUnvisitChildren(&markVisitTransHT, source_trans, dstMaxSeq);
 		while(!isTransStackEmpty() ) {
 			Transition *pop = transStackPop();
 			TPMNode *dst = getTransitionDst(pop);
@@ -163,7 +167,7 @@ dfs(TPMContext *tpm,
 				}
 			}
 			(*stepCount)++;
-			storeAllUnvisitChildren(&markVisitTransHT, dst->tpmnode1.firstChild);
+			storeAllUnvisitChildren(&markVisitTransHT, dst->tpmnode1.firstChild, dstMaxSeq);
 			// TODO: if search node seqNo larger than dst max seqNo, no need to search further
 		}
 	}
@@ -206,7 +210,7 @@ dfsPrintResult(TPMContext *tpm, TPMNode2 *s)
 	int stepCount = 0;
 
 	if(source_trans != NULL) {
-		storeAllUnvisitChildren(&markVisitTransHT, source_trans);
+		storeAllUnvisitChildren(&markVisitTransHT, source_trans, INT32_MAX);
 		while(!isTransStackEmpty() ) {
 			Transition *pop = transStackPop();
 			TPMNode *dst = getTransitionDst(pop);
@@ -216,7 +220,7 @@ dfsPrintResult(TPMContext *tpm, TPMNode2 *s)
 // #endif
 			stepCount++;
 
-			storeAllUnvisitChildren(&markVisitTransHT, dst->tpmnode1.firstChild);
+			storeAllUnvisitChildren(&markVisitTransHT, dst->tpmnode1.firstChild, INT32_MAX);
 		}
 	}
 	else { 
@@ -356,10 +360,14 @@ isTransitionVisited(TransitionHashTable *transitionht, Transition *transition)
 }
 
 static void 
-storeAllUnvisitChildren(TransitionHashTable **transitionht, Transition *firstChild)
+storeAllUnvisitChildren(
+        TransitionHashTable **transitionht,
+        Transition *firstChild,
+        int maxseq)
 {
 	while(firstChild != NULL){
-		if(!isTransitionVisited(*transitionht, firstChild) ) {
+		if(!isTransitionVisited(*transitionht, firstChild)
+		   && firstChild->seqNo <= maxseq) {    // only search within the dst max range
 			transStackPush(firstChild);
 			markVisitTransition(transitionht, firstChild);
 		}
