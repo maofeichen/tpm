@@ -232,9 +232,11 @@ searchAllAvalancheInTPM(TPMContext *tpm)
 	PropagateStat propaStat = {0};
 	// goto OUTLOOP;
 
+	int searchcnt = 1;
 	for(srcBuf = tpmBufHT; srcBuf != NULL; srcBuf = srcBuf->hh_tpmBufHT.next) {
 		for(dstBuf = srcBuf->hh_tpmBufHT.next; dstBuf != NULL; dstBuf = dstBuf->hh_tpmBufHT.next) {
 
+#if 0
 		    // if(srcBuf->baddr == 0xc3fb7d80 && dstBuf->baddr == 0xc3fb7d40){ // test signle buf
 		    if(srcBuf->baddr == 0xde911000 && dstBuf->baddr == 0x804c170){ // test signle buf
 	            init_AvalancheSearchCtxt(&avalsctxt, tpm->minBufferSz,
@@ -245,18 +247,19 @@ searchAllAvalancheInTPM(TPMContext *tpm)
 	    		free_AvalancheSearchCtxt(avalsctxt);
 	    		goto OUTLOOP;
 			}
+#endif
 
-#if 0
 		    init_AvalancheSearchCtxt(&avalsctxt, tpm->minBufferSz,
 		            srcBuf->headNode, dstBuf->headNode, srcBuf->baddr, srcBuf->eaddr,
 		            dstBuf->baddr, dstBuf->eaddr, srcBuf->numOfAddr, dstBuf->numOfAddr);
 			setSeqNo(avalsctxt, srcBuf->minseq, srcBuf->maxseq, dstBuf->minseq, dstBuf->maxseq);
+			printf("----------------------------------------%d pair buf search\n", searchcnt);
 			// printTime(&rawtime, timeinfo);
 	    	searchAvalancheInOutBuf(tpm, avalsctxt, &propaStat);
 	    	// printTime(&rawtime, timeinfo);
 	    	free_AvalancheSearchCtxt(avalsctxt);     
-#endif
 
+	    	searchcnt++;
 		}
 	}
 OUTLOOP:
@@ -265,6 +268,7 @@ OUTLOOP:
 	printBufNode(avalsctxt->dstBuf);
 #endif
 	if(propaStat.numOfSearch > 0) {
+	    printf("----------------------------------------\n");
 		printf("minstep:%u maxstep:%u avgstep:%u\n",
 	        propaStat.minstep, propaStat.maxstep, propaStat.totalstep / propaStat.numOfSearch);
 	}
@@ -287,7 +291,6 @@ free_AvalancheSearchCtxt(struct AvalancheSearchCtxt *avalsctxt)
 int 
 searchAvalancheInOutBuf(TPMContext *tpm, AvalancheSearchCtxt *avalsctxt, PropagateStat *propaStat)
 {
-	printf("----------------------------------------\n");
 	printf("src buf: start:%-8x end:%-8x sz:%u minseq:%d maxseq:%d diffSeq:%d\n", 
 		avalsctxt->srcAddrStart, avalsctxt->srcAddrEnd, avalsctxt->srcAddrEnd - avalsctxt->srcAddrStart, 
 		avalsctxt->srcMinSeqN, avalsctxt->srcMaxSeqN, avalsctxt->srcMaxSeqN - avalsctxt->srcMinSeqN);
@@ -730,7 +733,8 @@ detectAvalancheOfSourceFast(
 //           else rewind to prev node?
 {
     Addr2NodeItem *oldsrcnode, *newsrcnode;
-    RangeArray *oldra, *newra, *oldintersct_ra, *newintersct_ra;
+    RangeArray *oldra = NULL, *newra = NULL;
+    RangeArray *oldintersct_ra = NULL, *newintersct_ra = NULL;
 
     StackAddr2NodeItem *stckTravrsTop = NULL;   // maintains the travers nodes during search
 	u32 stckTravrsCnt = 0;
@@ -786,10 +790,11 @@ detectAvalancheOfSourceFast(
 	        oldsrcnode = newsrcnode;
 	        addr2NodeItemStackPush(&stckSrcTop, &stckSrcCnt, oldsrcnode);
 
+	        // TODO: free range array
 	        oldra = newra;
 	        oldintersct_ra = newintersct_ra;
 
-	        hasPrint = false;
+	        hasPrint = false;   // only has new src aval node, indicating new aval
 	    }
 	    else {
 	        if(!hasPrint){
@@ -1246,14 +1251,14 @@ addr2NodeItemStackDispRange(StackAddr2NodeItem *stackAddr2NodeItemTop, char *s)
 	printf("%s\n", s);
 	while(n != NULL && n->next != NULL) {
 		node = n->addr2NodeItem->node;
-		printf("\taddr:%x val:%x lastTS:%d hitcnt:%u version:%u\n",
-		        node->addr, node->val, node->lastUpdateTS, node->hitcnt, node->version);
+		// printf("\taddr:%x val:%x lastTS:%d hitcnt:%u version:%u\n",
+		//         node->addr, node->val, node->lastUpdateTS, node->hitcnt, node->version);
 		n = n->next;
 	}
 
 	node = n->addr2NodeItem->node; // last node
-	printf("\taddr:%x val:%x lastTS:%d hitcnt:%u version:%u\n",
-		    node->addr, node->val, node->lastUpdateTS, node->hitcnt, node->version);
+	// printf("\taddr:%x val:%x lastTS:%d hitcnt:%u version:%u\n",
+	// 	    node->addr, node->val, node->lastUpdateTS, node->hitcnt, node->version);
 
 	bufstart = n->addr2NodeItem->node->addr;
 	printf("\tbufstart:%x bufend:%x sz:%u\n", bufstart, bufend, bufend-bufstart);

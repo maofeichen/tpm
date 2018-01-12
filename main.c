@@ -34,14 +34,14 @@ int main(int argc, char const *argv[])
 
 	if((log = fopen(argv[1], "r") ) != NULL) {
 		printf("open log: %s\n", argv[1]);
-		printTime(&rawtime, timeinfo);
+		// printTime(&rawtime, timeinfo);
 
 		if((tpm = calloc(1, sizeof(struct TPMContext) ) ) != NULL) { 
 			printf("alloc TPMContext: %zu MB\n", sizeof(struct TPMContext) / (1024*1024) );
 
 			if( (numOfNode = buildTPM(log, tpm) ) >= 0) {
 				printf("build TPM successful, total number nodes:%d\n", numOfNode);
-				printTime(&rawtime, timeinfo);
+				// printTime(&rawtime, timeinfo);
 			}
 			else { fprintf(stderr, "error build TPM\n"); }
 #ifdef STAT
