@@ -253,12 +253,17 @@ searchAllAvalancheInTPM(TPMContext *tpm)
 		            srcBuf->headNode, dstBuf->headNode, srcBuf->baddr, srcBuf->eaddr,
 		            dstBuf->baddr, dstBuf->eaddr, srcBuf->numOfAddr, dstBuf->numOfAddr);
 			setSeqNo(avalsctxt, srcBuf->minseq, srcBuf->maxseq, dstBuf->minseq, dstBuf->maxseq);
-			printf("----------------------------------------%d pair buf search\n", searchcnt);
+			printf("----------------------------------------%d pair-buf search\n", searchcnt);
 			// printTime(&rawtime, timeinfo);
 	    	searchAvalancheInOutBuf(tpm, avalsctxt, &propaStat);
 	    	// printTime(&rawtime, timeinfo);
 	    	free_AvalancheSearchCtxt(avalsctxt);     
 
+            if(propaStat.numOfSearch > 0) {
+                printf("--------------------\n");
+                printf("minstep:%u maxstep:%u avgstep:%u\n",
+                        propaStat.minstep, propaStat.maxstep, propaStat.totalstep / propaStat.numOfSearch);
+            }
 	    	searchcnt++;
 		}
 	}
@@ -299,6 +304,8 @@ searchAvalancheInOutBuf(TPMContext *tpm, AvalancheSearchCtxt *avalsctxt, Propaga
 		avalsctxt->dstMinSeqN, avalsctxt->dstMaxSeqN, avalsctxt->dstMaxSeqN - avalsctxt->dstMinSeqN);
 
 	searchPropagateInOutBuf(tpm, avalsctxt, &(avalsctxt->addr2Node), propaStat);
+	printf("--------------------\n");
+	printf("finish searching propagation\n");
 #ifdef DEBUG
 	printDstMemNodesHTTotal(avalsctxt->addr2Node);
 	printDstMemNodesHT(avalsctxt->addr2Node);
@@ -525,7 +532,7 @@ detectAvalancheInOutBufFast(TPMContext *tpm, AvalancheSearchCtxt *avalsctxt)
 		return;
 
 	ContHitcntRange *range;
-
+	int detectcnt = 1;
 	// node first addr second
 	LL_FOREACH(lst_srcHitcntRange, range) {
 	    int addridx = range->addrIdxStart;
@@ -537,10 +544,14 @@ detectAvalancheInOutBufFast(TPMContext *tpm, AvalancheSearchCtxt *avalsctxt)
 
 	        for(; srcnode != NULL; srcnode = srcnode->hh_addr2NodeItem.next) {
 		        if(srcnode->node->hitcnt >= avalsctxt->minBufferSz){    // only considers nodes satisfy min buf sz
+		            printf("--------------------%d detect avalanche\n", detectcnt);
+		            printf("begin node:addr:%x version:%u\n", srcnode->node->addr, srcnode->node->version);
 	                detectAvalancheOfSourceFast(avalsctxt, srcnode, addridx+1, &addrIdxInterval);
 
 	                if(addrIdxInterval > maxAddrIdxInterval)
 	                    maxAddrIdxInterval = addrIdxInterval;
+
+	                detectcnt++;
 	            }
 	        }
 	        addridx += maxAddrIdxInterval;  // advances addr by interval
