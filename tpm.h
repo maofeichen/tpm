@@ -101,6 +101,9 @@ getAllTPMBuf(TPMContext *tpm);
 // computes all the bufs in tpm
 
 void 
+delAllTPMBuf(TPMBufHashTable *tpmBuf);
+
+void
 delTPM(struct TPMContext *tpm);
 
 /* Transition operation */

@@ -211,12 +211,28 @@ getAllTPMBuf(TPMContext *tpm)
             if(tpmBufFound == NULL) {
                 HASH_ADD(hh_tpmBufHT, tpmBufHT, baddr, 4, tpmBufNode);
             }
+            else { free(tpmBufNode); }
         }
     }
     HASH_SRT(hh_tpmBufHT, tpmBufHT, cmpTPMBufHTNode);
     // printTPMBufHT(tpmBufHT);
     return tpmBufHT;
 }
+
+void
+delAllTPMBuf(TPMBufHashTable *tpmBuf)
+{
+    TPMBufHashTable *curr, *tmp;
+
+    if(tpmBuf == NULL)
+        return;
+
+    HASH_ITER(hh_tpmBufHT, tpmBuf, curr, tmp){
+        HASH_DELETE(hh_tpmBufHT, tpmBuf, curr);
+        free(curr);
+    }
+}
+
 
 void delTPM(struct TPMContext *tpm)
 {
