@@ -233,6 +233,7 @@ searchAllAvalancheInTPM(TPMContext *tpm)
 	for(srcBuf = tpmBufHT; srcBuf != NULL; srcBuf = srcBuf->hh_tpmBufHT.next) {
 		for(dstBuf = srcBuf->hh_tpmBufHT.next; dstBuf != NULL; dstBuf = dstBuf->hh_tpmBufHT.next) {
 
+#if 0
 		    // if(srcBuf->baddr == 0xc3fb7d80 && dstBuf->baddr == 0xc3fb7d40){ // test signle buf
 		    if(srcBuf->baddr == 0xde911000 && dstBuf->baddr == 0x804c170){ // test signle buf
 	            init_AvalancheSearchCtxt(&avalsctxt, tpm->minBufferSz,
@@ -241,10 +242,10 @@ searchAllAvalancheInTPM(TPMContext *tpm)
 				setSeqNo(avalsctxt, srcBuf->minseq, srcBuf->maxseq, dstBuf->minseq, dstBuf->maxseq);
 	    		searchAvalancheInOutBuf(tpm, avalsctxt, &propaStat);
 	    		free_AvalancheSearchCtxt(avalsctxt);
-	    		goto OUTLOOP;
+	    		// goto OUTLOOP;
 			}
 
-#if 0
+#endif
 		    init_AvalancheSearchCtxt(&avalsctxt, tpm->minBufferSz,
 		            srcBuf->headNode, dstBuf->headNode, srcBuf->baddr, srcBuf->eaddr,
 		            dstBuf->baddr, dstBuf->eaddr, srcBuf->numOfAddr, dstBuf->numOfAddr);
@@ -255,7 +256,6 @@ searchAllAvalancheInTPM(TPMContext *tpm)
 	    	searchAvalancheInOutBuf(tpm, avalsctxt, &propaStat);
 	    	free_AvalancheSearchCtxt(avalsctxt);     
 
-#endif
 	    	searchcnt++;
 		}
 	}
@@ -594,7 +594,7 @@ detectAvalancheInOutBufFast(TPMContext *tpm, AvalancheSearchCtxt *avalsctxt)
 	}
 #endif
 OUTLOOP:
-    printf("DEBUG");
+    printf("DEBUG\n");
 }
 
 static bool

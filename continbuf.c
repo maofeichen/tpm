@@ -504,6 +504,12 @@ delRangeArray(RangeArray **ra)
     if(*ra == NULL)
         return;
 
+    for(int i = 0; i < (*ra)->rangeAryUsed; i++) {
+        if((*ra)->rangeAry[i] != NULL) {
+            delRange(&((*ra)->rangeAry[i]) );
+        }
+    }
+
     free((*ra)->rangeAry);
     (*ra)->rangeAry = NULL;
 
