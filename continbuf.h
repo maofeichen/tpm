@@ -93,7 +93,7 @@ Range *
 getIntersectRange(Addr2NodeItem *l, Addr2NodeItem *r, u32 start, u32 end);
 
 void
-delRange(Range *r);
+delRange(Range **r);
 
 void
 printRange(Range *r, char *s);
@@ -109,7 +109,7 @@ RangeArray *
 getIntersectRangeArray(Addr2NodeItem *l, RangeArray *lra, Addr2NodeItem *r, RangeArray *rra);
 
 void
-delRangeArray(RangeArray *ra);
+delRangeArray(RangeArray **ra);
 
 void
 printRangeArray(RangeArray *ra, char *s);

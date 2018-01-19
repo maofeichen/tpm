@@ -98,6 +98,9 @@ storeAllAddrHashChildrenFast(
 
 RangeArray *buildRangeArray(Addr2NodeItem *dstNodes);
 
+static void
+delOldNewRangeArray(RangeArray **old, RangeArray **new);
+
 /* detects avalanche given one source node in the in buffer */
 static void 
 detectAvalancheOfSource(AvalancheSearchCtxt *avalsctxt, Addr2NodeItem *sourceNode, Addr2NodeItem *addrHashStartSearch, u32 *numOfAddrAdvanced);
@@ -770,6 +773,7 @@ detectAvalancheOfSourceFast(
 	    // printMemNode(oldsrcnode->node);
 
 	    // TODO: add comment
+	    // newnode's addr <= oldnode's addr, indicates the stack is bouncing back
 	    if(newsrcnode->node->addr <= oldsrcnode->node->addr) {
 	        if(!hasPrint){
 	            if(stckSrcCnt >= 2 && stckSrcCnt >= *addrIdxInterval) {
@@ -786,24 +790,33 @@ detectAvalancheOfSourceFast(
 		        addr2NodeItemStackPop(&stckSrcTop, &stckSrcCnt);
 		        addrIdxStartSearch--;
 		    }
+
+		    delOldNewRangeArray(&oldra, &newra);
+		    delOldNewRangeArray(&oldintersct_ra, &newintersct_ra);
+
 		    oldsrcnode = stckSrcTop->addr2NodeItem;
 		    oldra = buildRangeArray(oldsrcnode->subHash);
 		    // printMemNode(oldsrcnode->node);
 		    // printRangeArray(oldra);
 	    }
 
+	    // can't delete here, due to in the yes case below, newra is assigned to oldra,
+	    // if delete newra, then oldra will be deleted also. Now I set new to NULL if the case.
 	    newra = buildRangeArray(newsrcnode->subHash);
 	    newintersct_ra = getIntersectRangeArray(oldsrcnode, oldra, newsrcnode, newra);
-	    // printRangeArray(newra);
-	    // printRangeArray(newintersct_ra);
 
 	    if(newintersct_ra->rangeAryUsed > 0) { // valid intersection range array
 	        oldsrcnode = newsrcnode;
 	        addr2NodeItemStackPush(&stckSrcTop, &stckSrcCnt, oldsrcnode);
 
-	        // TODO: free range array
+	        delRangeArray(&oldra);
+	        delRangeArray(&oldintersct_ra);
+
 	        oldra = newra;
 	        oldintersct_ra = newintersct_ra;
+
+	        newra = NULL;   // since newra assigns to oldra, set it to NULL after
+	        newintersct_ra = NULL;
 
 	        hasPrint = false;   // only has new src aval node, indicating new aval
 	    }
@@ -820,7 +833,10 @@ detectAvalancheOfSourceFast(
 
 	            hasPrint = true;
 	        }
-	        continue;
+
+	        delRangeArray(&newra);  // only del new ones due to invalid
+	        delRangeArray(&newintersct_ra);
+	        continue;   // no valid intersect propagation, no need to go further (as dfs)
 	    }
 
 	    if(addrIdxStartSearch < avalsctxt->numOfSrcAddr){ // push nodes of rightNBR only once
@@ -830,7 +846,11 @@ detectAvalancheOfSourceFast(
 	                                         &stckTravrsTop, &stckTravrsCnt,
 	                                         avalsctxt->minBufferSz, oldsrcnode->node->lastUpdateTS);
 	    }
+
 	}
+
+	delOldNewRangeArray(&oldra, &newra);
+	delOldNewRangeArray(&oldintersct_ra, &newintersct_ra);
 }
 
 static void
@@ -909,6 +929,17 @@ buildRangeArray(Addr2NodeItem *dstNodes)
     add2Range(ra, r);   // add the last range
     return ra;
 }
+
+static void
+delOldNewRangeArray(RangeArray **old, RangeArray **new)
+{
+    if(*old == *new) { delRangeArray(old); }
+    else {
+        delRangeArray(old);
+        delRangeArray(new);
+    }
+}
+
 
 static void
 detectAvalancheOfSource(AvalancheSearchCtxt *avalsctxt, Addr2NodeItem *sourceNode, Addr2NodeItem *addrHashStartSearch, u32 *numOfAddrAdvanced)

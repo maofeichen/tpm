@@ -414,13 +414,13 @@ getIntersectRange(Addr2NodeItem *l, Addr2NodeItem *r, u32 start, u32 end)
 }
 
 void
-delRange(Range *r)
+delRange(Range **r)
 {
-    if(r == NULL)
+    if(*r == NULL)
         return;
 
-    free(r);
-    r = NULL;
+    free(*r);
+    *r = NULL;
 }
 
 
@@ -497,16 +497,16 @@ getIntersectRangeArray(Addr2NodeItem *l, RangeArray *lra, Addr2NodeItem *r, Rang
 }
 
 void
-delRangeArray(RangeArray *ra)
+delRangeArray(RangeArray **ra)
 {
-    if(ra == NULL)
+    if(*ra == NULL)
         return;
 
-    for(int i = 0; i < ra->rangeAryUsed; i++) {
-        delRange(ra->rangeAry[i]);
+    for(int i = 0; i < (*ra)->rangeAryUsed; i++) {
+        delRange(&( (*ra)->rangeAry[i]) );
     }
-    free(ra);
-    ra = NULL;
+    free(*ra);
+    *ra = NULL;
 }
 
 static void
@@ -547,8 +547,10 @@ growRangeArray(RangeArray *ra)
 void
 printRangeArray(RangeArray *ra, char *s)
 {
-    if(ra == NULL)
+    if(ra == NULL){
+        fprintf(stderr, "printRangeArray: %s ra:%p\n", s, ra);
         return;
+    }
 
     // printf("range array: total ranges:%u\n", ra->rangeAryUsed);
     for(int i = 0; i < ra->rangeAryUsed; i++) {
