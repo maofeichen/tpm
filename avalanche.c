@@ -550,6 +550,7 @@ detectAvalancheInOutBufFast(TPMContext *tpm, AvalancheSearchCtxt *avalsctxt)
 		            printf("begin node:addr:%x version:%u\n", srcnode->node->addr, srcnode->node->version);
 		            printTime();
 	                detectAvalancheOfSourceFast(avalsctxt, srcnode, addridx+1, &addrIdxInterval);
+	                // goto OUTLOOP;
 
 	                if(addrIdxInterval > maxAddrIdxInterval)
 	                    maxAddrIdxInterval = addrIdxInterval;
@@ -593,7 +594,7 @@ detectAvalancheInOutBufFast(TPMContext *tpm, AvalancheSearchCtxt *avalsctxt)
 	}
 #endif
 OUTLOOP:
-    printf("");
+    printf("DEBUG");
 }
 
 static bool

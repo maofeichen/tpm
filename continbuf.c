@@ -427,8 +427,10 @@ delRange(Range **r)
 void
 printRange(Range *r, char *s)
 {
-    if(r == NULL)
+    if(r == NULL){
+        fprintf(stderr, "printRange: %s r:%p\n", s, r);
         return;
+    }
 
     printf("%sstart:%x end:%x sz:%u\n", s, r->start, r->end, r->end - r->start);
 }
@@ -502,9 +504,9 @@ delRangeArray(RangeArray **ra)
     if(*ra == NULL)
         return;
 
-    for(int i = 0; i < (*ra)->rangeAryUsed; i++) {
-        delRange(&( (*ra)->rangeAry[i]) );
-    }
+    free((*ra)->rangeAry);
+    (*ra)->rangeAry = NULL;
+
     free(*ra);
     *ra = NULL;
 }
