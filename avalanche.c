@@ -223,6 +223,7 @@ searchAllAvalancheInTPM(TPMContext *tpm)
     TPMBufHashTable *tpmBufHT, *srcBuf, *dstBuf;
 
 	tpmBufHT = getAllTPMBuf(tpm);
+	assignBufID(tpmBufHT);
 	printTPMBufHT(tpmBufHT);
 	// TODO: free tpmBufHT
 

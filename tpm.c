@@ -7,6 +7,7 @@
 
 #include "tpm.h"
 #include "record.h"
+#include <assert.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -113,6 +114,9 @@ initTPMBufHTNode(u32 baddr, u32 eaddr, int minseq, int maxseq, u32 numOfAddr, TP
 static int 
 cmpTPMBufHTNode(TPMBufHashTable *l, TPMBufHashTable *r);
 
+static void
+assignNodeID(TPMNode2 *headNode, u32 bufID);
+
 int 
 buildTPM(FILE *taintfp, struct TPMContext *tpm)
 /* return:
@@ -218,6 +222,21 @@ getAllTPMBuf(TPMContext *tpm)
     // printTPMBufHT(tpmBufHT);
     return tpmBufHT;
 }
+
+void
+assignBufID(TPMBufHashTable *tpmBuf)
+{
+    TPMBufHashTable *node, *temp;
+    u32 bufid = 1;
+
+    HASH_ITER(hh_tpmBufHT, tpmBuf, node, temp) {
+        TPMNode2 *headNode = node->headNode;
+        assignNodeID(headNode, bufid);
+        // printBufNode(headNode);
+        bufid++;
+    }
+}
+
 
 void
 delAllTPMBuf(TPMBufHashTable *tpmBuf)
@@ -1181,3 +1200,23 @@ cmpTPMBufHTNode(TPMBufHashTable *l, TPMBufHashTable *r)
     else if(l->minseq == r->minseq) { return 0; }
     else { return 1; }
 }
+
+static void
+assignNodeID(TPMNode2 *headNode, u32 bufID)
+// for each node (including neighbor) each version, assigns the bufID to it
+{
+    assert(headNode->leftNBR == NULL);    // headnode should be first node, version 0
+    assert(headNode->version == 0);
+
+    while(headNode != NULL){
+        u32 currVer = headNode->version;
+
+        do {
+            headNode->bufid = bufID;
+            headNode = headNode->nextVersion;
+        } while(headNode->version != currVer);
+
+        headNode = headNode->rightNBR;
+    }
+}
+

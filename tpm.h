@@ -101,6 +101,10 @@ getAllTPMBuf(TPMContext *tpm);
 // computes all the bufs in tpm
 
 void 
+assignBufID(TPMBufHashTable *tpmBuf);
+// assignes id to each buffer, starts with 1
+
+void
 delAllTPMBuf(TPMBufHashTable *tpmBuf);
 
 void

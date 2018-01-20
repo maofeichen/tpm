@@ -144,10 +144,10 @@ printMemNode(struct TPMNode2 *n)
 {
     printf("mem: type:%-1u addr:0x%-8x val:%-8x sz:%u lastUpdateTS:%-16d"
             " firstChild:%-8p leftNBR:%-8p rightNBR:%-8p nextVersion:%-8p"
-            " version:%-9u hitcnt:%-8u\n", 
+            " version:%-9u hitcnt:%-8u bufID:%u\n",
             n->type, n->addr, n->val, n->bytesz, n->lastUpdateTS, 
             n->firstChild, n->leftNBR, n->rightNBR, n->nextVersion,
-            n->version, n->hitcnt);
+            n->version, n->hitcnt, n->bufid);
 }
 
 void 
