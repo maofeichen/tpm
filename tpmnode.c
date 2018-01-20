@@ -18,6 +18,7 @@ createTPMNode(u32 type, u32 addr, u32 val, int TS, u32 bytesz)
     tpmnode->tpmnode2.val  = val;   // add val
 	tpmnode->tpmnode2.lastUpdateTS = TS;
     tpmnode->tpmnode2.bytesz = bytesz;
+    tpmnode->tpmnode2.bufid = 0;
     }
     else if ((type & TPM_Type_Register) || (type & TPM_Type_Temprary))
     {
