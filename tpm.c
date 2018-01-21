@@ -237,6 +237,14 @@ assignBufID(TPMBufHashTable *tpmBuf)
     }
 }
 
+int
+getTPMBufTotal(TPMBufHashTable *tpmBuf)
+{
+    int bufcnt = 0;
+    bufcnt = HASH_CNT(hh_tpmBufHT, tpmBuf);
+    return bufcnt;
+}
+
 
 void
 delAllTPMBuf(TPMBufHashTable *tpmBuf)
@@ -320,8 +328,9 @@ printTPMBufHT(TPMBufHashTable *tpmBufHT)
     bufcnt = HASH_CNT(hh_tpmBufHT, tpmBufHT);
     printf("total buf:%d - min buf sz:%u\n",bufcnt, MIN_BUF_SZ);
     HASH_ITER(hh_tpmBufHT, tpmBufHT, node, temp) {
-        printf("begin addr:0x%-8x end addr:0x%-8x sz:%u numofaddr:%-2u minseq:%d maxseq:%d diffseq:%d\n", 
-            node->baddr, node->eaddr, node->eaddr - node->baddr, node->numOfAddr, node->minseq, node->maxseq, (node->maxseq - node->minseq));
+        printf("begin addr:0x%-8x end addr:0x%-8x sz:%u numofaddr:%-2u minseq:%d maxseq:%d diffseq:%d bufID:%u\n",
+            node->baddr, node->eaddr, node->eaddr - node->baddr,
+            node->numOfAddr, node->minseq, node->maxseq, (node->maxseq - node->minseq), node->headNode->bufid);
     }
 }
 

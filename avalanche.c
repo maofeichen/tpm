@@ -28,6 +28,14 @@ typedef struct ContHitcntRange ContHitcntRange;
 static void 
 setSeqNo(AvalancheSearchCtxt *avalsctxt, int srcMinSeqN, int srcMaxSeqN, int dstMinSeqN, int dstMaxSeqN);
 
+/* search propagations of all bufs in TPM */
+static void
+buildTPMPropagate(TPMBufHashTable *tpmBuf, TPMPropagateRes **tpmPropagateRes);
+
+static void
+buildBufPropagate(TPMPropagateRes *tpmPropagateRes, TPMBufHashTable *buf);
+
+
 /* search propagation of in to the out buffers */
 static void 
 searchPropagateInOutBuf(
@@ -219,16 +227,19 @@ init_AvalancheSearchCtxt(
 void 
 searchAllAvalancheInTPM(TPMContext *tpm)
 {
+	PropagateStat propaStat = {0};
     AvalancheSearchCtxt *avalsctxt;
     TPMBufHashTable *tpmBufHT, *srcBuf, *dstBuf;
+    TPMPropagateRes *tpmPropagateRes = NULL; // points to propagate result of each buf
 
 	tpmBufHT = getAllTPMBuf(tpm);
 	assignBufID(tpmBufHT);
 	printTPMBufHT(tpmBufHT);
-	// TODO: free tpmBufHT
 
-	PropagateStat propaStat = {0};
-	// goto OUTLOOP;
+	buildTPMPropagate(tpmBufHT, &tpmPropagateRes);
+
+	delTPMPropagate(tpmPropagateRes);
+	return;
 
 	int searchcnt = 1;
 	for(srcBuf = tpmBufHT; srcBuf != NULL; srcBuf = srcBuf->hh_tpmBufHT.next) {
@@ -328,7 +339,32 @@ setSeqNo(AvalancheSearchCtxt *avalsctxt, int srcMinSeqN, int srcMaxSeqN, int dst
 	avalsctxt->dstMaxSeqN = dstMaxSeqN;
 }
 
+static void
+buildTPMPropagate(TPMBufHashTable *tpmBuf, TPMPropagateRes **tpmPropagateRes)
+// Instead of searching propagation of <in, out> bufs, we search propagations of all bufs
+//  first. Avoid duplicate searching.
+{
+    TPMBufHashTable *buf, *temp;
+
+    int numOfBuf = getTPMBufTotal(tpmBuf);
+	*tpmPropagateRes = createTPMPropagate(numOfBuf-1); // only searches propagation of buf 0...n-1
+	printTPMPropagateRes(*tpmPropagateRes);
+
+    HASH_ITER(hh_tpmBufHT, tpmBuf, buf, temp) {
+        buildBufPropagate(*tpmPropagateRes, buf);
+    }
+}
+
 static void 
+buildBufPropagate(TPMPropagateRes *tpmPropagateRes, TPMBufHashTable *buf)
+// searches and stores taint propagations of a particular buffer
+{
+    printf("begin addr:0x%-8x end addr:0x%-8x sz:%u numofaddr:%-2u minseq:%d maxseq:%d diffseq:%d bufID:%u\n",
+        buf->baddr, buf->eaddr, buf->eaddr - buf->baddr,
+        buf->numOfAddr, buf->minseq, buf->maxseq, (buf->maxseq - buf->minseq), buf->headNode->bufid);
+}
+
+static void
 searchPropagateInOutBuf(
         TPMContext *tpm,
         AvalancheSearchCtxt *avalsctxt,

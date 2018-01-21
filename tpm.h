@@ -104,6 +104,9 @@ void
 assignBufID(TPMBufHashTable *tpmBuf);
 // assignes id to each buffer, starts with 1
 
+int
+getTPMBufTotal(TPMBufHashTable *tpmBuf);
+
 void
 delAllTPMBuf(TPMBufHashTable *tpmBuf);
 
