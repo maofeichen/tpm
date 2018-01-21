@@ -29,12 +29,32 @@ static void
 setSeqNo(AvalancheSearchCtxt *avalsctxt, int srcMinSeqN, int srcMaxSeqN, int dstMinSeqN, int dstMaxSeqN);
 
 /* search propagations of all bufs in TPM */
-static void
-buildTPMPropagate(TPMBufHashTable *tpmBuf, TPMPropagateRes **tpmPropagateRes);
+static TPMPropgtSearchCtxt *
+createTPMPropgtSearchCtxt(
+        TPMPropagateRes *tpmPropgtRes,
+        int maxSeqN);
 
 static void
-buildBufPropagate(TPMPropagateRes *t, TPMBufHashTable *buf);
+delTPMPropgtSearchCtxt(TPMPropgtSearchCtxt *t);
 
+static void
+buildTPMPropagate(
+        TPMContext *tpm,
+        TPMBufHashTable *tpmBuf,
+        TPMPropgtSearchCtxt *tpmPSCtxt);
+
+static int
+buildBufPropagate(
+        TPMContext *tpm,
+        TPMPropgtSearchCtxt *tpmPSCtxt,
+        TPMBufHashTable *buf);
+
+int static
+buildAddrPropgt(
+        TPMContext *tpm,
+        TPMPropgtSearchCtxt *tpmPSCtxt,
+        AddrPropgtToNode **addrPropgtToNode,
+        TPMNode2 *headNode);
 
 /* search propagation of in to the out buffers */
 static void 
@@ -236,16 +256,14 @@ searchAllAvalancheInTPM(TPMContext *tpm)
 	assignBufID(tpmBufHT);
 	printTPMBufHT(tpmBufHT);
 
-	buildTPMPropagate(tpmBufHT, &tpmPropagateRes);
-
-	delTPMPropagate(tpmPropagateRes);
-	return;
+//	buildTPMPropagate(tpmBufHT, &tpmPropagateRes);
+//	delTPMPropagate(tpmPropagateRes);
+//	return;
 
 	int searchcnt = 1;
 	for(srcBuf = tpmBufHT; srcBuf != NULL; srcBuf = srcBuf->hh_tpmBufHT.next) {
 		for(dstBuf = srcBuf->hh_tpmBufHT.next; dstBuf != NULL; dstBuf = dstBuf->hh_tpmBufHT.next) {
 
-#if 0
 		    // if(srcBuf->baddr == 0xc3fb7d80 && dstBuf->baddr == 0xc3fb7d40){ // test signle buf
 		    if(srcBuf->baddr == 0xde911000 && dstBuf->baddr == 0x804c170){ // test signle buf
 	            init_AvalancheSearchCtxt(&avalsctxt, tpm->minBufferSz,
@@ -257,7 +275,7 @@ searchAllAvalancheInTPM(TPMContext *tpm)
 	    		// goto OUTLOOP;
 			}
 
-#endif
+#if 0
 		    init_AvalancheSearchCtxt(&avalsctxt, tpm->minBufferSz,
 		            srcBuf->headNode, dstBuf->headNode, srcBuf->baddr, srcBuf->eaddr,
 		            dstBuf->baddr, dstBuf->eaddr, srcBuf->numOfAddr, dstBuf->numOfAddr);
@@ -268,6 +286,7 @@ searchAllAvalancheInTPM(TPMContext *tpm)
 	    	searchAvalancheInOutBuf(tpm, avalsctxt, &propaStat);
 	    	free_AvalancheSearchCtxt(avalsctxt);     
 
+#endif
 	    	searchcnt++;
 		}
 	}
@@ -284,6 +303,29 @@ OUTLOOP:
 
 	delAllTPMBuf(tpmBufHT);
 }
+
+void
+searchTPMAvalancheFast(TPMContext *tpm)
+{
+	PropagateStat propaStat = {0};
+    TPMBufHashTable *tpmBufHT;
+    TPMPropgtSearchCtxt *tpmPSCtxt = NULL;
+    int maxSeqN;
+    // TPMPropagateRes *tpmPropgtRes = NULL; // points to propagate result of each buf
+
+	tpmBufHT = getAllTPMBuf(tpm);
+	assignBufID(tpmBufHT);
+	printTPMBufHT(tpmBufHT);
+
+	maxSeqN = getTPMBufMaxSeqN(tpmBufHT);
+	tpmPSCtxt = createTPMPropgtSearchCtxt(NULL, maxSeqN);
+
+	buildTPMPropagate(tpm, tpmBufHT, tpmPSCtxt);
+
+	delTPMPropagate(tpmPSCtxt->tpmPropgt);
+	delTPMPropgtSearchCtxt(tpmPSCtxt);
+}
+
 
 void
 free_AvalancheSearchCtxt(struct AvalancheSearchCtxt *avalsctxt)
@@ -339,24 +381,53 @@ setSeqNo(AvalancheSearchCtxt *avalsctxt, int srcMinSeqN, int srcMaxSeqN, int dst
 	avalsctxt->dstMaxSeqN = dstMaxSeqN;
 }
 
+static TPMPropgtSearchCtxt *
+createTPMPropgtSearchCtxt(
+        TPMPropagateRes *tpmPropgtRes,
+        int maxSeqN)
+{
+    TPMPropgtSearchCtxt *t = calloc(1, sizeof(TPMPropgtSearchCtxt) );
+    assert(t != NULL);
+
+    t->tpmPropgt = tpmPropgtRes;
+    t->maxSeqN = maxSeqN;
+    return t;
+}
+
 static void
-buildTPMPropagate(TPMBufHashTable *tpmBuf, TPMPropagateRes **tpmPropagateRes)
+delTPMPropgtSearchCtxt(TPMPropgtSearchCtxt *t)
+{
+    if(t == NULL)
+        return;
+    free(t);
+}
+
+static void
+buildTPMPropagate(
+        TPMContext *tpm,
+        TPMBufHashTable *tpmBuf,
+        TPMPropgtSearchCtxt *tpmPSCtxt)
 // Instead of searching propagation of <in, out> bufs, we search propagations of all bufs
 //  first. Avoid duplicate searching.
 {
-    TPMBufHashTable *buf, *temp;
+    TPMBufHashTable *buf;
+    int numOfBuf;
 
-    int numOfBuf = getTPMBufTotal(tpmBuf);
-	*tpmPropagateRes = createTPMPropagate(numOfBuf-1); // only searches propagation of buf 0...n-1
+    numOfBuf = getTPMBufTotal(tpmBuf);
+	tpmPSCtxt->tpmPropgt = createTPMPropagate(numOfBuf-1); // only searches propagation of buf 0...n-1
 
-    HASH_ITER(hh_tpmBufHT, tpmBuf, buf, temp) {
-        buildBufPropagate(*tpmPropagateRes, buf);
-    }
-	printTPMPropagateRes(*tpmPropagateRes);
+	// Ignore the last buffer
+	for(buf = tpmBuf; buf->hh_tpmBufHT.next != NULL; buf = buf->hh_tpmBufHT.next){
+	    buildBufPropagate(tpm, tpmPSCtxt, buf);
+	}
+	printTPMPropagateRes(tpmPSCtxt->tpmPropgt);
 }
 
-static void 
-buildBufPropagate(TPMPropagateRes *t, TPMBufHashTable *buf)
+static int
+buildBufPropagate(
+        TPMContext *tpm,
+        TPMPropgtSearchCtxt *tpmPSCtxt,
+        TPMBufHashTable *buf)
 // searches and stores taint propagations of a particular buffer
 {
     // printf("begin addr:0x%-8x end addr:0x%-8x sz:%u numofaddr:%-2u minseq:%d maxseq:%d diffseq:%d bufID:%u\n",
@@ -365,14 +436,47 @@ buildBufPropagate(TPMPropagateRes *t, TPMBufHashTable *buf)
     u32 bufIdx;
     
     bufIdx = getTPMPropagateArrayIdx(buf->headNode->bufid);
-    if(bufIdx >= t->bufTotal){
+    printf("buf ID:%u buf index:%u\n", buf->headNode->bufid, bufIdx);
+
+    if(bufIdx >= tpmPSCtxt->tpmPropgt->numOfBuf){
         fprintf(stderr, "buildBufPropagate: invalid converting buf array id\n");
-        return;
+        return -1;
     }
     
-    t->tpmPropagateArray[bufIdx] = createBufPropagate(buf->numOfAddr);
-    // printBufPropagateRes(t->tpmPropagateArray[bufIdx]);
-    // delBufPropagate(&(t->tpmPropagateArray[bufIdx]) );
+    tpmPSCtxt->tpmPropgt->tpmPropgtAry[bufIdx] = createBufPropagate(buf->numOfAddr);
+
+    TPMNode2 *headNode = buf->headNode;
+    int i = 0;
+    while(headNode != NULL) {
+        buildAddrPropgt(tpm, tpmPSCtxt, &(tpmPSCtxt->tpmPropgt->tpmPropgtAry[bufIdx]->addrPropgtAry[i]), headNode);
+        headNode = headNode->rightNBR;
+        i++;
+    }
+    return 0;
+}
+
+int static
+buildAddrPropgt(
+        TPMContext *tpm,
+        TPMPropgtSearchCtxt *tpmPSCtxt,
+        AddrPropgtToNode **addrPropgtToNode,
+        TPMNode2 *headNode)
+// Returns
+//  0: success
+//  <0: error
+// searches and store all the propagated nodes of the same addr source node
+{
+    if(headNode == NULL) {
+        fprintf(stderr, "buildAddrPropgt: error: invalid headnode:%p\n", headNode);
+        return -1;
+    }
+
+    u32 currVer = headNode->version;
+    do { // searches and stores taint propagations of each version of the srcnode
+        headNode = headNode->nextVersion;
+    } while(headNode->version != currVer);
+
+    return 0;
 }
 
 static void

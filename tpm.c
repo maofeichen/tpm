@@ -245,6 +245,26 @@ getTPMBufTotal(TPMBufHashTable *tpmBuf)
     return bufcnt;
 }
 
+int
+getTPMBufMaxSeqN(TPMBufHashTable *tpmBuf)
+// Returns:
+//  max seqNo of the last buffer in tpm
+//  <0: error
+{
+    int maxSeqN = -1;
+    TPMBufHashTable *buf;
+
+    if(tpmBuf == NULL)
+        return -1;
+
+    buf = tpmBuf;
+    while(buf->hh_tpmBufHT.next != NULL) {
+        buf = buf->hh_tpmBufHT.next;
+    }
+
+    maxSeqN = buf->maxseq;
+    return maxSeqN;
+}
 
 void
 delAllTPMBuf(TPMBufHashTable *tpmBuf)

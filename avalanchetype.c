@@ -13,18 +13,34 @@ createAddr2NodeItem(u32 addr, TPMNode2 *memNode, Addr2NodeItem *subHash, Tainted
 	return i;
 }
 
+AddrPropgtToNode *
+createAddrPropgtToNode(
+        TPMNode2 *srcnode,
+        AddrPropgtToNode *subBufHash,
+        u32 dstBufID,
+        TPMNode2 *propagtToNode)
+{
+    AddrPropgtToNode *a = calloc(1, sizeof(AddrPropgtToNode) );
+    assert(a != NULL);
+    a->srcnode = srcnode;
+    a->subBufHash = subBufHash;
+    a->dstBufID = dstBufID;
+    a->propagtToNode = propagtToNode;
+    return a;
+}
+
 TPMPropagateRes *
 createTPMPropagate(int bufTotal)
 {
     TPMPropagateRes *t = calloc(1, sizeof(TPMPropagateRes) );
-    t->bufTotal = bufTotal;
-    t->tpmPropagateArray = calloc(1, sizeof(BufPropagateRes *) * bufTotal);
+    t->numOfBuf = bufTotal;
+    t->tpmPropgtAry = calloc(1, sizeof(BufPropagateRes *) * bufTotal);
 
     assert(t != NULL);
-    assert(t->tpmPropagateArray != NULL);
+    assert(t->tpmPropgtAry != NULL);
 
     for(int i = 0; i < bufTotal; i++)
-        t->tpmPropagateArray[i] = NULL;
+        t->tpmPropgtAry[i] = NULL;
     return t;
 }
 
@@ -41,12 +57,12 @@ delTPMPropagate(TPMPropagateRes *t)
     if(t == NULL)
         return;
 
-    for(int i = 0; i < t->bufTotal; i++){
-        delBufPropagate(&(t->tpmPropagateArray[i]) );
+    for(int i = 0; i < t->numOfBuf; i++){
+        delBufPropagate(&(t->tpmPropgtAry[i]) );
     }
 
-    free(t->tpmPropagateArray);
-    t->tpmPropagateArray = NULL;
+    free(t->tpmPropgtAry);
+    t->tpmPropgtAry = NULL;
     free(t);
     printf("del TPMPropagateRes\n");
 }
@@ -56,13 +72,13 @@ createBufPropagate(u32 numOfAddr)
 {
     BufPropagateRes *b = calloc(1, sizeof(BufPropagateRes) );
     b->numOfAddr = numOfAddr;
-    b->addrPropagateArray = calloc(1, sizeof(void *) * numOfAddr);
+    b->addrPropgtAry = calloc(1, sizeof(AddrPropgtToNode *) * numOfAddr);
 
     assert(b != NULL);
-    assert(b->addrPropagateArray != NULL);
+    assert(b->addrPropgtAry != NULL);
 
     for(int i = 0; i < numOfAddr; i++)
-        b->addrPropagateArray[i] = NULL;
+        b->addrPropgtAry[i] = NULL;
     return b;
 }
 
@@ -72,8 +88,8 @@ delBufPropagate(BufPropagateRes **b)
     if(*b == NULL)
         return;
 
-    free((*b)->addrPropagateArray);
-    (*b)->addrPropagateArray = NULL;
+    free((*b)->addrPropgtAry);
+    (*b)->addrPropgtAry = NULL;
     free(*b);
     *b = NULL;
     // printf("del BufPropagate\n");
@@ -95,9 +111,9 @@ printTPMPropagateRes(TPMPropagateRes *t)
     if(t == NULL)
         return;
 
-    for(int i = 0; i < t->bufTotal; i++) {
-        printf("Buf propagate pointer:%p\n", t->tpmPropagateArray[i]);
-        printBufPropagateRes(t->tpmPropagateArray[i]);
+    for(int i = 0; i < t->numOfBuf; i++) {
+        printf("Buf propagate pointer:%p\n", t->tpmPropgtAry[i]);
+        printBufPropagateRes(t->tpmPropgtAry[i]);
     }
 }
 
@@ -108,6 +124,6 @@ printBufPropagateRes(BufPropagateRes *b)
         return;
 
     for(int i = 0; i < b->numOfAddr; i++) {
-        printf("addr propagate pointer:%p\n", b->addrPropagateArray[i]);
+        printf("addr propagate pointer:%p\n", b->addrPropgtAry[i]);
     }
 }

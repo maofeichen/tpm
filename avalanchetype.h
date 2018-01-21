@@ -14,19 +14,32 @@ struct addr2NodeItem
 };
 typedef struct addr2NodeItem Addr2NodeItem;
 
+typedef struct AddrPropgtToNode
+{
+    TPMNode2 *srcnode;  // key of 1st level hash
+    struct AddrPropgtToNode *subBufHash; // next level hash
+    u32 dstBufID;       // val of 1st level hash, key of 2nd level hash
+    TPMNode2 *propagtToNode; // val of 2nd level hash, the dst node that srcnode can propagate to
+    UT_hash_handle hh_addrPropgtToNode;
+} AddrPropgtToNode;
+// used as to store propagated nodes from same addr, s.t:
+// srcnode -->
+//            bufID -->
+//                     propagated nodes
+
 typedef struct BufPropagateRes
 {
     u32 numOfAddr;  // num of different addr of the buf
-    void **addrPropagateArray;  // Pointer array of each addr, each points to sub data structure
-                                // storing propagate results
+    AddrPropgtToNode **addrPropgtAry;  // Pointer array of each addr, each points to sub data structure
+                                            // storing propagate results
 } BufPropagateRes;
 // stores propagate results of each bufs
 
 typedef struct TPMPropagateRes
 {
-    u32 bufTotal;                // num of bufs in the TPM
-    BufPropagateRes **tpmPropagateArray; // Pointer array of each buf, each points sub data structure
-                                         // storing propagation results
+    u32 numOfBuf;                   // num of bufs in the TPM
+    BufPropagateRes **tpmPropgtAry; // Pointer array of each buf, each points sub data structure
+                                    // storing propagation results
 
 } TPMPropagateRes;
 // stores propagate results of all TPM bufs
@@ -38,6 +51,14 @@ createAddr2NodeItem(
         TPMNode2 *memNode,
         Addr2NodeItem *subHash,
         TaintedBuf *toMemNode);
+
+/* AddrPropgtToNode */
+AddrPropgtToNode *
+createAddrPropgtToNode(
+        TPMNode2 *srcnode,
+        AddrPropgtToNode *subBufHash,
+        u32 dstBufID,
+        TPMNode2 *propagtToNode);
 
 /* TPMPropagateRes */
 TPMPropagateRes *

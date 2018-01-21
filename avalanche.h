@@ -38,28 +38,32 @@ struct AvalDstBufHTNode
     u32 hitcnt;
     UT_hash_handle hh_avalDstBufHTNode;
 };
-typedef struct AvalDstBufHTNode AvalDstBufHTNode;   // IGNORE. stores the propagate destination mem nodes
+typedef struct AvalDstBufHTNode AvalDstBufHTNode;
+// IGNORE. stores the propagate destination mem nodes
 
 struct StackAddr2NodeItem 
 {
     Addr2NodeItem *addr2NodeItem;
     struct StackAddr2NodeItem *next; 
 };
-typedef struct StackAddr2NodeItem StackAddr2NodeItem;   // stores addr2nodeitem during avalanche search
+typedef struct StackAddr2NodeItem StackAddr2NodeItem;
+// stores addr2nodeitem during avalanche search
 
 struct StackDstBufHT
 {
     AvalDstBufHTNode *dstBufHT;
     struct StackDstBufHT *next;
 };
-typedef struct StackDstBufHT StackDstBufHT; // IGNORE. stores dst buf hash table during avalanche search
+typedef struct StackDstBufHT StackDstBufHT;
+// IGNORE. stores dst buf hash table during avalanche search
 
 struct StackBufAry
 {
     ContinBufAry *contBufAry;
     struct StackBufAry *next; 
 };
-typedef struct StackBufAry StackBufAry; // IGNORE
+typedef struct StackBufAry StackBufAry;
+// IGNORE
 
 struct PropagateStat
 {
@@ -68,7 +72,16 @@ struct PropagateStat
     u32 totalstep;
     u32 numOfSearch;    
 };
-typedef struct PropagateStat PropagateStat; // Computes stats during avalanche search
+typedef struct PropagateStat PropagateStat;
+// Computes stats during avalanche search
+
+typedef struct TPMPropgtSearchCtxt
+{
+    TPMPropagateRes *tpmPropgt; // points to propagations of all buffers of tpm
+    int maxSeqN; // max seqNo of the last buffer of the tpm, used to limit the depth
+                 // of taint propagation search in dfs
+} TPMPropgtSearchCtxt;
+// Context of searching taint propagations of TPM
 
 int
 init_AvalancheSearchCtxt(
@@ -86,6 +99,11 @@ init_AvalancheSearchCtxt(
 void 
 searchAllAvalancheInTPM(TPMContext *tpm);
 // Searches avalanche between all pair <in, out> buffer in the tpm
+
+void
+searchTPMAvalancheFast(TPMContext *tpm);
+// Instead of searching taint propagation as <in, out> pair, searching avalanches of
+// all buffers in the first, to avoid duplicate searching
 
 void
 free_AvalancheSearchCtxt(struct AvalancheSearchCtxt *avalsctxt);

@@ -96,6 +96,7 @@ mem2NodeSearch(struct TPMContext *tpm, u32 memaddr);
 union TPMNode *
 seqNo2NodeSearch(struct TPMContext *tpm, u32 seqNo);
 
+/* TPM all buffers */
 TPMBufHashTable *
 getAllTPMBuf(TPMContext *tpm);
 // computes all the bufs in tpm
@@ -106,6 +107,9 @@ assignBufID(TPMBufHashTable *tpmBuf);
 
 int
 getTPMBufTotal(TPMBufHashTable *tpmBuf);
+
+int
+getTPMBufMaxSeqN(TPMBufHashTable *tpmBuf);
 
 void
 delAllTPMBuf(TPMBufHashTable *tpmBuf);
