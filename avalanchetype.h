@@ -16,7 +16,7 @@ typedef struct addr2NodeItem Addr2NodeItem;
 
 typedef struct BufPropagateRes
 {
-    int numOfAddr;  // num of different addr of the buf
+    u32 numOfAddr;  // num of different addr of the buf
     void **addrPropagateArray;  // Pointer array of each addr, each points to sub data structure
                                 // storing propagate results
 } BufPropagateRes;
@@ -43,13 +43,17 @@ createAddr2NodeItem(
 TPMPropagateRes *
 createTPMPropagate(int bufTotal);
 
+u32
+getTPMPropagateArrayIdx(u32 bufID);
+// converts bufID to array idx of the TPMPropagateRes
+
 void 
 delTPMPropagate(TPMPropagateRes *t);
 // TODO
 
 /* BufPropagateRes */
 BufPropagateRes *
-createBufPropagate(int numOfAddr);
+createBufPropagate(u32 numOfAddr);
 
 void
 delBufPropagate(BufPropagateRes **b);

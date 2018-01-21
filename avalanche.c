@@ -33,7 +33,7 @@ static void
 buildTPMPropagate(TPMBufHashTable *tpmBuf, TPMPropagateRes **tpmPropagateRes);
 
 static void
-buildBufPropagate(TPMPropagateRes *tpmPropagateRes, TPMBufHashTable *buf);
+buildBufPropagate(TPMPropagateRes *t, TPMBufHashTable *buf);
 
 
 /* search propagation of in to the out buffers */
@@ -348,20 +348,31 @@ buildTPMPropagate(TPMBufHashTable *tpmBuf, TPMPropagateRes **tpmPropagateRes)
 
     int numOfBuf = getTPMBufTotal(tpmBuf);
 	*tpmPropagateRes = createTPMPropagate(numOfBuf-1); // only searches propagation of buf 0...n-1
-	printTPMPropagateRes(*tpmPropagateRes);
 
     HASH_ITER(hh_tpmBufHT, tpmBuf, buf, temp) {
         buildBufPropagate(*tpmPropagateRes, buf);
     }
+	printTPMPropagateRes(*tpmPropagateRes);
 }
 
 static void 
-buildBufPropagate(TPMPropagateRes *tpmPropagateRes, TPMBufHashTable *buf)
+buildBufPropagate(TPMPropagateRes *t, TPMBufHashTable *buf)
 // searches and stores taint propagations of a particular buffer
 {
-    printf("begin addr:0x%-8x end addr:0x%-8x sz:%u numofaddr:%-2u minseq:%d maxseq:%d diffseq:%d bufID:%u\n",
-        buf->baddr, buf->eaddr, buf->eaddr - buf->baddr,
-        buf->numOfAddr, buf->minseq, buf->maxseq, (buf->maxseq - buf->minseq), buf->headNode->bufid);
+    // printf("begin addr:0x%-8x end addr:0x%-8x sz:%u numofaddr:%-2u minseq:%d maxseq:%d diffseq:%d bufID:%u\n",
+    //     buf->baddr, buf->eaddr, buf->eaddr - buf->baddr,
+    //     buf->numOfAddr, buf->minseq, buf->maxseq, (buf->maxseq - buf->minseq), buf->headNode->bufid);
+    u32 bufIdx;
+    
+    bufIdx = getTPMPropagateArrayIdx(buf->headNode->bufid);
+    if(bufIdx >= t->bufTotal){
+        fprintf(stderr, "buildBufPropagate: invalid converting buf array id\n");
+        return;
+    }
+    
+    t->tpmPropagateArray[bufIdx] = createBufPropagate(buf->numOfAddr);
+    // printBufPropagateRes(t->tpmPropagateArray[bufIdx]);
+    // delBufPropagate(&(t->tpmPropagateArray[bufIdx]) );
 }
 
 static void
