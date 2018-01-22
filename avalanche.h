@@ -75,14 +75,6 @@ struct PropagateStat
 typedef struct PropagateStat PropagateStat;
 // Computes stats during avalanche search
 
-typedef struct TPMPropgtSearchCtxt
-{
-    TPMPropagateRes *tpmPropgt; // points to propagations of all buffers of tpm
-    int maxSeqN; // max seqNo of the last buffer of the tpm, used to limit the depth
-                 // of taint propagation search in dfs
-} TPMPropgtSearchCtxt;
-// Context of searching taint propagations of TPM
-
 int
 init_AvalancheSearchCtxt(
         struct AvalancheSearchCtxt **avalsctxt,

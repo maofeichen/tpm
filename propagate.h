@@ -22,6 +22,12 @@ typedef struct StackTransitionNode
 	struct StackTransitionNode *next;
 } StackTransitionNode;
 
+typedef struct StckMemnode
+{
+    TPMNode2 *memnode;
+    struct StckMemnode *next;
+} StckMemnode;
+
 int
 cmpAddr2NodeItem(Addr2NodeItem *l, Addr2NodeItem *r);
 
@@ -43,6 +49,17 @@ memNodePropagate(
 // (destination mem nodes) in dstBuf
 
 int 
+memnodePropgtFast(
+        TPMContext *tpm,
+        TPMPropgtSearchCtxt *tpmPSCtxt,
+        AddrPropgtToNode **addrPropgtToNode,
+        TPMNode2 *srcnode);
+// Returns:
+//  >=0: step counts in the dfs search
+//  <0: error
+// searches mem node propagation given tpm, source node.
+
+int
 printMemNodePropagate(TPMContext *tpm, TPMNode2 *s);
 
 #endif

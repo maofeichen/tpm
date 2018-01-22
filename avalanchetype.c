@@ -95,6 +95,26 @@ delBufPropagate(BufPropagateRes **b)
     // printf("del BufPropagate\n");
 }
 
+TPMPropgtSearchCtxt *
+createTPMPropgtSearchCtxt(
+        TPMPropagateRes *tpmPropgtRes,
+        int maxSeqN)
+{
+    TPMPropgtSearchCtxt *t = calloc(1, sizeof(TPMPropgtSearchCtxt) );
+    assert(t != NULL);
+
+    t->tpmPropgt = tpmPropgtRes;
+    t->maxSeqN = maxSeqN;
+    return t;
+}
+
+void
+delTPMPropgtSearchCtxt(TPMPropgtSearchCtxt *t)
+{
+    if(t == NULL)
+        return;
+    free(t);
+}
 
 void
 print2ndLevelHash(Addr2NodeItem *src)
@@ -104,6 +124,15 @@ print2ndLevelHash(Addr2NodeItem *src)
 		printMemNode(dstNode->node);
 	}
 }
+
+void
+printTPMPropgtSearchCtxt(TPMPropgtSearchCtxt *t)
+{
+    if (t == NULL)
+        return;
+    printf("TPMPropgtSearchCtxt: maxSeqNo:%u TPMPropgtRes:%p\n", t->maxSeqN, t->tpmPropgt);
+}
+
 
 void
 printTPMPropagateRes(TPMPropagateRes *t)

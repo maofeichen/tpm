@@ -29,13 +29,13 @@ static void
 setSeqNo(AvalancheSearchCtxt *avalsctxt, int srcMinSeqN, int srcMaxSeqN, int dstMinSeqN, int dstMaxSeqN);
 
 /* search propagations of all bufs in TPM */
-static TPMPropgtSearchCtxt *
-createTPMPropgtSearchCtxt(
-        TPMPropagateRes *tpmPropgtRes,
-        int maxSeqN);
-
-static void
-delTPMPropgtSearchCtxt(TPMPropgtSearchCtxt *t);
+//static TPMPropgtSearchCtxt *
+//createTPMPropgtSearchCtxt(
+//        TPMPropagateRes *tpmPropgtRes,
+//        int maxSeqN);
+//
+//static void
+//delTPMPropgtSearchCtxt(TPMPropgtSearchCtxt *t);
 
 static void
 buildTPMPropagate(
@@ -55,6 +55,9 @@ buildAddrPropgt(
         TPMPropgtSearchCtxt *tpmPSCtxt,
         AddrPropgtToNode **addrPropgtToNode,
         TPMNode2 *headNode);
+
+static bool
+isDuplicateSearchPropgt(AddrPropgtToNode *addrPropgtToNode, TPMNode2 *srcnode);
 
 /* search propagation of in to the out buffers */
 static void 
@@ -381,27 +384,6 @@ setSeqNo(AvalancheSearchCtxt *avalsctxt, int srcMinSeqN, int srcMaxSeqN, int dst
 	avalsctxt->dstMaxSeqN = dstMaxSeqN;
 }
 
-static TPMPropgtSearchCtxt *
-createTPMPropgtSearchCtxt(
-        TPMPropagateRes *tpmPropgtRes,
-        int maxSeqN)
-{
-    TPMPropgtSearchCtxt *t = calloc(1, sizeof(TPMPropgtSearchCtxt) );
-    assert(t != NULL);
-
-    t->tpmPropgt = tpmPropgtRes;
-    t->maxSeqN = maxSeqN;
-    return t;
-}
-
-static void
-delTPMPropgtSearchCtxt(TPMPropgtSearchCtxt *t)
-{
-    if(t == NULL)
-        return;
-    free(t);
-}
-
 static void
 buildTPMPropagate(
         TPMContext *tpm,
@@ -415,6 +397,7 @@ buildTPMPropagate(
 
     numOfBuf = getTPMBufTotal(tpmBuf);
 	tpmPSCtxt->tpmPropgt = createTPMPropagate(numOfBuf-1); // only searches propagation of buf 0...n-1
+	printTPMPropgtSearchCtxt(tpmPSCtxt);
 
 	// Ignore the last buffer
 	for(buf = tpmBuf; buf->hh_tpmBufHT.next != NULL; buf = buf->hh_tpmBufHT.next){
@@ -473,10 +456,28 @@ buildAddrPropgt(
 
     u32 currVer = headNode->version;
     do { // searches and stores taint propagations of each version of the srcnode
+        if(!isDuplicateSearchPropgt(*addrPropgtToNode, headNode) ) {
+            memnodePropgtFast(tpm, tpmPSCtxt, addrPropgtToNode, headNode);
+        }
         headNode = headNode->nextVersion;
     } while(headNode->version != currVer);
 
     return 0;
+}
+
+static bool
+isDuplicateSearchPropgt(AddrPropgtToNode *addrPropgtToNode, TPMNode2 *srcnode)
+{
+    assert(srcnode != NULL);
+    if(addrPropgtToNode != NULL){
+        AddrPropgtToNode *foundNode = NULL;
+        HASH_FIND(hh_addrPropgtToNode, addrPropgtToNode, &srcnode, 4, foundNode);
+        if(foundNode != NULL)
+            return false;
+        else
+            return true;
+    }
+    else { return false; }
 }
 
 static void

@@ -14,6 +14,7 @@ struct addr2NodeItem
 };
 typedef struct addr2NodeItem Addr2NodeItem;
 
+
 typedef struct AddrPropgtToNode
 {
     TPMNode2 *srcnode;  // key of 1st level hash
@@ -43,6 +44,14 @@ typedef struct TPMPropagateRes
 
 } TPMPropagateRes;
 // stores propagate results of all TPM bufs
+
+typedef struct TPMPropgtSearchCtxt
+{
+    TPMPropagateRes *tpmPropgt; // points to propagations of all buffers of tpm
+    int maxSeqN; // max seqNo of the last buffer of the tpm, used to limit the depth
+                 // of taint propagation search in dfs
+} TPMPropgtSearchCtxt;
+// Context of searching taint propagations of TPM
 
 /* Addr2NodeItem */
 Addr2NodeItem *
@@ -79,9 +88,20 @@ createBufPropagate(u32 numOfAddr);
 void
 delBufPropagate(BufPropagateRes **b);
 
+TPMPropgtSearchCtxt *
+createTPMPropgtSearchCtxt(
+        TPMPropagateRes *tpmPropgtRes,
+        int maxSeqN);
+
+void
+delTPMPropgtSearchCtxt(TPMPropgtSearchCtxt *t);
+
 /* print */
 void
 print2ndLevelHash(Addr2NodeItem *src);
+
+void
+printTPMPropgtSearchCtxt(TPMPropgtSearchCtxt *t);
 
 void
 printTPMPropagateRes(TPMPropagateRes *t);

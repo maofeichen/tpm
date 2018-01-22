@@ -2,6 +2,7 @@
 #define TPMNODE_H 
 
 #include "type.h"
+#include "uthash.h"
 #include <stdbool.h>
 
 #define TPM_Type_Register	0x00000001
@@ -9,6 +10,7 @@
 #define TPM_Type_Memory		0x00000004
 
 struct Transition;
+struct HitcntHashTable;
 
 struct TPMNode1		// for temp, register addresses
 {
@@ -36,6 +38,7 @@ struct TPMNode2		// for memory address
     u32	hitcnt;		/* as source, the number of TMPNode2 in destination buffer this node propagates to; or
 			   as detination, the number of TMPNode2 in source buffer that propagates to this node	*/
     u32 bufid;      // bufid the node belongs to, init to 0 (belongs to no buf), will be assigned after tpm is build
+    struct HitcntHashTable *hitcntHT;
 };
 typedef struct TPMNode2 TPMNode2;
 
@@ -52,6 +55,15 @@ struct taintedBuf
     struct taintedBuf *next;	  // point to the taintedBuf structure of the next tainted buffer; null if no more
 };
 typedef struct taintedBuf TaintedBuf;
+
+typedef struct HitcntHashTable
+{
+    u32 bufId;  // when the node is src, it indictates which buffer it can propagate to have the hitcnt;
+                // when it is as destination, it indicates which src buffer
+    u32 hitcnt; /* as source, the number of TMPNode2 in destination buffer this node propagates to; or
+			   as detination, the number of TMPNode2 in source buffer that propagates to this node	*/
+    UT_hash_handle hh_hitcnt;
+} HitcntHashTable;
 
 
 /* Generic node prototype */

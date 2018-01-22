@@ -35,6 +35,19 @@ transStackPopAll();
 static bool 
 isTransStackEmpty();
 
+/* stack of memory nodes during dfsfast */
+static void
+stckMemnodePush(TPMNode2 *memnode, StckMemnode **stckMemnodeTop, u32 *stckMemnodeCnt);
+
+static TPMNode2 *
+stckMemnodePop(StckMemnode **stckMemnodeTop, u32 *stckMemnodeCnt);
+
+static void
+stckMemnodePopAll(StckMemnode **stckMemnodeTop, u32 *stckMemnodeCnt);
+
+static bool
+isStckMemnodeEmpty(StckMemnode *stckMemnodeTop);
+
 /* mem node propagate implement */
 static int 
 dfs(TPMContext *tpm,
@@ -48,6 +61,12 @@ dfs(TPMContext *tpm,
     u32 *stepCount);
 
 static int 
+dfsfast(TPMContext *tpm,
+        TPMPropgtSearchCtxt *tpmPSCtxt,
+        AddrPropgtToNode **addrPropgtToNode,
+        TPMNode2 *srcnode);
+
+static int
 dfsPrintResult(TPMContext *tpm, TPMNode2 *s);
 
 /* dfs operation */
@@ -64,6 +83,15 @@ storeAllUnvisitChildren(
         int maxseq);
 
 static void 
+storeAllUnvisitChildrenFast(
+        TransitionHashTable **transitionht,
+        Transition *firstChild,
+        int maxseq,
+        StckMemnode **stckMemnodetop,
+        u32 *stckMemnodeCnt);
+
+
+static void
 storePropagateDstMemNode(TPMNode2 *memNode, TaintedBuf **dstMemNodes);
 
 /* functions */
@@ -111,6 +139,16 @@ memNodePropagate(
 }
 
 int 
+memnodePropgtFast(
+        TPMContext *tpm,
+        TPMPropgtSearchCtxt *tpmPSCtxt,
+        AddrPropgtToNode **addrPropgtToNode,
+        TPMNode2 *srcnode)
+{
+    return dfsfast(tpm, tpmPSCtxt, addrPropgtToNode, srcnode);
+}
+
+int
 printMemNodePropagate(TPMContext *tpm, TPMNode2 *s)
 {
 	return dfsPrintResult(tpm, s);
@@ -189,6 +227,49 @@ dfs(TPMContext *tpm,
 }
 
 static int 
+dfsfast(TPMContext *tpm,
+        TPMPropgtSearchCtxt *tpmPSCtxt,
+        AddrPropgtToNode **addrPropgtToNode,
+        TPMNode2 *srcnode)
+{
+	if(tpm == NULL || srcnode == NULL || tpmPSCtxt == NULL) {
+		fprintf(stderr, "error: dfs: tpm:%p srcnode:%p tpmPSCtxt:%p\n", tpm, srcnode, tpmPSCtxt);
+		return -1;
+	}
+	// printMemNode(srcnode);
+
+	TransitionHashTable *markVisitTransHT = NULL;
+	Transition *sourceTrans = srcnode->firstChild;
+
+	StckMemnode *stckMemnodeTop = NULL;
+	u32 stckMemnodeCnt = 0;
+
+	int stepCount = 0;
+
+	if(sourceTrans != NULL) {
+	    storeAllUnvisitChildren(&markVisitTransHT, sourceTrans, tpmPSCtxt->maxSeqN);
+	    while(!isTransStackEmpty() ) {
+	        Transition *popTrans = transStackPop();
+			TPMNode *dstnode = getTransitionDst(popTrans);
+
+			if(dstnode->tpmnode1.type == TPM_Type_Memory) {
+			    printMemNode((TPMNode2 *)dstnode);
+			}
+
+			stepCount++;
+			storeAllUnvisitChildren(&markVisitTransHT, dstnode->tpmnode1.firstChild, tpmPSCtxt->maxSeqN);
+	    }
+	}
+	else {
+	    printf("dfsfast: given source node is a leaf\n");
+	    printMemNode(srcnode);
+	}
+	delTransitionHT(&markVisitTransHT);
+	transStackPopAll();
+	return stepCount;
+}
+
+static int
 dfsPrintResult(TPMContext *tpm, TPMNode2 *s)
 // Returns
 //	0: success
@@ -333,6 +414,50 @@ isTransStackEmpty()
 		return false;
 }
 
+static void
+stckMemnodePush(TPMNode2 *memnode, StckMemnode **stckMemnodeTop, u32 *stckMemnodeCnt)
+{
+    StckMemnode *n = calloc(1, sizeof(StckMemnode) );
+    assert(n != NULL);
+    n->memnode = memnode;
+    n->next = *stckMemnodeTop;
+    *stckMemnodeTop = n;
+    (*stckMemnodeCnt)++;
+}
+
+static TPMNode2 *
+stckMemnodePop(StckMemnode **stckMemnodeTop, u32 *stckMemnodeCnt)
+{
+    StckMemnode *toDel;
+    TPMNode2 *memnode = NULL;
+
+    if(*stckMemnodeTop != NULL) {
+        toDel = *stckMemnodeTop;
+        *stckMemnodeTop = toDel->next;
+        memnode = toDel->memnode;
+        free(toDel);
+        (*stckMemnodeCnt)++;
+    }
+    return memnode;
+}
+
+static void
+stckMemnodePopAll(StckMemnode **stckMemnodeTop, u32 *stckMemnodeCnt)
+{
+    while(*stckMemnodeTop != NULL){
+        stckMemnodePop(stckMemnodeTop, stckMemnodeCnt);
+    }
+}
+
+static bool
+isStckMemnodeEmpty(StckMemnode *stckMemnodeTop)
+{
+    if(stckMemnodeTop != NULL)
+        return false;
+    else
+        return true;
+}
+
 static void 
 markVisitTransition(TransitionHashTable **transitionht, Transition *transition)
 {
@@ -376,6 +501,34 @@ storeAllUnvisitChildren(
 }
 
 static void 
+storeAllUnvisitChildrenFast(
+        TransitionHashTable **transitionht,
+        Transition *firstChild,
+        int maxseq,
+        StckMemnode **stckMemnodeTop,
+        u32 *stckMemnodeCnt)
+// Same as storeAllUnvisitChildren, additionally stores all traverse memnode in stack
+{
+
+    while(firstChild != NULL) {
+        if(!isTransitionVisited(*transitionht, firstChild)
+           && firstChild->seqNo <= maxseq) {
+            transStackPush(firstChild);
+            markVisitTransition(transitionht, firstChild);
+
+            TPMNode *dstnode = getTransitionDst(firstChild);
+            if(dstnode->tpmnode1.type == TPM_Type_Memory) { // if a memnode
+                stckMemnodePush((TPMNode2 *)dstnode, stckMemnodeTop, stckMemnodeCnt);
+            }
+
+        }
+        firstChild = firstChild->next;
+    }
+}
+
+
+
+static void
 storePropagateDstMemNode(TPMNode2 *memNode, TaintedBuf **dstMemNodes)
 {
 	TaintedBuf *node = createTaintedBuf(memNode);
