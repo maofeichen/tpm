@@ -19,6 +19,7 @@ typedef struct TransitionHashTable
 typedef struct StackTransitionNode 
 {
 	Transition *transition;
+	u32 level;
 	struct StackTransitionNode *next;
 } StackTransitionNode;
 

@@ -35,12 +35,38 @@ transStackPopAll();
 static bool 
 isTransStackEmpty();
 
-/* stack of memory nodes during dfsfast */
+/* Similar as above, additionally uses local pointers and add level information */
+static void
+stackTransPush(
+        Transition *trans,
+        u32 level,
+        StackTransitionNode **stackTransTop,
+        u32 *stackTransCnt);
+
+static Transition *
+stackTransPop(
+        u32 *transLevel,
+        StackTransitionNode **stackTransTop,
+        u32 *stackTransCnt);
+
+static void
+stackTransDisplay(StackTransitionNode *stackTransTop, u32 stackTransCnt);
+
+static void
+stackTransPopAll(StackTransitionNode **stackTransTop, u32 *stackTransCnt);
+
+static bool
+isStackTransEmpty(StackTransitionNode *stackTransTop);
+
+/* IGNORE! stack of memory nodes during dfsfast */
 static void
 stckMemnodePush(TPMNode2 *memnode, StckMemnode **stckMemnodeTop, u32 *stckMemnodeCnt);
 
 static TPMNode2 *
 stckMemnodePop(StckMemnode **stckMemnodeTop, u32 *stckMemnodeCnt);
+
+static void
+stckMemnodeDisplay(StckMemnode *stckMemnodeTop, u32 stckMemnodeCnt);
 
 static void
 stckMemnodePopAll(StckMemnode **stckMemnodeTop, u32 *stckMemnodeCnt);
@@ -87,8 +113,9 @@ storeAllUnvisitChildrenFast(
         TransitionHashTable **transitionht,
         Transition *firstChild,
         int maxseq,
-        StckMemnode **stckMemnodetop,
-        u32 *stckMemnodeCnt);
+        StackTransitionNode **stackTransTop,
+        u32 *stackTransCnt,
+        u32 dfsLevel);
 
 
 static void
@@ -241,23 +268,33 @@ dfsfast(TPMContext *tpm,
 	TransitionHashTable *markVisitTransHT = NULL;
 	Transition *sourceTrans = srcnode->firstChild;
 
-	StckMemnode *stckMemnodeTop = NULL;
-	u32 stckMemnodeCnt = 0;
+	StackTransitionNode *stackTransTop = NULL;
+	u32 stackTransCnt = 0;
+	u32 dfsLevel = 0;
+
+	StackTransitionNode *stackMemTransTop = NULL;
+	u32 stackMemTransCnt = 0;
 
 	int stepCount = 0;
 
 	if(sourceTrans != NULL) {
-	    storeAllUnvisitChildren(&markVisitTransHT, sourceTrans, tpmPSCtxt->maxSeqN);
-	    while(!isTransStackEmpty() ) {
-	        Transition *popTrans = transStackPop();
+	    dfsLevel++;
+	    storeAllUnvisitChildrenFast(&markVisitTransHT, sourceTrans, tpmPSCtxt->maxSeqN, &stackTransTop, &stackTransCnt, dfsLevel);
+	    // stackTransDisplay(stackTransTop, stackTransCnt);
+
+	    while(!isStackTransEmpty(stackTransTop) ) {
+	        u32 transLvl;
+	        Transition *popTrans = stackTransPop(&transLvl, &stackTransTop, &stackTransCnt);
 			TPMNode *dstnode = getTransitionDst(popTrans);
 
 			if(dstnode->tpmnode1.type == TPM_Type_Memory) {
-			    printMemNode((TPMNode2 *)dstnode);
+			    // printMemNode((TPMNode2 *)dstnode);
 			}
 
 			stepCount++;
-			storeAllUnvisitChildren(&markVisitTransHT, dstnode->tpmnode1.firstChild, tpmPSCtxt->maxSeqN);
+			storeAllUnvisitChildrenFast(&markVisitTransHT, dstnode->tpmnode1.firstChild, tpmPSCtxt->maxSeqN, &stackTransTop, &stackTransCnt, dfsLevel);
+			// stackTransDisplay(stackTransTop, stackTransCnt);
+			dfsLevel++;
 	    }
 	}
 	else {
@@ -265,7 +302,8 @@ dfsfast(TPMContext *tpm,
 	    printMemNode(srcnode);
 	}
 	delTransitionHT(&markVisitTransHT);
-	transStackPopAll();
+	stackTransPopAll(&stackTransTop, &stackTransCnt);
+
 	return stepCount;
 }
 
@@ -415,6 +453,75 @@ isTransStackEmpty()
 }
 
 static void
+stackTransPush(
+        Transition *trans,
+        u32 level,
+        StackTransitionNode **stackTransTop,
+        u32 *stackTransCnt)
+{
+   StackTransitionNode *n = calloc(1, sizeof(StackTransitionNode));
+   n->transition = trans;
+   n->level = level;
+   n->next = *stackTransTop;
+   *stackTransTop = n;
+   (*stackTransCnt)++;
+}
+
+static Transition *
+stackTransPop(
+        u32 *transLevel,
+        StackTransitionNode **stackTransTop,
+        u32 *stackTransCnt)
+{
+    StackTransitionNode *toDel;
+    Transition *trans = NULL;
+
+    if(*stackTransTop != NULL) {
+        toDel = *stackTransTop;
+        *stackTransTop = toDel->next;
+
+        trans = toDel->transition;
+        *transLevel = toDel->level;
+
+        free(toDel);
+        (*stackTransCnt)--;
+    }
+    return trans;
+}
+
+static void
+stackTransDisplay(StackTransitionNode *stackTransTop, u32 stackTransCnt)
+{
+    if(stackTransCnt > 0)
+        printf("--------------------\ntotal transitions in stack:%u\n", stackTransCnt);
+
+    while(stackTransTop != NULL) {
+        printf("Transition level:%u\n", stackTransTop->level);
+        printTrans1stChild(stackTransTop->transition->child);
+        stackTransTop = stackTransTop->next;
+    }
+}
+
+static void
+stackTransPopAll(StackTransitionNode **stackTransTop, u32 *stackTransCnt)
+{
+    while(*stackTransTop != NULL) {
+        u32 transLvl;
+        stackTransPop(&transLvl, stackTransTop, stackTransCnt);
+    }
+}
+
+static bool
+isStackTransEmpty(StackTransitionNode *stackTransTop)
+{
+    if(stackTransTop != NULL)
+        return false;
+    else
+        return true;
+}
+
+
+static void
 stckMemnodePush(TPMNode2 *memnode, StckMemnode **stckMemnodeTop, u32 *stckMemnodeCnt)
 {
     StckMemnode *n = calloc(1, sizeof(StckMemnode) );
@@ -436,9 +543,21 @@ stckMemnodePop(StckMemnode **stckMemnodeTop, u32 *stckMemnodeCnt)
         *stckMemnodeTop = toDel->next;
         memnode = toDel->memnode;
         free(toDel);
-        (*stckMemnodeCnt)++;
+        (*stckMemnodeCnt)--;
     }
     return memnode;
+}
+
+static void
+stckMemnodeDisplay(StckMemnode *stckMemnodeTop, u32 stckMemnodeCnt)
+{
+    if(stckMemnodeCnt > 0)
+        printf("--------------------\ntotal memnode in stack:%u\n", stckMemnodeCnt);
+
+    while(stckMemnodeTop != NULL) {
+        printMemNode(stckMemnodeTop->memnode);
+        stckMemnodeTop = stckMemnodeTop->next;
+    }
 }
 
 static void
@@ -505,22 +624,18 @@ storeAllUnvisitChildrenFast(
         TransitionHashTable **transitionht,
         Transition *firstChild,
         int maxseq,
-        StckMemnode **stckMemnodeTop,
-        u32 *stckMemnodeCnt)
-// Same as storeAllUnvisitChildren, additionally stores all traverse memnode in stack
+        StackTransitionNode **stackTransTop,
+        u32 *stackTransCnt,
+        u32 dfsLevel)
+// Same as storeAllUnvisitChildren, additionally add level info
 {
 
     while(firstChild != NULL) {
         if(!isTransitionVisited(*transitionht, firstChild)
            && firstChild->seqNo <= maxseq) {
-            transStackPush(firstChild);
+            // transStackPush(firstChild);
+            stackTransPush(firstChild, dfsLevel, stackTransTop, stackTransCnt);
             markVisitTransition(transitionht, firstChild);
-
-            TPMNode *dstnode = getTransitionDst(firstChild);
-            if(dstnode->tpmnode1.type == TPM_Type_Memory) { // if a memnode
-                stckMemnodePush((TPMNode2 *)dstnode, stckMemnodeTop, stckMemnodeCnt);
-            }
-
         }
         firstChild = firstChild->next;
     }

@@ -38,7 +38,7 @@ struct TPMNode2		// for memory address
     u32	hitcnt;		/* as source, the number of TMPNode2 in destination buffer this node propagates to; or
 			   as detination, the number of TMPNode2 in source buffer that propagates to this node	*/
     u32 bufid;      // bufid the node belongs to, init to 0 (belongs to no buf), will be assigned after tpm is build
-    struct HitcntHashTable *hitcntHT;
+    struct HitcntHashTable *hitcntHT; // Not use right now
 };
 typedef struct TPMNode2 TPMNode2;
 
