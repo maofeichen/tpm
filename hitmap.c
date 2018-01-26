@@ -6,9 +6,9 @@ buildHitMap(TPMContext *tpm)
     HitMapContext *hitMap;
     TPMBufHashTable *tpmBuf;
 
-    tpmBuf = getAllTPMBuf(tpm);
-    assignBufID(tpmBuf);
-    printTPMBufHT(tpmBuf);
+    tpmBuf = analyzeTPMBuf(tpm);
+    assignTPMBufID(tpmBuf);
+    printTPMBufHashTable(tpmBuf);
 
 
     return hitMap;

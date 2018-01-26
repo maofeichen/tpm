@@ -255,9 +255,9 @@ searchAllAvalancheInTPM(TPMContext *tpm)
     TPMBufHashTable *tpmBufHT, *srcBuf, *dstBuf;
     TPMPropagateRes *tpmPropagateRes = NULL; // points to propagate result of each buf
 
-	tpmBufHT = getAllTPMBuf(tpm);
-	assignBufID(tpmBufHT);
-	printTPMBufHT(tpmBufHT);
+	tpmBufHT = analyzeTPMBuf(tpm);
+	assignTPMBufID(tpmBufHT);
+	printTPMBufHashTable(tpmBufHT);
 
 //	buildTPMPropagate(tpmBufHT, &tpmPropagateRes);
 //	delTPMPropagate(tpmPropagateRes);
@@ -316,9 +316,9 @@ searchTPMAvalancheFast(TPMContext *tpm)
     int maxSeqN;
     // TPMPropagateRes *tpmPropgtRes = NULL; // points to propagate result of each buf
 
-	tpmBufHT = getAllTPMBuf(tpm);
-	assignBufID(tpmBufHT);
-	printTPMBufHT(tpmBufHT);
+	tpmBufHT = analyzeTPMBuf(tpm);
+	assignTPMBufID(tpmBufHT);
+	printTPMBufHashTable(tpmBufHT);
 
 	maxSeqN = getTPMBufMaxSeqN(tpmBufHT);
 	tpmPSCtxt = createTPMPropgtSearchCtxt(NULL, maxSeqN);

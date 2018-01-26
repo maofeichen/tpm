@@ -196,7 +196,7 @@ seqNo2NodeSearch(struct TPMContext *tpm, u32 seqNo)
 }
 
 TPMBufHashTable *
-getAllTPMBuf(TPMContext *tpm)
+analyzeTPMBuf(TPMContext *tpm)
 {
     Mem2NodeHT *memNodeHT;
     TPMBufHashTable *tpmBufHT = NULL, *tpmBufNode, *tpmBufFound;
@@ -224,7 +224,7 @@ getAllTPMBuf(TPMContext *tpm)
 }
 
 void
-assignBufID(TPMBufHashTable *tpmBuf)
+assignTPMBufID(TPMBufHashTable *tpmBuf)
 {
     TPMBufHashTable *node, *temp;
     u32 bufid = 1;
@@ -340,7 +340,7 @@ printTransAllChildren(Transition *transition)
 }
 
 void 
-printTPMBufHT(TPMBufHashTable *tpmBufHT)
+printTPMBufHashTable(TPMBufHashTable *tpmBufHT)
 {
     TPMBufHashTable *node, *temp;
     int bufcnt;

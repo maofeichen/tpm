@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include "avalanche.h"
+#include "hitmap.h"
 #include "misc.h"
 #include "stat.h"
 #include "tpm.h"
@@ -34,8 +35,9 @@ int main(int argc, char const *argv[])
 #ifdef STAT
 			stat(tpm);
 #endif
+			buildHitMap(tpm);
 			// searchAllAvalancheInTPM(tpm);
-			searchTPMAvalancheFast(tpm);
+			// searchTPMAvalancheFast(tpm);
 			printf("del TPM\n");
 			delTPM(tpm);
 		} 

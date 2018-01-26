@@ -98,11 +98,11 @@ seqNo2NodeSearch(struct TPMContext *tpm, u32 seqNo);
 
 /* TPM all buffers */
 TPMBufHashTable *
-getAllTPMBuf(TPMContext *tpm);
+analyzeTPMBuf(TPMContext *tpm);
 // computes all the bufs in tpm
 
 void 
-assignBufID(TPMBufHashTable *tpmBuf);
+assignTPMBufID(TPMBufHashTable *tpmBuf);
 // assignes id to each buffer, starts with 1
 
 int
@@ -132,5 +132,5 @@ void
 printTransAllChildren(Transition *transition);
 
 void 
-printTPMBufHT(TPMBufHashTable *tpmBufHT);
+printTPMBufHashTable(TPMBufHashTable *tpmBufHT);
 #endif

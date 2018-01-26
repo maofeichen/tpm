@@ -1,5 +1,6 @@
 #include "avalanchetype.h"
 #include <assert.h>
+#include <stdio.h>
 
 Addr2NodeItem *
 createAddr2NodeItem(u32 addr, TPMNode2 *memNode, Addr2NodeItem *subHash, TaintedBuf *toMemNode)

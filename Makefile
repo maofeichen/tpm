@@ -1,11 +1,11 @@
 CC	= gcc
 # CF	= -Wall -g -std=c11 -DDEBUG 
 # LF	= -g -DDEBUG 
-CF	= -Wall -g -std=c11 
+CF	= -Wall -Wno-unused-variable -Wno-unused-function -Wno-unused-label -g -std=c11 
 LF	= -g 
 
 OBJS	= main.o tpm.o tpmnode.o record.o stat.o propagate.o avalanche.o continbuf.o avalanchetype.o \
-		  misc.o
+		  misc.o hitmapnode.o hitmap.o
 
 all	: tpm #testtpm
 
@@ -44,6 +44,12 @@ continbuf.o: continbuf.c
 
 avalanchetype.o: avalanchetype.c
 	$(CC) $(CF) -c avalanchetype.c
+
+hitmapnode.o: hitmapnode.c
+	$(CC) $(CF) -c hitmapnode.c
+
+hitmap.o: hitmap.c
+	$(CC) $(CF) -c hitmap.c
 
 misc.o: misc.c
 	$(CC) $(CF) -c misc.c
