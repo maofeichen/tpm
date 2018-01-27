@@ -20,4 +20,10 @@ typedef struct HitMapContext
 HitMapContext *
 buildHitMap(TPMContext *tpm);
 
+void
+printHitMap(HitMapContext *hitmap);
+
+void
+printHitMapBuf(BufContext *hitMapBuf);
+
 #endif

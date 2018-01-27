@@ -93,7 +93,8 @@ int
 getMemNode1stVersion(struct TPMNode2 **earliest);
 
 /* Tainted buffer operation */
-TaintedBuf *createTaintedBuf(TPMNode2 *bufstart);
+TaintedBuf *
+createTaintedBuf(TPMNode2 *bufstart);
 
 /* print function */
 void 

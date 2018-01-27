@@ -125,6 +125,7 @@ TaintedBuf *createTaintedBuf(TPMNode2 *bufstart)
     TaintedBuf *taintedBuf = malloc(sizeof(TaintedBuf) );
     memset(taintedBuf, 0, sizeof(TaintedBuf) );
     taintedBuf->bufstart = bufstart;
+    return taintedBuf;
 }
 
 void 

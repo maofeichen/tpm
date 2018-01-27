@@ -15,6 +15,7 @@ int main(int argc, char const *argv[])
 {
 	FILE *log;
 	struct TPMContext* tpm;
+	HitMapContext *hitMap;
 	int numOfNode;
 
 	if(argc <= 1){
@@ -35,7 +36,8 @@ int main(int argc, char const *argv[])
 #ifdef STAT
 			stat(tpm);
 #endif
-			buildHitMap(tpm);
+			hitMap = buildHitMap(tpm);
+			printHitMap(hitMap);
 			// searchAllAvalancheInTPM(tpm);
 			// searchTPMAvalancheFast(tpm);
 			printf("del TPM\n");
