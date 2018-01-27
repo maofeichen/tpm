@@ -21,6 +21,9 @@ HitMapContext *
 buildHitMap(TPMContext *tpm);
 
 void
+delHitMap(HitMapContext *hitmap);
+
+void
 printHitMap(HitMapContext *hitmap);
 
 void

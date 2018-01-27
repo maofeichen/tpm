@@ -4,6 +4,9 @@
 static BufContext *
 buildBufContext(TPMBufHashTable *buf);
 
+static void
+delBufContext(BufContext *bufCtxt);
+
 HitMapContext *
 buildHitMap(TPMContext *tpm)
 {
@@ -28,8 +31,26 @@ buildHitMap(TPMContext *tpm)
         i++;
     }
 
+    delAllTPMBuf(tpmBuf);
     return hitMap;
 }
+
+void
+delHitMap(HitMapContext *hitmap)
+{
+    if(hitmap == NULL)
+        return;
+
+    for(int i = 0; i < hitmap->numOfBuf; i++) {
+        delBufContext(hitmap->bufArray[i]);
+        hitmap->bufArray[i] = NULL;
+    }
+
+    free(hitmap->bufArray);
+    hitmap->numOfBuf;
+    free(hitmap);
+}
+
 
 void
 printHitMap(HitMapContext *hitmap)
@@ -77,4 +98,15 @@ buildBufContext(TPMBufHashTable *buf)
         bufCtxt->addrArray[i] = NULL;
 
     return bufCtxt;
+}
+
+static void
+delBufContext(BufContext *bufCtxt)
+{
+    if(bufCtxt == NULL)
+        return;
+
+    free(bufCtxt->addrArray);
+    bufCtxt->addrArray = NULL;
+    free(bufCtxt);
 }
