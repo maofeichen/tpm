@@ -245,17 +245,17 @@ getTPMBufTotal(TPMBufHashTable *tpmBuf)
     return bufcnt;
 }
 
-int
+u32
 getTPMBufMaxSeqN(TPMBufHashTable *tpmBuf)
 // Returns:
 //  max seqNo of the last buffer in tpm
-//  <0: error
+//  0: error
 {
-    int maxSeqN = -1;
+    u32 maxSeqN = 0;
     TPMBufHashTable *buf;
 
     if(tpmBuf == NULL)
-        return -1;
+        return 0;
 
     buf = tpmBuf;
     while(buf->hh_tpmBufHT.next != NULL) {

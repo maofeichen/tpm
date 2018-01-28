@@ -37,6 +37,21 @@ struct HitTransition // aggregate (potentially) multiple taint propagation steps
 };
 typedef struct HitTransition HitTransition;
 
+typedef struct BufContext
+{
+    u32 numOfAddr;  // num of addr of the buffer
+    HitMapNode **addrArray; // addr array of the buffer,
+                            // each points to the earliest version node in the hitmap
+} BufContext;
+
+typedef struct HitMapContext
+{
+    // HitMapAddr2NodeHashTable *hitMapNodeHT;  // hash table head
+    u32 maxBufSeqN;         // max seqN of all buffers in TPM
+    u32 numOfBuf;           // num of buffers in TPM
+    BufContext **bufArray;  // buf array, each points to a buffer context
+} HitMapContext;
+
 HitMapNode *
 createHitMapNode(
         u32 bufId,

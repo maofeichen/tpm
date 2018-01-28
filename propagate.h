@@ -3,6 +3,7 @@
 
 #include "uthash.h"
 #include "avalanchetype.h"
+#include "hitmapnode.h"
 #include "tpmnode.h"
 #include "tpm.h"
 #include "type.h"
@@ -59,6 +60,15 @@ memnodePropgtFast(
 //  >=0: step counts in the dfs search
 //  <0: error
 // searches mem node propagation given tpm, source node.
+
+int
+bufnodePropgt2HitMapNode(
+        TPMContext *tpm,
+        TPMNode2 *srcnode,
+        HitMapContext *hitMapCtxt);
+// Returns:
+//  >=0: success
+//  <0: error
 
 int
 printMemNodePropagate(TPMContext *tpm, TPMNode2 *s);

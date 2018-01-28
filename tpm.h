@@ -108,7 +108,7 @@ assignTPMBufID(TPMBufHashTable *tpmBuf);
 int
 getTPMBufTotal(TPMBufHashTable *tpmBuf);
 
-int
+u32
 getTPMBufMaxSeqN(TPMBufHashTable *tpmBuf);
 
 void

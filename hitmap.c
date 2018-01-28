@@ -3,14 +3,20 @@
 
 /* build HitMap of each buffer in TPM*/
 static BufContext *
-buildBufContext(HitMapContext *hitMap, TPMBufHashTable *buf);
+buildBufContext(
+        TPMContext *tpm,
+        HitMapContext *hitMap,
+        TPMBufHashTable *buf);
 
 static void
 delBufContext(BufContext *bufCtxt);
 
 /* build HitMap of each addr of each buffer */
 static void
-buildHitMapAddr(HitMapContext *hitMap, TPMNode2 *headNode);
+buildHitMapAddr(
+        TPMContext *tpm,
+        HitMapContext *hitMap,
+        TPMNode2 *headNode);
 
 HitMapContext *
 buildHitMap(TPMContext *tpm)
@@ -18,6 +24,7 @@ buildHitMap(TPMContext *tpm)
     HitMapContext *hitMap;
     TPMBufHashTable *tpmBuf, *currBuf;;
     int numOfBuf, i;
+    u32 maxBufSeqN;
 
     tpmBuf = analyzeTPMBuf(tpm);
     assignTPMBufID(tpmBuf);
@@ -28,12 +35,13 @@ buildHitMap(TPMContext *tpm)
     assert(hitMap != NULL);
 
     // hitMap->hitMapNodeHT = NULL;
+    hitMap->maxBufSeqN = getTPMBufMaxSeqN(tpmBuf);
     hitMap->numOfBuf = numOfBuf;
     hitMap->bufArray = calloc(1, sizeof(BufContext *) * numOfBuf);
 
     i = 0;
     for(currBuf = tpmBuf; currBuf != NULL; currBuf = currBuf->hh_tpmBufHT.next) {
-        hitMap->bufArray[i] = buildBufContext(hitMap, currBuf);
+        hitMap->bufArray[i] = buildBufContext(tpm, hitMap, currBuf);
         i++;
     }
 
@@ -66,7 +74,7 @@ printHitMap(HitMapContext *hitmap)
         return;
     }
 
-    printf("HitMap: num of buf:%u\n", hitmap->numOfBuf);
+    printf("HitMap: num of buf:%u maxSeqN:%u\n", hitmap->numOfBuf, hitmap->maxBufSeqN);
     for(int i = 0; i < hitmap->numOfBuf; i++) {
         printHitMapBuf(hitmap->bufArray[i]);
     }
@@ -87,7 +95,10 @@ printHitMapBuf(BufContext *hitMapBuf)
 
 
 static BufContext *
-buildBufContext(HitMapContext *hitMap, TPMBufHashTable *buf)
+buildBufContext(
+        TPMContext *tpm,
+        HitMapContext *hitMap,
+        TPMBufHashTable *buf)
 {
     BufContext *bufCtxt;
     u32 numOfAddr;
@@ -104,7 +115,7 @@ buildBufContext(HitMapContext *hitMap, TPMBufHashTable *buf)
     TPMNode2 *bufHead = buf->headNode;
     while(bufHead != NULL) {
         // printMemNode(bufHead);
-        buildHitMapAddr(hitMap, bufHead);
+        buildHitMapAddr(tpm, hitMap, bufHead);
         bufHead = bufHead->rightNBR;
     }
 
@@ -123,7 +134,10 @@ delBufContext(BufContext *bufCtxt)
 }
 
 static void
-buildHitMapAddr(HitMapContext *hitMap, TPMNode2 *headNode)
+buildHitMapAddr(
+        TPMContext *tpm,
+        HitMapContext *hitMap,
+        TPMNode2 *headNode)
 {
     if(hitMap == NULL || headNode == NULL){
         fprintf(stderr, "hitMap:%p headNode:%p\n", hitMap, headNode);
@@ -139,6 +153,7 @@ buildHitMapAddr(HitMapContext *hitMap, TPMNode2 *headNode)
     u32 currVersion = headNode->version;
 
     do {
+        bufnodePropgt2HitMapNode(tpm, headNode, hitMap);
         headNode = headNode->nextVersion;
     } while (currVersion != headNode->version);
 }

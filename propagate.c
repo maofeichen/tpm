@@ -121,19 +121,14 @@ storeAllUnvisitChildrenFast(
 static void
 storePropagateDstMemNode(TPMNode2 *memNode, TaintedBuf **dstMemNodes);
 
-/* functions */
+/* dfs implementation: buf node propagates to hitmap nodes */
+static int
+dfs2HitMapNode(
+        TPMContext *tpm,
+        TPMNode2 *srcnode,
+        HitMapContext *hitMapCtxt);
 
-//Addr2NodeItem *
-//createAddr2NodeItem(u32 addr, TPMNode2 *memNode, Addr2NodeItem *subHash, TaintedBuf *toMemNode)
-//{
-//	Addr2NodeItem *i = NULL;
-//	i = malloc(sizeof(Addr2NodeItem) );
-//	i->addr = addr;
-//	i->node = memNode;
-//	i->subHash 	 = subHash;
-//	i->toMemNode = toMemNode;
-//	return i;
-//}
+/* functions */
 
 int 
 cmpAddr2NodeItem(Addr2NodeItem *l, Addr2NodeItem *r)
@@ -174,6 +169,16 @@ memnodePropgtFast(
 {
     return dfsfast(tpm, tpmPSCtxt, addrPropgtToNode, srcnode);
 }
+
+int
+bufnodePropgt2HitMapNode(
+        TPMContext *tpm,
+        TPMNode2 *srcnode,
+        HitMapContext *hitMapCtxt)
+{
+    return dfs2HitMapNode(tpm, srcnode, hitMapCtxt);
+}
+
 
 int
 printMemNodePropagate(TPMContext *tpm, TPMNode2 *s)
@@ -648,4 +653,17 @@ storePropagateDstMemNode(TPMNode2 *memNode, TaintedBuf **dstMemNodes)
 {
 	TaintedBuf *node = createTaintedBuf(memNode);
 	LL_APPEND(*dstMemNodes, node);
+}
+
+static int
+dfs2HitMapNode(
+        TPMContext *tpm,
+        TPMNode2 *srcnode,
+        HitMapContext *hitMapCtxt)
+{
+    if(tpm == NULL || srcnode == NULL || hitMapCtxt == NULL) {
+        fprintf(stderr, "dfs2HitMapNode: tpm:%p srcnode:%p hitMap:%p\n", tpm, srcnode, hitMapCtxt);
+        return -1;
+    }
+    return 0;
 }
