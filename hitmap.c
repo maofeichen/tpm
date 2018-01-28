@@ -1,4 +1,5 @@
 #include "hitmap.h"
+#include "propagate.h"
 #include <assert.h>
 
 /* build HitMap of each buffer in TPM*/

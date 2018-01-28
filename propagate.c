@@ -665,5 +665,41 @@ dfs2HitMapNode(
         fprintf(stderr, "dfs2HitMapNode: tpm:%p srcnode:%p hitMap:%p\n", tpm, srcnode, hitMapCtxt);
         return -1;
     }
-    return 0;
+    // printMemNode(srcnode);
+    TransitionHashTable *markVisitTransHT = NULL;
+    Transition *sourceTrans = srcnode->firstChild;
+
+    StackTransitionNode *stackTransTop = NULL;
+    u32 stackTransCnt = 0;
+
+    u32 dfsLevel = 0;
+    int stepCount = 0;
+
+    if(sourceTrans != NULL) {
+        storeAllUnvisitChildrenFast(&markVisitTransHT, sourceTrans,
+                hitMapCtxt->maxBufSeqN, &stackTransTop, &stackTransCnt, dfsLevel);
+        while(!isStackTransEmpty(stackTransTop) ) {
+            u32 transLvl;
+            Transition *popTrans = stackTransPop(&transLvl, &stackTransTop, &stackTransCnt);
+            TPMNode *dstnode = getTransitionDst(popTrans);
+
+            if(dstnode->tpmnode1.type == TPM_Type_Memory) {
+                // printMemNode((TPMNode2 *)dstnode);
+            }
+
+            stepCount++;
+            storeAllUnvisitChildrenFast(&markVisitTransHT, dstnode->tpmnode1.firstChild,
+                    hitMapCtxt->maxBufSeqN, &stackTransTop, &stackTransCnt, dfsLevel);
+            // stackTransDisplay(stackTransTop, stackTransCnt);
+            dfsLevel++;
+        }
+    }
+    else {
+        printf("dfs2HitMapNode: given source node is a leaf\n");
+        printMemNode(srcnode);
+    }
+    delTransitionHT(&markVisitTransHT);
+    stackTransPopAll(&stackTransTop, &stackTransCnt);
+
+    return stepCount;
 }
