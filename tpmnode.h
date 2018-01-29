@@ -104,6 +104,9 @@ void
 printMemNode(struct TPMNode2 *n);
 
 void 
+printMemNodeLit(TPMNode2 *node);
+
+void
 printNonmemNode(struct TPMNode1 *n);
 
 void 

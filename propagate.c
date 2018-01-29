@@ -729,10 +729,16 @@ dfs2HitMapNode(
 
         TPMNode *dstnode = getTransitionDst(popTrans);
         if(dstnode->tpmnode1.type == TPM_Type_Memory) {
-            printf("Transition level:%u\n", transLvl);
-            printMemNode((TPMNode2 *)dstnode);
+            printf("--------------------\ndfs depth level:%u\n", transLvl);
+            printMemNodeLit((TPMNode2 *)dstnode);
+            // printMemNode((TPMNode2 *)dstnode);
             // storeDFSBufNodePath((TPMNode2 *)dstnode, transLvl, &stackBufNodePathTop, &stackBufNodePathCnt);
             // stckMemnodeDisplay(stackBufNodePathTop, stackBufNodePathCnt);
+
+        }
+        else {
+            // printf("--------------------\nTransition level:%u\n", transLvl);
+            // printNonmemNode((TPMNode1 *)dstnode);
 
         }
 

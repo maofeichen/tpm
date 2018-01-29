@@ -145,7 +145,7 @@ void
 printMemNode(struct TPMNode2 *n)
 {
     printf("mem: type:%-1u addr:0x%-8x val:%-8x sz:%u lastUpdateTS:%-16d"
-            " firstChild:%-8p leftNBR:%-8p rightNBR:%-8p nextVersion:%-8p"
+            " firstChild:%-8p leftNBR:%-10p rightNBR:%-10p nextVersion:%-8p"
             " version:%-9u hitcnt:%-8u bufID:%u\n",
             n->type, n->addr, n->val, n->bytesz, n->lastUpdateTS, 
             n->firstChild, n->leftNBR, n->rightNBR, n->nextVersion,
@@ -153,6 +153,16 @@ printMemNode(struct TPMNode2 *n)
 }
 
 void 
+printMemNodeLit(TPMNode2 *node)
+{
+    printf("addr:0x%-8x val:%-8x sz:%u lastUpdateTS:%-16d"
+            " version:%-4u bufID:%u\n",
+            node->addr, node->val, node->bytesz, node->lastUpdateTS,
+            node->version, node->bufid);
+}
+
+
+void
 printNonmemNode(struct TPMNode1 *n)
 {
      printf("non-mem: type:%-1u addr:0x%-8x val:%-8x lastUpdateTS:%-16d\n", 
