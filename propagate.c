@@ -58,12 +58,15 @@ stackTransPopAll(StackTransitionNode **stackTransTop, u32 *stackTransCnt);
 static bool
 isStackTransEmpty(StackTransitionNode *stackTransTop);
 
+static void
+printTransitionNode(StackTransitionNode *transNode);
+
 /* IGNORE! stack of memory nodes during dfsfast */
 static void
-stckMemnodePush(TPMNode2 *memnode, StckMemnode **stckMemnodeTop, u32 *stckMemnodeCnt);
+stckMemnodePush(TPMNode2 *memnode, u32 level, StckMemnode **stckMemnodeTop, u32 *stckMemnodeCnt);
 
 static TPMNode2 *
-stckMemnodePop(StckMemnode **stckMemnodeTop, u32 *stckMemnodeCnt);
+stckMemnodePop(u32 *level, StckMemnode **stckMemnodeTop, u32 *stckMemnodeCnt);
 
 static void
 stckMemnodeDisplay(StckMemnode *stckMemnodeTop, u32 stckMemnodeCnt);
@@ -127,6 +130,13 @@ dfs2HitMapNode(
         TPMContext *tpm,
         TPMNode2 *srcnode,
         HitMapContext *hitMapCtxt);
+
+static void
+storeDFSBufNodePath(
+        TPMNode2 *node,
+        u32 lvl,
+        StckMemnode **stackBufNodePathTop,
+        u32 *stackBufNodePathCnt);
 
 /* functions */
 
@@ -525,12 +535,28 @@ isStackTransEmpty(StackTransitionNode *stackTransTop)
         return true;
 }
 
+static void
+printTransitionNode(StackTransitionNode *transNode)
+{
+    if(transNode == NULL)
+        return;
+
+    printf("Transition node: level:%u first child:\n", transNode->level);
+    if(transNode->transition->child->tpmnode1.type == TPM_Type_Memory) {
+        printMemNode((TPMNode2 *)&(transNode->transition->child->tpmnode2) );
+    }
+    else {
+        printNonmemNode((TPMNode1 *)&(transNode->transition->child->tpmnode1) );
+    }
+}
+
 
 static void
-stckMemnodePush(TPMNode2 *memnode, StckMemnode **stckMemnodeTop, u32 *stckMemnodeCnt)
+stckMemnodePush(TPMNode2 *memnode, u32 level, StckMemnode **stckMemnodeTop, u32 *stckMemnodeCnt)
 {
     StckMemnode *n = calloc(1, sizeof(StckMemnode) );
     assert(n != NULL);
+    n->level = level;
     n->memnode = memnode;
     n->next = *stckMemnodeTop;
     *stckMemnodeTop = n;
@@ -538,7 +564,7 @@ stckMemnodePush(TPMNode2 *memnode, StckMemnode **stckMemnodeTop, u32 *stckMemnod
 }
 
 static TPMNode2 *
-stckMemnodePop(StckMemnode **stckMemnodeTop, u32 *stckMemnodeCnt)
+stckMemnodePop(u32 *level, StckMemnode **stckMemnodeTop, u32 *stckMemnodeCnt)
 {
     StckMemnode *toDel;
     TPMNode2 *memnode = NULL;
@@ -547,6 +573,7 @@ stckMemnodePop(StckMemnode **stckMemnodeTop, u32 *stckMemnodeCnt)
         toDel = *stckMemnodeTop;
         *stckMemnodeTop = toDel->next;
         memnode = toDel->memnode;
+        *level = toDel->level;
         free(toDel);
         (*stckMemnodeCnt)--;
     }
@@ -560,6 +587,7 @@ stckMemnodeDisplay(StckMemnode *stckMemnodeTop, u32 stckMemnodeCnt)
         printf("--------------------\ntotal memnode in stack:%u\n", stckMemnodeCnt);
 
     while(stckMemnodeTop != NULL) {
+        printf("node levle:%u\n", stckMemnodeTop->level);
         printMemNode(stckMemnodeTop->memnode);
         stckMemnodeTop = stckMemnodeTop->next;
     }
@@ -569,7 +597,8 @@ static void
 stckMemnodePopAll(StckMemnode **stckMemnodeTop, u32 *stckMemnodeCnt)
 {
     while(*stckMemnodeTop != NULL){
-        stckMemnodePop(stckMemnodeTop, stckMemnodeCnt);
+        u32 lvl;
+        stckMemnodePop(&lvl, stckMemnodeTop, stckMemnodeCnt);
     }
 }
 
@@ -665,41 +694,83 @@ dfs2HitMapNode(
         fprintf(stderr, "dfs2HitMapNode: tpm:%p srcnode:%p hitMap:%p\n", tpm, srcnode, hitMapCtxt);
         return -1;
     }
-    // printMemNode(srcnode);
     TransitionHashTable *markVisitTransHT = NULL;
     Transition *sourceTrans = srcnode->firstChild;
 
     StackTransitionNode *stackTransTop = NULL;
     u32 stackTransCnt = 0;
 
+    StckMemnode *stackBufNodePathTop = NULL;
+    u32 stackBufNodePathCnt = 0;
+
     u32 dfsLevel = 0;
     int stepCount = 0;
 
-    if(sourceTrans != NULL) {
-        storeAllUnvisitChildrenFast(&markVisitTransHT, sourceTrans,
-                hitMapCtxt->maxBufSeqN, &stackTransTop, &stackTransCnt, dfsLevel);
-        while(!isStackTransEmpty(stackTransTop) ) {
-            u32 transLvl;
-            Transition *popTrans = stackTransPop(&transLvl, &stackTransTop, &stackTransCnt);
-            TPMNode *dstnode = getTransitionDst(popTrans);
-
-            if(dstnode->tpmnode1.type == TPM_Type_Memory) {
-                // printMemNode((TPMNode2 *)dstnode);
-            }
-
-            stepCount++;
-            storeAllUnvisitChildrenFast(&markVisitTransHT, dstnode->tpmnode1.firstChild,
-                    hitMapCtxt->maxBufSeqN, &stackTransTop, &stackTransCnt, dfsLevel);
-            // stackTransDisplay(stackTransTop, stackTransCnt);
-            dfsLevel++;
-        }
-    }
-    else {
+    if(sourceTrans == NULL) {
         printf("dfs2HitMapNode: given source node is a leaf\n");
         printMemNode(srcnode);
+        return 0;
+
     }
+
+    // stckMemnodePush(srcnode, dfsLevel, &stackBufNodePathTop, &stackBufNodePathCnt);
+    // stckMemnodeDisplay(stackBufNodePathTop, stackBufNodePathCnt);
+
+    storeAllUnvisitChildrenFast(&markVisitTransHT, sourceTrans,
+            hitMapCtxt->maxBufSeqN, &stackTransTop, &stackTransCnt, dfsLevel);
+    // stackTransDisplay(stackTransTop, stackTransCnt);
+
+    while(!isStackTransEmpty(stackTransTop) ) {
+        u32 transLvl;
+
+        // printTransitionNode(stackTransTop);
+        Transition *popTrans = stackTransPop(&transLvl, &stackTransTop, &stackTransCnt);
+        dfsLevel = transLvl + 1;
+
+        TPMNode *dstnode = getTransitionDst(popTrans);
+        if(dstnode->tpmnode1.type == TPM_Type_Memory) {
+            printf("Transition level:%u\n", transLvl);
+            printMemNode((TPMNode2 *)dstnode);
+            // storeDFSBufNodePath((TPMNode2 *)dstnode, transLvl, &stackBufNodePathTop, &stackBufNodePathCnt);
+            // stckMemnodeDisplay(stackBufNodePathTop, stackBufNodePathCnt);
+
+        }
+
+        stepCount++;
+        storeAllUnvisitChildrenFast(&markVisitTransHT, dstnode->tpmnode1.firstChild,
+                hitMapCtxt->maxBufSeqN, &stackTransTop, &stackTransCnt, dfsLevel);
+        // stackTransDisplay(stackTransTop, stackTransCnt);
+        // dfsLevel++;
+    }
+
     delTransitionHT(&markVisitTransHT);
     stackTransPopAll(&stackTransTop, &stackTransCnt);
 
     return stepCount;
+}
+
+static void
+storeDFSBufNodePath(
+        TPMNode2 *node,
+        u32 lvl,
+        StckMemnode **stackBufNodePathTop,
+        u32 *stackBufNodePathCnt)
+//  stores buf nodes that dfs visits, that is, each node's level in the stack should
+// > than its previous
+{
+    if(*stackBufNodePathTop != NULL) {
+        u32 nodeLvl = (*stackBufNodePathTop)->level;
+        if(nodeLvl < lvl) {
+            stckMemnodePush(node, lvl, stackBufNodePathTop, stackBufNodePathCnt);
+        }
+        else {
+            while(*stackBufNodePathTop == NULL || nodeLvl >= lvl) {
+                stckMemnodePop(&nodeLvl, stackBufNodePathTop, stackBufNodePathCnt);
+            }
+            stckMemnodePush(node, lvl, stackBufNodePathTop, stackBufNodePathCnt);
+        }
+    }
+    else {
+        stckMemnodePush(node, lvl, stackBufNodePathTop, stackBufNodePathCnt);
+    }
 }

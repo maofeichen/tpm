@@ -25,7 +25,7 @@ typedef struct StackTransitionNode
 } StackTransitionNode;
 
 typedef struct StckMemnode
-{
+{   u32 level;
     TPMNode2 *memnode;
     struct StckMemnode *next;
 } StckMemnode;

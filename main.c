@@ -39,6 +39,7 @@ int main(int argc, char const *argv[])
 			hitMap = buildHitMap(tpm);
 			printHitMap(hitMap);
 			delHitMap(hitMap);
+
 			// searchAllAvalancheInTPM(tpm);
 			// searchTPMAvalancheFast(tpm);
 			printf("del TPM\n");
