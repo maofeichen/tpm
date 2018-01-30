@@ -1,7 +1,9 @@
 #ifndef HITMAPNODE_H
 #define HITMAPNODE_H
 
+#include "tpmnode.h"
 #include "type.h"
+#include "uthash.h"
 
 struct HitTransition;
 
@@ -37,6 +39,14 @@ struct HitTransition // aggregate (potentially) multiple taint propagation steps
 };
 typedef struct HitTransition HitTransition;
 
+typedef struct HitMapAddr2NodeHashTable
+{
+    // u32 addr;                   // key: addr of in each node in hitmap
+    TPMNode2 *srcnode;          // key: pointers of TPMNode2
+    HitMapNode *toHitMapNode;   // val: pointes to first version of node in HitMap
+    UT_hash_handle hh_hitMapAddr2NodeHT;
+} HitMapAddr2NodeHashTable;  // stores nodes that has correspond hitmap node in the hitmap
+
 typedef struct BufContext
 {
     u32 numOfAddr;  // num of addr of the buffer
@@ -46,7 +56,7 @@ typedef struct BufContext
 
 typedef struct HitMapContext
 {
-    // HitMapAddr2NodeHashTable *hitMapNodeHT;  // hash table head
+    HitMapAddr2NodeHashTable *hitMapNodeHT;  // hash table head
     u32 maxBufSeqN;         // max seqN of all buffers in TPM
     u32 numOfBuf;           // num of buffers in TPM
     BufContext **bufArray;  // buf array, each points to a buffer context

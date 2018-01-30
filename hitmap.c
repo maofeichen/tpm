@@ -35,7 +35,7 @@ buildHitMap(TPMContext *tpm)
     hitMap = calloc(1, sizeof(HitMapContext) );
     assert(hitMap != NULL);
 
-    // hitMap->hitMapNodeHT = NULL;
+    hitMap->hitMapNodeHT = NULL;
     hitMap->maxBufSeqN = getTPMBufMaxSeqN(tpmBuf);
     hitMap->numOfBuf = numOfBuf;
     hitMap->bufArray = calloc(1, sizeof(BufContext *) * numOfBuf);
@@ -49,6 +49,29 @@ buildHitMap(TPMContext *tpm)
     delAllTPMBuf(tpmBuf);
     return hitMap;
 }
+
+void
+createHitMapRecord(
+        TPMNode2 *src,
+        u32 srclvl,
+        TPMNode2 *dst,
+        u32 dstLvl,
+        HitMapContext *hitMapCtxt)
+//  1.1 detects if source exists in HitMap
+//      a) yes, do nothing
+//      b) no, creates new hitMap node
+//  1.2 updates the HitMap Context Hash Table
+//  1.3 updates the HitMap Array
+//  1.4 updates neighbors, versions if there exists any
+//  2   repeates 1.1~1.4 for destination node
+//  3. creates transition node between src and destination
+{
+    printf("---------------\nHitMapRecord src: Lvl:%u\n", srclvl);
+    printMemNodeLit(src);
+    printf("dst: Lvl:%u\n", dstLvl);
+    printMemNodeLit(dst);
+}
+
 
 void
 delHitMap(HitMapContext *hitmap)

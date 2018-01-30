@@ -131,8 +131,11 @@ dfs2HitMapNode(
         TPMNode2 *srcnode,
         HitMapContext *hitMapCtxt);
 
+static bool
+isValidBufNode(TPMNode2 *node);
+
 static void
-storeDFSBufNodePath(
+storeDFSBufNodeVisitPath(
         TPMNode2 *node,
         u32 lvl,
         StckMemnode **stackBufNodePathTop,
@@ -588,7 +591,8 @@ stckMemnodeDisplay(StckMemnode *stckMemnodeTop, u32 stckMemnodeCnt)
 
     while(stckMemnodeTop != NULL) {
         printf("node levle:%u\n", stckMemnodeTop->level);
-        printMemNode(stckMemnodeTop->memnode);
+        // printMemNode(stckMemnodeTop->memnode);
+        printMemNodeLit(stckMemnodeTop->memnode);
         stckMemnodeTop = stckMemnodeTop->next;
     }
 }
@@ -713,8 +717,10 @@ dfs2HitMapNode(
 
     }
 
-    // stckMemnodePush(srcnode, dfsLevel, &stackBufNodePathTop, &stackBufNodePathCnt);
+    stckMemnodePush(srcnode, dfsLevel, &stackBufNodePathTop, &stackBufNodePathCnt);
     // stckMemnodeDisplay(stackBufNodePathTop, stackBufNodePathCnt);
+    printf("--------------------\ndfs depth level:%u\n", dfsLevel);
+    printMemNodeLit(srcnode);
 
     storeAllUnvisitChildrenFast(&markVisitTransHT, sourceTrans,
             hitMapCtxt->maxBufSeqN, &stackTransTop, &stackTransCnt, dfsLevel);
@@ -728,18 +734,18 @@ dfs2HitMapNode(
         dfsLevel = transLvl + 1;
 
         TPMNode *dstnode = getTransitionDst(popTrans);
-        if(dstnode->tpmnode1.type == TPM_Type_Memory) {
+        if(dstnode->tpmnode1.type == TPM_Type_Memory && isValidBufNode((TPMNode2 *)dstnode) ) {
             printf("--------------------\ndfs depth level:%u\n", transLvl);
             printMemNodeLit((TPMNode2 *)dstnode);
             // printMemNode((TPMNode2 *)dstnode);
-            // storeDFSBufNodePath((TPMNode2 *)dstnode, transLvl, &stackBufNodePathTop, &stackBufNodePathCnt);
-            // stckMemnodeDisplay(stackBufNodePathTop, stackBufNodePathCnt);
+
+            storeDFSBufNodeVisitPath((TPMNode2 *)dstnode, transLvl, &stackBufNodePathTop, &stackBufNodePathCnt);
+            stckMemnodeDisplay(stackBufNodePathTop, stackBufNodePathCnt);
 
         }
         else {
             // printf("--------------------\nTransition level:%u\n", transLvl);
             // printNonmemNode((TPMNode1 *)dstnode);
-
         }
 
         stepCount++;
@@ -751,28 +757,41 @@ dfs2HitMapNode(
 
     delTransitionHT(&markVisitTransHT);
     stackTransPopAll(&stackTransTop, &stackTransCnt);
+    stckMemnodePopAll(&stackBufNodePathTop, &stackBufNodePathCnt);
 
     return stepCount;
 }
 
+static bool
+isValidBufNode(TPMNode2 *node)
+{
+    if(node->bufid > 0)
+        return true;
+    else
+        return false;
+}
+
 static void
-storeDFSBufNodePath(
+storeDFSBufNodeVisitPath(
         TPMNode2 *node,
         u32 lvl,
         StckMemnode **stackBufNodePathTop,
         u32 *stackBufNodePathCnt)
-//  stores buf nodes that dfs visits, that is, each node's level in the stack should
-// > than its previous
+// 1. stores buf nodes that dfs visits, that is, each node's level in the stack should
+//  > than its previous
+// 2. creates HitMap records
 {
     if(*stackBufNodePathTop != NULL) {
         u32 nodeLvl = (*stackBufNodePathTop)->level;
         if(nodeLvl < lvl) {
+            createHitMapRecord((*stackBufNodePathTop)->memnode, (*stackBufNodePathTop)->level, node, lvl);
             stckMemnodePush(node, lvl, stackBufNodePathTop, stackBufNodePathCnt);
         }
         else {
-            while(*stackBufNodePathTop == NULL || nodeLvl >= lvl) {
+            while(*stackBufNodePathTop != NULL && (*stackBufNodePathTop)->level >= lvl) {
                 stckMemnodePop(&nodeLvl, stackBufNodePathTop, stackBufNodePathCnt);
             }
+            createHitMapRecord((*stackBufNodePathTop)->memnode, (*stackBufNodePathTop)->level, node, lvl);
             stckMemnodePush(node, lvl, stackBufNodePathTop, stackBufNodePathCnt);
         }
     }
