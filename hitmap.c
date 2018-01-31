@@ -19,6 +19,12 @@ buildHitMapAddr(
         HitMapContext *hitMap,
         TPMNode2 *headNode);
 
+static HitMapNode *
+createHitMapRecordNode(TPMNode2 *node, HitMapContext *hitMap);
+
+static void
+attachHitTransition(HitMapNode *srcHMN, HitTransition *t);
+
 HitMapContext *
 buildHitMap(TPMContext *tpm)
 {
@@ -70,6 +76,14 @@ createHitMapRecord(
     printMemNodeLit(src);
     printf("dst: Lvl:%u\n", dstLvl);
     printMemNodeLit(dst);
+
+    HitMapNode *HMNSrc, *HMNDst;
+    HitTransition *t;
+
+    HMNSrc = createHitMapRecordNode(src, hitMapCtxt);
+    HMNDst = createHitMapRecordNode(dst, hitMapCtxt);
+    t = createHitTransition(0, 0, HMNDst);
+    attachHitTransition(HMNSrc, t);
 }
 
 
@@ -180,4 +194,39 @@ buildHitMapAddr(
         bufnodePropgt2HitMapNode(tpm, headNode, hitMap);
         headNode = headNode->nextVersion;
     } while (currVersion != headNode->version);
+}
+
+static HitMapNode *
+createHitMapRecordNode(TPMNode2 *node, HitMapContext *hitMap)
+{
+    HitMapNode *HMNode;
+    HitMapBufNodePtr2NodeHashTable *find, *htItem;
+
+    HASH_FIND(hh_hitMapBufNode2NodeHT, hitMap->hitMapNodeHT, &node, 4, find);
+    if(find == NULL) {
+        HMNode = createHitMapNode(node->bufid, node->addr, node->version, node->val, node->bytesz, node->lastUpdateTS);
+        htItem = createHitMapBufNode2NodeHT(node, HMNode);
+        HASH_ADD(hh_hitMapBufNode2NodeHT, hitMap->hitMapNodeHT, srcnode, 4, htItem);
+        return HMNode;
+    }
+    else {
+        return find->toHitMapNode;
+    }
+}
+
+static void
+attachHitTransition(HitMapNode *srcHMN, HitTransition *t)
+{
+    assert(srcHMN != NULL);
+    assert(t != NULL);
+    if(srcHMN->firstChild == NULL) {
+        srcHMN->firstChild = t;
+    }
+    else {
+        HitTransition *firstChild = srcHMN->firstChild;
+        while(firstChild->next != NULL) {
+            firstChild = firstChild->next;
+        }
+        firstChild->next = t;
+    }
 }

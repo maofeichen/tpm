@@ -27,3 +27,31 @@ createHitMapNode(
     h->hitcnt = 0;
     return h;
 }
+
+HitTransition *
+createHitTransition(
+        u32 minSeqN,
+        u32 maxSeqN,
+        HitMapNode *child)
+{
+    HitTransition *t;
+    t = calloc(1, sizeof(HitTransition));
+    t->minSeqNo = minSeqN;
+    t->maxSeqNo = maxSeqN;
+    t->child = child;
+    t->next = NULL;
+    return t;
+}
+
+
+HitMapBufNodePtr2NodeHashTable *
+createHitMapBufNode2NodeHT(TPMNode2 *srcnode, HitMapNode *hitMapNode)
+{
+    HitMapBufNodePtr2NodeHashTable *h;
+    h = calloc(1, sizeof(HitMapBufNodePtr2NodeHashTable));
+    assert(h != NULL);
+
+    h->srcnode = srcnode;
+    h->toHitMapNode = hitMapNode;
+    return h;
+}
