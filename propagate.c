@@ -203,8 +203,8 @@ bufnodePropgt2HitMapNode(
         TPMNode2 *srcnode,
         HitMapContext *hitMapCtxt)
 {
-    // return dfs2HitMapNode(tpm, srcnode, hitMapCtxt);
-    return dfs2HitMapNode_PopWhenNoChildren(tpm, srcnode, hitMapCtxt);
+    return dfs2HitMapNode(tpm, srcnode, hitMapCtxt);
+    // return dfs2HitMapNode_PopWhenNoChildren(tpm, srcnode, hitMapCtxt);
 }
 
 
@@ -768,12 +768,12 @@ dfs2HitMapNode(
 
         TPMNode *dstnode = getTransitionDst(popTrans);
         if(dstnode->tpmnode1.type == TPM_Type_Memory && isValidBufNode((TPMNode2 *)dstnode) ) {
-            // printf("--------------------\ndfs depth level:%u\n", transLvl);
+            printf("--------------------\ndfs depth level:%u\n", transLvl);
             printMemNodeLit((TPMNode2 *)dstnode);
             // printMemNode((TPMNode2 *)dstnode);
 
             storeDFSBufNodeVisitPath((TPMNode2 *)dstnode, transLvl, &stackBufNodePathTop, &stackBufNodePathCnt);
-            // stckMemnodeDisplay(stackBufNodePathTop, stackBufNodePathCnt);
+            stckMemnodeDisplay(stackBufNodePathTop, stackBufNodePathCnt);
 
         }
         else {
@@ -817,6 +817,11 @@ storeDFSBufNodeVisitPath(
     if(*stackBufNodePathTop != NULL) {
         u32 nodeLvl = (*stackBufNodePathTop)->level;
         if(nodeLvl < lvl) {
+            printf("----------src hitmap node:\n");
+            printMemNodeLit((*stackBufNodePathTop)->memnode);
+            printf("dst hitmap node:\n");
+            printMemNodeLit(node);
+
             // createHitMapRecord((*stackBufNodePathTop)->memnode, (*stackBufNodePathTop)->level, node, lvl);
             stckMemnodePush(node, lvl, stackBufNodePathTop, stackBufNodePathCnt);
         }
@@ -824,6 +829,12 @@ storeDFSBufNodeVisitPath(
             while(*stackBufNodePathTop != NULL && (*stackBufNodePathTop)->level >= lvl) {
                 stckMemnodePop(&nodeLvl, stackBufNodePathTop, stackBufNodePathCnt);
             }
+
+            printf("----------src hitmap node:\n");
+            printMemNodeLit((*stackBufNodePathTop)->memnode);
+            printf("dst hitmap node:\n");
+            printMemNodeLit(node);
+
             // createHitMapRecord((*stackBufNodePathTop)->memnode, (*stackBufNodePathTop)->level, node, lvl);
             stckMemnodePush(node, lvl, stackBufNodePathTop, stackBufNodePathCnt);
         }
@@ -862,37 +873,56 @@ dfs2HitMapNode_PopWhenNoChildren(
 
     }
 
-    // stckMemnodePush(srcnode, dfsLevel, &stackBufNodePathTop, &stackBufNodePathCnt);
+    stckMemnodePush(srcnode, dfsLevel, &stackBufNodePathTop, &stackBufNodePathCnt);
     // stckMemnodeDisplay(stackBufNodePathTop, stackBufNodePathCnt);
     // printf("--------------------\ndfs depth level:%u\n", dfsLevel);
     // printMemNodeLit(srcnode);
 
     storeAllUnvisitChildren_NoMark(&markVisitTransHT, sourceTrans,
             hitMapCtxt->maxBufSeqN, &stackTransTop, &stackTransCnt, dfsLevel);
-    stackTransDisplay(stackTransTop, stackTransCnt);
+    // stackTransDisplay(stackTransTop, stackTransCnt);
 
     while(!isStackTransEmpty(stackTransTop) ) {
         Transition *topTrans = stackTransTop->transition;
+        TPMNode *dstNode = getTransitionDst(topTrans);
         u32 transLvl;
+
         if(isTransitionVisited(markVisitTransHT, topTrans) ) {
             stackTransPop(&transLvl, &stackTransTop, &stackTransCnt);
             // stackTransDisplay(stackTransTop, stackTransCnt);
 
+            if(dstNode->tpmnode1.type == TPM_Type_Memory) {
+                if((TPMNode2 *)dstNode == stackBufNodePathTop->memnode) {
+                    stckMemnodePop(&transLvl, &stackBufNodePathTop, &stackBufNodePathCnt);
+                }
+            }
         }
         else {
             markVisitTransition(&markVisitTransHT, topTrans);
-            TPMNode *dstNode = getTransitionDst(topTrans);
 
-            if(dstNode->tpmnode1.type == TPM_Type_Memory
-               && isValidBufNode((TPMNode2 *)dstNode) ) {
+            if(dstNode->tpmnode1.type == TPM_Type_Memory && isValidBufNode((TPMNode2 *)dstNode) ) {
                 // printf("--------------------\ndfs depth level:%u\n", transLvl);
-                printMemNodeLit((TPMNode2 *)dstNode);
+                // printMemNodeLit((TPMNode2 *)dstNode);
                 // printMemNode((TPMNode2 *)dstNode);
+
+                printf("----------src hitmap node:\n");
+                printMemNodeLit(stackBufNodePathTop->memnode);
+                printf("dst hitmap node:\n");
+                printMemNodeLit((TPMNode2 *)dstNode);
+
+                stckMemnodePush((TPMNode2 *)dstNode, dfsLevel, &stackBufNodePathTop, &stackBufNodePathCnt);
             }
+            else {}
 
             if(dstNode->tpmnode1.firstChild == NULL) { // leaf nodes
                 stackTransPop(&transLvl, &stackTransTop, &stackTransCnt);
                 // stackTransDisplay(stackTransTop, stackTransCnt);
+
+                if(dstNode->tpmnode1.type == TPM_Type_Memory) {
+                    if((TPMNode2 *)dstNode == stackBufNodePathTop->memnode) {
+                        stckMemnodePop(&transLvl, &stackBufNodePathTop, &stackBufNodePathCnt);
+                    }
+                }
             }
             else {
               storeAllUnvisitChildren_NoMark(&markVisitTransHT, dstNode->tpmnode1.firstChild,
