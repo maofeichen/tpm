@@ -8,6 +8,12 @@ static HitMapNode *
 createHitMapRecordNode(TPMNode2 *node, HitMapContext *hitMap);
 
 static void
+updateHitMapHashTable(
+        TPMNode2 *node,
+        HitMapNode *hmNode,
+        HitMapContext *hitMap);
+
+static void
 attachHitTransition(HitMapNode *srcHMN, HitTransition *t);
 
 HitMapNode *
@@ -58,6 +64,13 @@ createHitMapRecord(
     HMNDst = createHitMapRecordNode(dst, hitMapCtxt);
     t = createHitTransition(0, 0, HMNDst);
     attachHitTransition(HMNSrc, t);
+
+//    printf("HitMap Node src:\n");
+//    printHitMapNode(HMNSrc);
+//    printf("HitMap Node dst:\n");
+//    printHitMapNode(HMNDst);
+//    printf("HitMap Transition:\n");
+//    printHitMapTransition(t);
 }
 
 
@@ -102,17 +115,53 @@ createHitMapRecordNode(TPMNode2 *node, HitMapContext *hitMap)
     HitMapNode *HMNode;
     HitMapBufNodePtr2NodeHashTable *find, *htItem;
 
+    if(node == NULL || hitMap == NULL) {
+        fprintf(stderr, "createHitMapRecordNode:node:%p hitMap:%p\n", node, hitMap);
+        return NULL;
+    }
+
+    // is in HitMap hash table?
     HASH_FIND(hh_hitMapBufNode2NodeHT, hitMap->hitMapNodeHT, &node, 4, find);
     if(find == NULL) {
         HMNode = createHitMapNode(node->bufid, node->addr, node->version, node->val, node->bytesz, node->lastUpdateTS);
 
-        htItem = createHitMapBufNode2NodeHT(node, HMNode);
-        HASH_ADD(hh_hitMapBufNode2NodeHT, hitMap->hitMapNodeHT, srcnode, 4, htItem);
+        updateHitMapHashTable(node, HMNode, hitMap);
+
         return HMNode;
     }
     else {
         return find->toHitMapNode;
     }
+}
+
+static void
+updateHitMapHashTable(
+        TPMNode2 *node,
+        HitMapNode *hmNode,
+        HitMapContext *hitMap)
+{
+    if(node == NULL || hmNode == NULL || hitMap == NULL){
+        fprintf(stderr, "update HitMap Hash Table: node:%p hmNode:%p HitMap:%p",
+                node, hmNode, hitMap);
+        return;
+    }
+    HitMapBufNodePtr2NodeHashTable *htItem;
+    htItem = createHitMapBufNode2NodeHT(node, hmNode);
+    HASH_ADD(hh_hitMapBufNode2NodeHT, hitMap->hitMapNodeHT, srcnode, 4, htItem);
+}
+
+static void
+updateHMNodeVersion(HitMapNode *hmNode, HitMapContext *hitMap)
+{
+    u32 bufID = hmNode->bufId;
+    u32 addr = hmNode->addr;
+    // TODO: get addr idx
+}
+
+static void
+updateHitMapArray(HitMapNode *hmNode, HitMapContext *hitMap)
+{
+
 }
 
 static void
@@ -129,5 +178,30 @@ attachHitTransition(HitMapNode *srcHMN, HitTransition *t)
             firstChild = firstChild->next;
         }
         firstChild->next = t;
+    }
+}
+
+void
+printHitMapNode(HitMapNode *node)
+{
+    if(node == NULL)
+        return;
+    printf("bufID:%u addr:0x%-8x val:%-8x sz:%u lastUpdateTS:%-16u"
+            " firstChild:%-8p leftNBR:%-10p rightNBR:%-10p nextVersion:%-8p"
+            " version:%-9u hitcnt:%-8u\n",
+            node->bufId, node->addr, node->val, node->bytesz, node->lastUpdateTS,
+            node->firstChild, node->leftNBR, node->rightNBR, node->nextVersion,
+            node->version, node->hitcnt);
+}
+
+void
+printHitMapTransition(HitTransition *hTrans)
+{
+    if(hTrans == NULL)
+        return;
+    printf("HitMap Transition:%p minSeqN:%u maxSeqN:%u child:%p next:%p",
+            hTrans, hTrans->minSeqNo, hTrans->maxSeqNo, hTrans->child, hTrans->next);
+    if(hTrans->child != NULL) {
+        printHitMapNode(hTrans->child);
     }
 }

@@ -89,4 +89,11 @@ createHitTransition(
 
 HitMapBufNodePtr2NodeHashTable *
 createHitMapBufNode2NodeHT(TPMNode2 *srcnode, HitMapNode *hitMapNode);
+
+void
+printHitMapNode(HitMapNode *node);
+
+void
+printHitMapTransition(HitTransition *hTrans);
+
 #endif
