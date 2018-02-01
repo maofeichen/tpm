@@ -19,11 +19,11 @@ buildHitMapAddr(
         HitMapContext *hitMap,
         TPMNode2 *headNode);
 
-static HitMapNode *
-createHitMapRecordNode(TPMNode2 *node, HitMapContext *hitMap);
-
-static void
-attachHitTransition(HitMapNode *srcHMN, HitTransition *t);
+//static HitMapNode *
+//createHitMapRecordNode(TPMNode2 *node, HitMapContext *hitMap);
+//
+//static void
+//attachHitTransition(HitMapNode *srcHMN, HitTransition *t);
 
 HitMapContext *
 buildHitMap(TPMContext *tpm)
@@ -56,35 +56,35 @@ buildHitMap(TPMContext *tpm)
     return hitMap;
 }
 
-void
-createHitMapRecord(
-        TPMNode2 *src,
-        u32 srclvl,
-        TPMNode2 *dst,
-        u32 dstLvl,
-        HitMapContext *hitMapCtxt)
-//  1.1 detects if source exists in HitMap
-//      a) yes, do nothing
-//      b) no, creates new hitMap node
-//  1.2 updates the HitMap Context Hash Table
-//  1.3 updates the HitMap Array
-//  1.4 updates neighbors, versions if there exists any
-//  2   repeates 1.1~1.4 for destination node
-//  3. creates transition node between src and destination
-{
-    printf("---------------\nHitMapRecord src: Lvl:%u\n", srclvl);
-    printMemNodeLit(src);
-    printf("dst: Lvl:%u\n", dstLvl);
-    printMemNodeLit(dst);
-
-    HitMapNode *HMNSrc, *HMNDst;
-    HitTransition *t;
-
-    HMNSrc = createHitMapRecordNode(src, hitMapCtxt);
-    HMNDst = createHitMapRecordNode(dst, hitMapCtxt);
-    t = createHitTransition(0, 0, HMNDst);
-    attachHitTransition(HMNSrc, t);
-}
+//void
+//createHitMapRecord(
+//        TPMNode2 *src,
+//        u32 srclvl,
+//        TPMNode2 *dst,
+//        u32 dstLvl,
+//        HitMapContext *hitMapCtxt)
+////  1.1 detects if source exists in HitMap
+////      a) yes, do nothing
+////      b) no, creates new hitMap node
+////  1.2 updates the HitMap Context Hash Table
+////  1.3 updates the HitMap Array
+////  1.4 updates neighbors, versions if there exists any
+////  2   repeates 1.1~1.4 for destination node
+////  3. creates transition node between src and destination
+//{
+//    printf("---------------\nHitMapRecord src: Lvl:%u\n", srclvl);
+//    printMemNodeLit(src);
+//    printf("dst: Lvl:%u\n", dstLvl);
+//    printMemNodeLit(dst);
+//
+//    HitMapNode *HMNSrc, *HMNDst;
+//    HitTransition *t;
+//
+//    HMNSrc = createHitMapRecordNode(src, hitMapCtxt);
+//    HMNDst = createHitMapRecordNode(dst, hitMapCtxt);
+//    t = createHitTransition(0, 0, HMNDst);
+//    attachHitTransition(HMNSrc, t);
+//}
 
 
 void
@@ -196,37 +196,37 @@ buildHitMapAddr(
     } while (currVersion != headNode->version);
 }
 
-static HitMapNode *
-createHitMapRecordNode(TPMNode2 *node, HitMapContext *hitMap)
-{
-    HitMapNode *HMNode;
-    HitMapBufNodePtr2NodeHashTable *find, *htItem;
-
-    HASH_FIND(hh_hitMapBufNode2NodeHT, hitMap->hitMapNodeHT, &node, 4, find);
-    if(find == NULL) {
-        HMNode = createHitMapNode(node->bufid, node->addr, node->version, node->val, node->bytesz, node->lastUpdateTS);
-        htItem = createHitMapBufNode2NodeHT(node, HMNode);
-        HASH_ADD(hh_hitMapBufNode2NodeHT, hitMap->hitMapNodeHT, srcnode, 4, htItem);
-        return HMNode;
-    }
-    else {
-        return find->toHitMapNode;
-    }
-}
-
-static void
-attachHitTransition(HitMapNode *srcHMN, HitTransition *t)
-{
-    assert(srcHMN != NULL);
-    assert(t != NULL);
-    if(srcHMN->firstChild == NULL) {
-        srcHMN->firstChild = t;
-    }
-    else {
-        HitTransition *firstChild = srcHMN->firstChild;
-        while(firstChild->next != NULL) {
-            firstChild = firstChild->next;
-        }
-        firstChild->next = t;
-    }
-}
+//static HitMapNode *
+//createHitMapRecordNode(TPMNode2 *node, HitMapContext *hitMap)
+//{
+//    HitMapNode *HMNode;
+//    HitMapBufNodePtr2NodeHashTable *find, *htItem;
+//
+//    HASH_FIND(hh_hitMapBufNode2NodeHT, hitMap->hitMapNodeHT, &node, 4, find);
+//    if(find == NULL) {
+//        HMNode = createHitMapNode(node->bufid, node->addr, node->version, node->val, node->bytesz, node->lastUpdateTS);
+//        htItem = createHitMapBufNode2NodeHT(node, HMNode);
+//        HASH_ADD(hh_hitMapBufNode2NodeHT, hitMap->hitMapNodeHT, srcnode, 4, htItem);
+//        return HMNode;
+//    }
+//    else {
+//        return find->toHitMapNode;
+//    }
+//}
+//
+//static void
+//attachHitTransition(HitMapNode *srcHMN, HitTransition *t)
+//{
+//    assert(srcHMN != NULL);
+//    assert(t != NULL);
+//    if(srcHMN->firstChild == NULL) {
+//        srcHMN->firstChild = t;
+//    }
+//    else {
+//        HitTransition *firstChild = srcHMN->firstChild;
+//        while(firstChild->next != NULL) {
+//            firstChild = firstChild->next;
+//        }
+//        firstChild->next = t;
+//    }
+//}

@@ -155,6 +155,13 @@ dfs2HitMapNode_PopWhenNoChildren(
         TPMNode2 *srcnode,
         HitMapContext *hitMapCtxt);
 
+static void
+popBufNode(
+        TPMNode *dstNode,
+        StckMemnode **stackBufNodePathTop,
+        u32 *stackBufNodePathCnt);
+
+
 /* functions */
 
 int 
@@ -203,8 +210,8 @@ bufnodePropgt2HitMapNode(
         TPMNode2 *srcnode,
         HitMapContext *hitMapCtxt)
 {
-    return dfs2HitMapNode(tpm, srcnode, hitMapCtxt);
-    // return dfs2HitMapNode_PopWhenNoChildren(tpm, srcnode, hitMapCtxt);
+    // return dfs2HitMapNode(tpm, srcnode, hitMapCtxt);
+    return dfs2HitMapNode_PopWhenNoChildren(tpm, srcnode, hitMapCtxt);
 }
 
 
@@ -863,7 +870,7 @@ dfs2HitMapNode_PopWhenNoChildren(
     StckMemnode *stackBufNodePathTop = NULL;
     u32 stackBufNodePathCnt = 0;
 
-    u32 dfsLevel = 0;
+    u32 dfsLevel = 0;   // Not used
     int stepCount = 0;
 
     if(sourceTrans == NULL) {
@@ -875,8 +882,6 @@ dfs2HitMapNode_PopWhenNoChildren(
 
     stckMemnodePush(srcnode, dfsLevel, &stackBufNodePathTop, &stackBufNodePathCnt);
     // stckMemnodeDisplay(stackBufNodePathTop, stackBufNodePathCnt);
-    // printf("--------------------\ndfs depth level:%u\n", dfsLevel);
-    // printMemNodeLit(srcnode);
 
     storeAllUnvisitChildren_NoMark(&markVisitTransHT, sourceTrans,
             hitMapCtxt->maxBufSeqN, &stackTransTop, &stackTransCnt, dfsLevel);
@@ -885,31 +890,23 @@ dfs2HitMapNode_PopWhenNoChildren(
     while(!isStackTransEmpty(stackTransTop) ) {
         Transition *topTrans = stackTransTop->transition;
         TPMNode *dstNode = getTransitionDst(topTrans);
-        u32 transLvl;
+        u32 transLvl;   // Not used
 
         if(isTransitionVisited(markVisitTransHT, topTrans) ) {
             stackTransPop(&transLvl, &stackTransTop, &stackTransCnt);
             // stackTransDisplay(stackTransTop, stackTransCnt);
 
-            if(dstNode->tpmnode1.type == TPM_Type_Memory) {
-                if((TPMNode2 *)dstNode == stackBufNodePathTop->memnode) {
-                    stckMemnodePop(&transLvl, &stackBufNodePathTop, &stackBufNodePathCnt);
-                }
-            }
+            popBufNode(dstNode, &stackBufNodePathTop, &stackBufNodePathCnt);
         }
         else {
             markVisitTransition(&markVisitTransHT, topTrans);
 
             if(dstNode->tpmnode1.type == TPM_Type_Memory && isValidBufNode((TPMNode2 *)dstNode) ) {
-                // printf("--------------------\ndfs depth level:%u\n", transLvl);
+                // printf("----------src hitmap node:\n");
+                // printMemNodeLit(stackBufNodePathTop->memnode);
+                // printf("dst hitmap node:\n");
                 // printMemNodeLit((TPMNode2 *)dstNode);
-                // printMemNode((TPMNode2 *)dstNode);
-
-                printf("----------src hitmap node:\n");
-                printMemNodeLit(stackBufNodePathTop->memnode);
-                printf("dst hitmap node:\n");
-                printMemNodeLit((TPMNode2 *)dstNode);
-
+                createHitMapRecord(stackBufNodePathTop->memnode, 0, (TPMNode2 *)dstNode, 0, hitMapCtxt);
                 stckMemnodePush((TPMNode2 *)dstNode, dfsLevel, &stackBufNodePathTop, &stackBufNodePathCnt);
             }
             else {}
@@ -918,11 +915,7 @@ dfs2HitMapNode_PopWhenNoChildren(
                 stackTransPop(&transLvl, &stackTransTop, &stackTransCnt);
                 // stackTransDisplay(stackTransTop, stackTransCnt);
 
-                if(dstNode->tpmnode1.type == TPM_Type_Memory) {
-                    if((TPMNode2 *)dstNode == stackBufNodePathTop->memnode) {
-                        stckMemnodePop(&transLvl, &stackBufNodePathTop, &stackBufNodePathCnt);
-                    }
-                }
+                popBufNode(dstNode, &stackBufNodePathTop, &stackBufNodePathCnt);
             }
             else {
               storeAllUnvisitChildren_NoMark(&markVisitTransHT, dstNode->tpmnode1.firstChild,
@@ -934,7 +927,21 @@ dfs2HitMapNode_PopWhenNoChildren(
 
     delTransitionHT(&markVisitTransHT);
     stackTransPopAll(&stackTransTop, &stackTransCnt);
-    // stckMemnodePopAll(&stackBufNodePathTop, &stackBufNodePathCnt);
+    stckMemnodePopAll(&stackBufNodePathTop, &stackBufNodePathCnt);
 
     return stepCount;
+}
+
+static void
+popBufNode(
+        TPMNode *dstNode,
+        StckMemnode **stackBufNodePathTop,
+        u32 *stackBufNodePathCnt)
+{
+    u32 transLvl;
+    if(dstNode->tpmnode1.type == TPM_Type_Memory) {
+       if((TPMNode2 *)dstNode == (*stackBufNodePathTop)->memnode) {
+           stckMemnodePop(&transLvl, stackBufNodePathTop, stackBufNodePathCnt);
+       }
+    }
 }

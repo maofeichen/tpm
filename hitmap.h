@@ -35,13 +35,13 @@ typedef struct HitMapContext
 HitMapContext *
 buildHitMap(TPMContext *tpm);
 
-void
-createHitMapRecord(
-        TPMNode2 *src,
-        u32 srcLvl,
-        TPMNode2 *dst,
-        u32 dstLvl,
-        HitMapContext *hitMapCtxt);
+//void
+//createHitMapRecord(
+//        TPMNode2 *src,
+//        u32 srcLvl,
+//        TPMNode2 *dst,
+//        u32 dstLvl,
+//        HitMapContext *hitMapCtxt);
 
 void
 delHitMap(HitMapContext *hitmap);

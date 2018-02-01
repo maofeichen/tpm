@@ -73,6 +73,14 @@ createHitMapNode(
 
 // TODO: delHitMapNode
 
+void
+createHitMapRecord(
+        TPMNode2 *src,
+        u32 srcLvl,
+        TPMNode2 *dst,
+        u32 dstLvl,
+        HitMapContext *hitMapCtxt);
+
 HitTransition *
 createHitTransition(
         u32 minSeqN,
