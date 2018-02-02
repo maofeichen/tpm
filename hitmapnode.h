@@ -1,7 +1,8 @@
 #ifndef HITMAPNODE_H
 #define HITMAPNODE_H
 
-#include "tpmnode.h"
+// #include "tpmnode.h" // included in tpm.h
+#include "tpm.h"
 #include "type.h"
 #include "uthash.h"
 
@@ -56,6 +57,7 @@ typedef struct BufContext
 
 typedef struct HitMapContext
 {
+    TPMBufHashTable *tpmBuf;// points to TPMBuf
     HitMapBufNodePtr2NodeHashTable *hitMapNodeHT;  // hash table head
     u32 maxBufSeqN;         // max seqN of all buffers in TPM
     u32 numOfBuf;           // num of buffers in TPM

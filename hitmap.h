@@ -2,7 +2,7 @@
 #define HITMAP_H
 
 #include "hitmapnode.h"
-#include "tpm.h"
+// #include "tpm.h"    // move in hitmapnode.h
 #include "type.h"
 #include "uthash.h"
 

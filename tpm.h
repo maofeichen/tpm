@@ -96,7 +96,17 @@ mem2NodeSearch(struct TPMContext *tpm, u32 memaddr);
 union TPMNode *
 seqNo2NodeSearch(struct TPMContext *tpm, u32 seqNo);
 
-/* TPM all buffers */
+void
+delTPM(struct TPMContext *tpm);
+
+/* Transition operation */
+TPMNode *
+getTransitionDst(Transition *transition);
+
+u32
+getTransitionChildrenNum(Transition *firstChild);
+
+/* All TPM buffers */
 TPMBufHashTable *
 analyzeTPMBuf(TPMContext *tpm);
 // computes all the bufs in tpm
@@ -111,18 +121,14 @@ getTPMBufTotal(TPMBufHashTable *tpmBuf);
 u32
 getTPMBufMaxSeqN(TPMBufHashTable *tpmBuf);
 
+int
+getTPMBufAddrIdx(
+        u32 bufID,
+        u32 addr,
+        TPMBufHashTable *tpmBuf);
+
 void
 delAllTPMBuf(TPMBufHashTable *tpmBuf);
-
-void
-delTPM(struct TPMContext *tpm);
-
-/* Transition operation */
-TPMNode *
-getTransitionDst(Transition *transition);
-
-u32
-getTransitionChildrenNum(Transition *firstChild);
 
 /* print function */
 void 

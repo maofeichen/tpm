@@ -45,6 +45,7 @@ buildHitMap(TPMContext *tpm)
     hitMap->maxBufSeqN = getTPMBufMaxSeqN(tpmBuf);
     hitMap->numOfBuf = numOfBuf;
     hitMap->bufArray = calloc(1, sizeof(BufContext *) * numOfBuf);
+    hitMap->tpmBuf = tpmBuf;
 
     i = 0;
     for(currBuf = tpmBuf; currBuf != NULL; currBuf = currBuf->hh_tpmBufHT.next) {

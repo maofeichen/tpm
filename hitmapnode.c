@@ -14,6 +14,15 @@ updateHitMapHashTable(
         HitMapContext *hitMap);
 
 static void
+updateHMNodeVersion(HitMapNode *hmNode, HitMapContext *hitMap);
+
+static void
+linkNextVersionHitMapNode(HitMapNode *front, HitMapNode *next);
+
+static void
+updateHitMapArray(HitMapNode *hmNode, HitMapContext *hitMap);
+
+static void
 attachHitTransition(HitMapNode *srcHMN, HitTransition *t);
 
 HitMapNode *
@@ -36,7 +45,7 @@ createHitMapNode(
     h->firstChild = NULL;
     h->leftNBR = NULL;
     h->rightNBR = NULL;
-    h->nextVersion = NULL;
+    h->nextVersion = h; // points to itsefl
     h->hitcnt = 0;
     return h;
 }
@@ -126,6 +135,8 @@ createHitMapRecordNode(TPMNode2 *node, HitMapContext *hitMap)
         HMNode = createHitMapNode(node->bufid, node->addr, node->version, node->val, node->bytesz, node->lastUpdateTS);
 
         updateHitMapHashTable(node, HMNode, hitMap);
+        updateHMNodeVersion(HMNode, hitMap);
+        updateHitMapArray(HMNode, hitMap);
 
         return HMNode;
     }
@@ -153,15 +164,62 @@ updateHitMapHashTable(
 static void
 updateHMNodeVersion(HitMapNode *hmNode, HitMapContext *hitMap)
 {
+    int addrIdx;
+
     u32 bufID = hmNode->bufId;
     u32 addr = hmNode->addr;
-    // TODO: get addr idx
+    addrIdx = getTPMBufAddrIdx(bufID, addr, hitMap->tpmBuf);
+
+    if(hitMap->bufArray[bufID]->addrArray[addrIdx] == NULL) {
+        hitMap->bufArray[bufID]->addrArray[addrIdx] = hmNode;
+    }
+    else {
+        linkNextVersionHitMapNode(hitMap->bufArray[bufID]->addrArray[addrIdx], hmNode);
+    }
+}
+
+static void
+linkNextVersionHitMapNode(HitMapNode *front, HitMapNode *next)
+// the node versions are not in-order
+{
+    if(front == NULL || next == NULL) {
+        fprintf(stderr, "linkNextVersionNode: front:%p next:%p\n", front, next);
+        return;
+    }
+    next->nextVersion = front->nextVersion; // next points to head
+    front->nextVersion = next;
 }
 
 static void
 updateHitMapArray(HitMapNode *hmNode, HitMapContext *hitMap)
+// hitMap array always points to the earliest version node
 {
+    HitMapNode *head, *earliest;
+    u32 currVersion, bufID, addr, addrIdx;
 
+    if( hmNode == NULL || hitMap == NULL) {
+        fprintf(stderr, "updateHitMapArray: HitMap Node:%p hitMap:%p\n",
+                hmNode, hitMap);
+        return;
+    }
+
+    bufID = hmNode->bufId;
+    addr = hmNode->addr;
+    addrIdx = getTPMBufAddrIdx(bufID, addr, hitMap->tpmBuf);
+
+    head = hitMap->bufArray[bufID]->addrArray[addrIdx];
+    earliest = head;
+
+    currVersion = head->version;
+    do{
+        if(head->version < earliest->version)
+            earliest = head;
+
+        head = head->nextVersion;
+    }
+    while(head->version != currVersion);
+
+    hitMap->bufArray[bufID]->addrArray[addrIdx] = earliest;
 }
 
 static void

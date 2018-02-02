@@ -266,6 +266,43 @@ getTPMBufMaxSeqN(TPMBufHashTable *tpmBuf)
     return maxSeqN;
 }
 
+int
+getTPMBufAddrIdx(
+        u32 bufID,
+        u32 addr,
+        TPMBufHashTable *tpmBuf)
+{
+    int addrIdx = 0;
+    TPMNode2 *headNode;
+
+    if(bufID == 0 || addr == 0 || tpmBuf == NULL) {
+        fprintf(stderr, "bufID:%u addr:%x tpmBuf:%p\n", bufID, addr, tpmBuf);
+        return -1;
+    }
+    // printTPMBufHashTable(tpmBuf);
+    // printf("getTPMBufAddrIdx: bufID:%u addr:%x\n", bufID, addr);
+
+    while(tpmBuf->hh_tpmBufHT.next != NULL) {
+        if(tpmBuf->headNode->bufid == bufID)
+            break;
+
+        tpmBuf = tpmBuf->hh_tpmBufHT.next;
+    }
+
+    headNode = tpmBuf->headNode;
+    while(headNode != NULL) {
+        if(headNode->addr == addr)
+            break;
+
+        // printMemNode(headNode);
+        headNode = headNode->rightNBR;
+        addrIdx++;
+    }
+    // printf("addrIdx:%d\n", addrIdx);
+    return addrIdx;
+}
+
+
 void
 delAllTPMBuf(TPMBufHashTable *tpmBuf)
 {
