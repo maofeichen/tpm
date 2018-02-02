@@ -75,6 +75,9 @@ createHitMapNode(
 
 // TODO: delHitMapNode
 
+bool
+isHitMapNodeExist(TPMNode2 *node, HitMapContext *hitMap);
+
 void
 createHitMapRecord(
         TPMNode2 *src,

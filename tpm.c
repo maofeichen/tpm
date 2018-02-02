@@ -274,6 +274,7 @@ getTPMBufAddrIdx(
 {
     int addrIdx = 0;
     TPMNode2 *headNode;
+    TPMBufHashTable *buf;
 
     if(bufID == 0 || addr == 0 || tpmBuf == NULL) {
         fprintf(stderr, "bufID:%u addr:%x tpmBuf:%p\n", bufID, addr, tpmBuf);
@@ -282,14 +283,16 @@ getTPMBufAddrIdx(
     // printTPMBufHashTable(tpmBuf);
     // printf("getTPMBufAddrIdx: bufID:%u addr:%x\n", bufID, addr);
 
-    while(tpmBuf->hh_tpmBufHT.next != NULL) {
-        if(tpmBuf->headNode->bufid == bufID)
+    buf = tpmBuf;
+    while(buf->hh_tpmBufHT.next != NULL) {
+        printMemNodeLit(buf->headNode);
+        if(buf ->headNode->bufid == bufID)
             break;
 
-        tpmBuf = tpmBuf->hh_tpmBufHT.next;
+        buf = buf->hh_tpmBufHT.next;
     }
 
-    headNode = tpmBuf->headNode;
+    headNode = buf->headNode;
     while(headNode != NULL) {
         if(headNode->addr == addr)
             break;
@@ -379,15 +382,17 @@ printTransAllChildren(Transition *transition)
 void 
 printTPMBufHashTable(TPMBufHashTable *tpmBufHT)
 {
-    TPMBufHashTable *node, *temp;
+    TPMBufHashTable *buf, *temp;
     int bufcnt;
 
     bufcnt = HASH_CNT(hh_tpmBufHT, tpmBufHT);
     printf("total buf:%d - min buf sz:%u\n",bufcnt, MIN_BUF_SZ);
-    HASH_ITER(hh_tpmBufHT, tpmBufHT, node, temp) {
+    HASH_ITER(hh_tpmBufHT, tpmBufHT, buf, temp) {
         printf("begin addr:0x%-8x end addr:0x%-8x sz:%u numofaddr:%-2u minseq:%d maxseq:%d diffseq:%d bufID:%u\n",
-            node->baddr, node->eaddr, node->eaddr - node->baddr,
-            node->numOfAddr, node->minseq, node->maxseq, (node->maxseq - node->minseq), node->headNode->bufid);
+            buf->baddr, buf->eaddr, buf->eaddr - buf->baddr,
+            buf->numOfAddr, buf->minseq, buf->maxseq, (buf->maxseq - buf->minseq), buf->headNode->bufid);
+
+        printBufNode(buf->headNode);
     }
 }
 

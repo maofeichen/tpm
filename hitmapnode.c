@@ -50,6 +50,18 @@ createHitMapNode(
     return h;
 }
 
+bool
+isHitMapNodeExist(TPMNode2 *node, HitMapContext *hitMap)
+{
+    HitMapBufNodePtr2NodeHashTable *find;
+    HASH_FIND(hh_hitMapBufNode2NodeHT, hitMap->hitMapNodeHT, &node, 4, find);
+    if(find == NULL)
+        return false;
+    else
+        return true;
+}
+
+
 void
 createHitMapRecord(
         TPMNode2 *src,
@@ -74,12 +86,12 @@ createHitMapRecord(
     t = createHitTransition(0, 0, HMNDst);
     attachHitTransition(HMNSrc, t);
 
-//    printf("HitMap Node src:\n");
-//    printHitMapNode(HMNSrc);
-//    printf("HitMap Node dst:\n");
-//    printHitMapNode(HMNDst);
-//    printf("HitMap Transition:\n");
-//    printHitMapTransition(t);
+    printf("HitMap Node src:\n");
+    printHitMapNode(HMNSrc);
+    printf("HitMap Node dst:\n");
+    printHitMapNode(HMNDst);
+    printf("HitMap Transition:\n");
+    printHitMapTransition(t);
 }
 
 
@@ -244,10 +256,10 @@ printHitMapNode(HitMapNode *node)
 {
     if(node == NULL)
         return;
-    printf("bufID:%u addr:0x%-8x val:%-8x sz:%u lastUpdateTS:%-16u"
+    printf("HitMapNode:%p bufID:%u addr:0x%-8x val:%-8x sz:%u lastUpdateTS:%-16u"
             " firstChild:%-8p leftNBR:%-10p rightNBR:%-10p nextVersion:%-8p"
             " version:%-9u hitcnt:%-8u\n",
-            node->bufId, node->addr, node->val, node->bytesz, node->lastUpdateTS,
+            node, node->bufId, node->addr, node->val, node->bytesz, node->lastUpdateTS,
             node->firstChild, node->leftNBR, node->rightNBR, node->nextVersion,
             node->version, node->hitcnt);
 }

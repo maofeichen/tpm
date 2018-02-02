@@ -4,6 +4,13 @@
 
 /* build HitMap of each buffer in TPM*/
 static BufContext *
+initBufContext(
+        TPMContext *tpm,
+        HitMapContext *hitMap,
+        TPMBufHashTable *buf);
+
+
+static void
 buildBufContext(
         TPMContext *tpm,
         HitMapContext *hitMap,
@@ -26,7 +33,7 @@ buildHitMapAddr(
 //attachHitTransition(HitMapNode *srcHMN, HitTransition *t);
 
 HitMapContext *
-buildHitMap(TPMContext *tpm)
+initHitMap(TPMContext *tpm)
 {
     HitMapContext *hitMap;
     TPMBufHashTable *tpmBuf, *currBuf;;
@@ -49,12 +56,29 @@ buildHitMap(TPMContext *tpm)
 
     i = 0;
     for(currBuf = tpmBuf; currBuf != NULL; currBuf = currBuf->hh_tpmBufHT.next) {
-        hitMap->bufArray[i] = buildBufContext(tpm, hitMap, currBuf);
+        hitMap->bufArray[i] = initBufContext(tpm, hitMap, currBuf);
         i++;
     }
 
     delAllTPMBuf(tpmBuf);
     return hitMap;
+
+}
+
+
+void
+buildHitMap(HitMapContext *hitMap, TPMContext *tpm)
+{
+    TPMBufHashTable *currBuf;
+    int numOfBuf, i;
+    u32 maxBufSeqN;
+
+    i = 0;
+    currBuf = hitMap->tpmBuf;
+    for(; currBuf != NULL; currBuf = currBuf->hh_tpmBufHT.next) {
+        buildBufContext(tpm, hitMap, currBuf);
+        i++;
+    }
 }
 
 void
@@ -101,9 +125,8 @@ printHitMapBuf(BufContext *hitMapBuf)
     }
 }
 
-
 static BufContext *
-buildBufContext(
+initBufContext(
         TPMContext *tpm,
         HitMapContext *hitMap,
         TPMBufHashTable *buf)
@@ -120,14 +143,22 @@ buildBufContext(
     for(int i = 0; i < numOfAddr; i++)
         bufCtxt->addrArray[i] = NULL;
 
+    return bufCtxt;
+}
+
+
+static void
+buildBufContext(
+        TPMContext *tpm,
+        HitMapContext *hitMap,
+        TPMBufHashTable *buf)
+{
     TPMNode2 *bufHead = buf->headNode;
     while(bufHead != NULL) {
         // printMemNode(bufHead);
         buildHitMapAddr(tpm, hitMap, bufHead);
         bufHead = bufHead->rightNBR;
     }
-
-    return bufCtxt;
 }
 
 static void

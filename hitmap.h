@@ -7,7 +7,10 @@
 #include "uthash.h"
 
 HitMapContext *
-buildHitMap(TPMContext *tpm);
+initHitMap(TPMContext *tpm);
+
+void
+buildHitMap(HitMapContext *hitMap, TPMContext *tpm);
 
 void
 delHitMap(HitMapContext *hitmap);

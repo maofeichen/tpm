@@ -36,8 +36,10 @@ int main(int argc, char const *argv[])
 #ifdef STAT
 			stat(tpm);
 #endif
-			hitMap = buildHitMap(tpm);
+			hitMap = initHitMap(tpm);
 			printHitMap(hitMap);
+			// buildHitMap(hitMap, tpm);
+			// printHitMap(hitMap);
 			delHitMap(hitMap);
 
 			// searchAllAvalancheInTPM(tpm);

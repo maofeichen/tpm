@@ -861,6 +861,10 @@ dfs2HitMapNode_PopWhenNoChildren(
         fprintf(stderr, "dfs2HitMapNode_PopWhenNoChildren: tpm:%p srcnode:%p hitMap:%p\n", tpm, srcnode, hitMapCtxt);
         return -1;
     }
+
+    if(isHitMapNodeExist(srcnode, hitMapCtxt) )
+        return 0;
+
     TransitionHashTable *markVisitTransHT = NULL;
     Transition *sourceTrans = srcnode->firstChild;
 
