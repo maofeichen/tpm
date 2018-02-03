@@ -884,6 +884,9 @@ dfs2HitMapNode_PopWhenNoChildren(
 
     }
 
+    printf("dfs source:%p\n", srcnode);
+    printMemNodeLit(srcnode);
+
     stckMemnodePush(srcnode, dfsLevel, &stackBufNodePathTop, &stackBufNodePathCnt);
     // stckMemnodeDisplay(stackBufNodePathTop, stackBufNodePathCnt);
 

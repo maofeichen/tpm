@@ -285,7 +285,7 @@ getTPMBufAddrIdx(
 
     buf = tpmBuf;
     while(buf->hh_tpmBufHT.next != NULL) {
-        printMemNodeLit(buf->headNode);
+        // printMemNodeLit(buf->headNode);
         if(buf ->headNode->bufid == bufID)
             break;
 
@@ -392,7 +392,7 @@ printTPMBufHashTable(TPMBufHashTable *tpmBufHT)
             buf->baddr, buf->eaddr, buf->eaddr - buf->baddr,
             buf->numOfAddr, buf->minseq, buf->maxseq, (buf->maxseq - buf->minseq), buf->headNode->bufid);
 
-        printBufNode(buf->headNode);
+        // printBufNode(buf->headNode);
     }
 }
 

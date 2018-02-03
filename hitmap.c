@@ -60,7 +60,7 @@ initHitMap(TPMContext *tpm)
         i++;
     }
 
-    delAllTPMBuf(tpmBuf);
+    // delAllTPMBuf(tpmBuf);
     return hitMap;
 
 }
@@ -79,6 +79,7 @@ buildHitMap(HitMapContext *hitMap, TPMContext *tpm)
         buildBufContext(tpm, hitMap, currBuf);
         i++;
     }
+    delAllTPMBuf(hitMap->tpmBuf);
 }
 
 void

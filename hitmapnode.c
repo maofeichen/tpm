@@ -22,6 +22,9 @@ linkNextVersionHitMapNode(HitMapNode *front, HitMapNode *next);
 static void
 updateHitMapArray(HitMapNode *hmNode, HitMapContext *hitMap);
 
+static u32
+getBufArrayIdx(u32 bufID);
+
 static void
 attachHitTransition(HitMapNode *srcHMN, HitTransition *t);
 
@@ -32,7 +35,7 @@ createHitMapNode(
         u32 version,
         u32 val,
         u32 bytesz,
-        u32 lastUpdateTS)
+        int lastUpdateTS)
 {
     HitMapNode *h = calloc(1, sizeof(HitMapNode));
     assert(h != NULL);
@@ -73,9 +76,9 @@ createHitMapRecord(
 //  2. creates HitMap record destination
 //  3. creates transition node between src and destination
 {
-    // printf("---------------\nHitMapRecord src: Lvl:%u\n", srclvl);
+    // printf("---------------\nHitMapRecord src:\n");
     // printMemNodeLit(src);
-    // printf("dst: Lvl:%u\n", dstLvl);
+    // printf("dst:\n");
     // printMemNodeLit(dst);
 
     HitMapNode *HMNSrc, *HMNDst;
@@ -86,7 +89,7 @@ createHitMapRecord(
     t = createHitTransition(0, 0, HMNDst);
     attachHitTransition(HMNSrc, t);
 
-    printf("HitMap Node src:\n");
+    printf("---------------\nHitMap Node src:\n");
     printHitMapNode(HMNSrc);
     printf("HitMap Node dst:\n");
     printHitMapNode(HMNDst);
@@ -141,6 +144,7 @@ createHitMapRecordNode(TPMNode2 *node, HitMapContext *hitMap)
         return NULL;
     }
 
+
     // is in HitMap hash table?
     HASH_FIND(hh_hitMapBufNode2NodeHT, hitMap->hitMapNodeHT, &node, 4, find);
     if(find == NULL) {
@@ -178,15 +182,17 @@ updateHMNodeVersion(HitMapNode *hmNode, HitMapContext *hitMap)
 {
     int addrIdx;
 
-    u32 bufID = hmNode->bufId;
+    u32 bufAryIdx = getBufArrayIdx(hmNode->bufId);
     u32 addr = hmNode->addr;
-    addrIdx = getTPMBufAddrIdx(bufID, addr, hitMap->tpmBuf);
+    addrIdx = getTPMBufAddrIdx(hmNode->bufId, addr, hitMap->tpmBuf);
 
-    if(hitMap->bufArray[bufID]->addrArray[addrIdx] == NULL) {
-        hitMap->bufArray[bufID]->addrArray[addrIdx] = hmNode;
+    printf("update HMNode version bufID:%u addr:%x addrIdx:%d\n", bufAryIdx, addr, addrIdx);
+
+    if(hitMap->bufArray[bufAryIdx]->addrArray[addrIdx] == NULL) {
+        hitMap->bufArray[bufAryIdx]->addrArray[addrIdx] = hmNode;
     }
     else {
-        linkNextVersionHitMapNode(hitMap->bufArray[bufID]->addrArray[addrIdx], hmNode);
+        linkNextVersionHitMapNode(hitMap->bufArray[bufAryIdx]->addrArray[addrIdx], hmNode);
     }
 }
 
@@ -207,7 +213,7 @@ updateHitMapArray(HitMapNode *hmNode, HitMapContext *hitMap)
 // hitMap array always points to the earliest version node
 {
     HitMapNode *head, *earliest;
-    u32 currVersion, bufID, addr, addrIdx;
+    u32 currVersion, bufAryIdx, addr, addrIdx;
 
     if( hmNode == NULL || hitMap == NULL) {
         fprintf(stderr, "updateHitMapArray: HitMap Node:%p hitMap:%p\n",
@@ -215,11 +221,11 @@ updateHitMapArray(HitMapNode *hmNode, HitMapContext *hitMap)
         return;
     }
 
-    bufID = hmNode->bufId;
+    bufAryIdx = getBufArrayIdx(hmNode->bufId);;
     addr = hmNode->addr;
-    addrIdx = getTPMBufAddrIdx(bufID, addr, hitMap->tpmBuf);
+    addrIdx = getTPMBufAddrIdx(hmNode->bufId, addr, hitMap->tpmBuf);
 
-    head = hitMap->bufArray[bufID]->addrArray[addrIdx];
+    head = hitMap->bufArray[bufAryIdx]->addrArray[addrIdx];
     earliest = head;
 
     currVersion = head->version;
@@ -231,7 +237,14 @@ updateHitMapArray(HitMapNode *hmNode, HitMapContext *hitMap)
     }
     while(head->version != currVersion);
 
-    hitMap->bufArray[bufID]->addrArray[addrIdx] = earliest;
+    hitMap->bufArray[bufAryIdx]->addrArray[addrIdx] = earliest;
+}
+
+static u32
+getBufArrayIdx(u32 bufID)
+{
+    assert(bufID > 0);
+    return bufID - 1;
 }
 
 static void
@@ -256,7 +269,7 @@ printHitMapNode(HitMapNode *node)
 {
     if(node == NULL)
         return;
-    printf("HitMapNode:%p bufID:%u addr:0x%-8x val:%-8x sz:%u lastUpdateTS:%-16u"
+    printf("HitMapNode:%p bufID:%u addr:0x%-8x val:%-8x sz:%u lastUpdateTS:%-16d"
             " firstChild:%-8p leftNBR:%-10p rightNBR:%-10p nextVersion:%-8p"
             " version:%-9u hitcnt:%-8u\n",
             node, node->bufId, node->addr, node->val, node->bytesz, node->lastUpdateTS,

@@ -14,7 +14,7 @@ struct HitMapNode {
     u32 version; // the version of current node, monotonically increasing from 0. Copy from TPMNode2
     u32 val;
     u32 bytesz;
-    u32 lastUpdateTS; // the TS (seq#) of last update of the node. Copy from TPMNode2
+    int lastUpdateTS; // the TS (seq#) of last update of the node. Copy from TPMNode2
     struct HitTransition *firstChild; // points to structure that points to the first child
     struct HitMapNode *leftNBR;       // point to node of adjacent, smaller memory address
     struct HitMapNode *rightNBR;      // point to node of adjacent, bigger memory address
@@ -71,7 +71,7 @@ createHitMapNode(
         u32 version,
         u32 val,
         u32 bytesz,
-        u32 lastUpdateTS);
+        int lastUpdateTS);
 
 // TODO: delHitMapNode
 
