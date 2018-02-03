@@ -26,6 +26,26 @@ static u32
 getBufArrayIdx(u32 bufID);
 
 static void
+updateHitMapNeighbor(HitMapNode *hmNode, HitMapContext *hitMap);
+
+static void
+updateLeftNeighbor(
+        u32 bufArrayIdx,
+        int addrIdx,
+        HitMapNode *hmNode,
+        HitMapContext *hitMap);
+
+static void
+updateRightNeighbor(
+        u32 bufArrayIdx,
+        int addrIdx,
+        HitMapNode *hmNode,
+        HitMapContext *hitMap);
+
+static void
+getEarliestVersion(HitMapNode **hmNode);
+
+static void
 attachHitTransition(HitMapNode *srcHMN, HitTransition *t);
 
 HitMapNode *
@@ -89,12 +109,12 @@ createHitMapRecord(
     t = createHitTransition(0, 0, HMNDst);
     attachHitTransition(HMNSrc, t);
 
-    printf("---------------\nHitMap Node src:\n");
-    printHitMapNode(HMNSrc);
-    printf("HitMap Node dst:\n");
-    printHitMapNode(HMNDst);
-    printf("HitMap Transition:\n");
-    printHitMapTransition(t);
+    // printf("---------------\nHitMap Node src:\n");
+    // printHitMapNode(HMNSrc);
+    // printf("HitMap Node dst:\n");
+    // printHitMapNode(HMNDst);
+    // printf("HitMap Transition:\n");
+    // printHitMapTransition(t);
 }
 
 
@@ -152,6 +172,7 @@ createHitMapRecordNode(TPMNode2 *node, HitMapContext *hitMap)
 
         updateHitMapHashTable(node, HMNode, hitMap);
         updateHMNodeVersion(HMNode, hitMap);
+        updateHitMapNeighbor(HMNode, hitMap);
         updateHitMapArray(HMNode, hitMap);
 
         return HMNode;
@@ -186,8 +207,7 @@ updateHMNodeVersion(HitMapNode *hmNode, HitMapContext *hitMap)
     u32 addr = hmNode->addr;
     addrIdx = getTPMBufAddrIdx(hmNode->bufId, addr, hitMap->tpmBuf);
 
-    printf("update HMNode version bufID:%u addr:%x addrIdx:%d\n", bufAryIdx, addr, addrIdx);
-
+    // printf("update HMNode version bufID:%u addr:%x addrIdx:%d\n", bufAryIdx, addr, addrIdx);
     if(hitMap->bufArray[bufAryIdx]->addrArray[addrIdx] == NULL) {
         hitMap->bufArray[bufAryIdx]->addrArray[addrIdx] = hmNode;
     }
@@ -248,6 +268,109 @@ getBufArrayIdx(u32 bufID)
 }
 
 static void
+updateHitMapNeighbor(HitMapNode *hmNode, HitMapContext *hitMap)
+{
+    int addrIdx;
+
+    u32 bufAryIdx = getBufArrayIdx(hmNode->bufId);
+    u32 addr = hmNode->addr;
+    addrIdx = getTPMBufAddrIdx(hmNode->bufId, addr, hitMap->tpmBuf);
+
+    if(addrIdx == 0) {
+        updateRightNeighbor(bufAryIdx, addrIdx, hmNode, hitMap);
+    }
+    else if(addrIdx == (hitMap->bufArray[bufAryIdx]->numOfAddr - 1) ) {
+        updateLeftNeighbor(bufAryIdx, addrIdx, hmNode, hitMap);
+    }
+    else if(addrIdx > 0 &&
+            addrIdx < (hitMap->bufArray[bufAryIdx]->numOfAddr - 1) ) {
+        updateLeftNeighbor(bufAryIdx, addrIdx, hmNode, hitMap);
+        updateRightNeighbor(bufAryIdx, addrIdx, hmNode, hitMap);
+    }
+    else {
+        fprintf(stderr, "update neighbors: addrIdx:%d\n", addrIdx);
+        return;
+    }
+}
+
+static void
+updateLeftNeighbor(
+        u32 bufArrayIdx,
+        int addrIdx,
+        HitMapNode *hmNode,
+        HitMapContext *hitMap)
+{
+    if(hitMap->bufArray[bufArrayIdx]->addrArray[addrIdx-1] != NULL) {
+        HitMapNode *left = hitMap->bufArray[bufArrayIdx]->addrArray[addrIdx-1];
+        HitMapNode *this = hmNode;
+        // printf("update left neighbor:\n");
+        // printHitMapNode(left);
+        // printHitMapNode(hmNode);
+        getEarliestVersion(&left);
+        getEarliestVersion(&this);
+        hmNode->leftNBR = left;
+
+        // left->rightNBR = hmNode;
+        u32 leftVersion = left->version;
+        do {
+            left->rightNBR = this;
+            left = left->nextVersion;
+        } while(leftVersion != left->version);
+    }
+    else {}
+}
+
+static void
+updateRightNeighbor(
+        u32 bufArrayIdx,
+        int addrIdx,
+        HitMapNode *hmNode,
+        HitMapContext *hitMap)
+{
+    if(hitMap->bufArray[bufArrayIdx]->addrArray[addrIdx+1] != NULL) {
+        HitMapNode *right = hitMap->bufArray[bufArrayIdx]->addrArray[addrIdx+1];
+        HitMapNode *this = hmNode;
+        // printf("update right neighbor:\n");
+        // printHitMapNode(right);
+        // printHitMapNode(hmNode);
+        getEarliestVersion(&right);
+        getEarliestVersion(&this);
+        hmNode->rightNBR = right;
+
+        // right->leftNBR = hmNode;
+        u32 rightVersion = right->version;
+        do {
+            right->leftNBR = this;
+            right = right->nextVersion;
+        } while (rightVersion != right->version);
+    }
+    else {}
+}
+
+static void
+getEarliestVersion(HitMapNode **hmNode)
+{
+    u32 currVersion;
+    HitMapNode *earliest, *curr;
+    // printHitMapNode(*hmNode);
+
+    curr = *hmNode;
+    earliest = curr;
+    currVersion = (*hmNode)->version;
+
+    do {
+        if(earliest->version < curr->version) {
+           earliest = curr;
+        }
+        curr = curr->nextVersion;
+    } while(currVersion != curr->version);
+
+    *hmNode = earliest;
+    // printf("----------\nearliest version: \n");
+    // printHitMapNode(earliest);
+}
+
+static void
 attachHitTransition(HitMapNode *srcHMN, HitTransition *t)
 {
     assert(srcHMN != NULL);
@@ -276,6 +399,17 @@ printHitMapNode(HitMapNode *node)
             node->firstChild, node->leftNBR, node->rightNBR, node->nextVersion,
             node->version, node->hitcnt);
 }
+
+void
+printHitMapNodeAllVersion(HitMapNode *node)
+{
+    u32 currVersion = node->version;
+    do {
+        printHitMapNode(node);
+        node = node->nextVersion;
+    } while (currVersion != node->version);
+}
+
 
 void
 printHitMapTransition(HitTransition *hTrans)

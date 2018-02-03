@@ -37,7 +37,6 @@ int main(int argc, char const *argv[])
 			stat(tpm);
 #endif
 			hitMap = initHitMap(tpm);
-			printHitMap(hitMap);
 			buildHitMap(hitMap, tpm);
 			printHitMap(hitMap);
 			delHitMap(hitMap);

@@ -99,6 +99,9 @@ void
 printHitMapNode(HitMapNode *node);
 
 void
+printHitMapNodeAllVersion(HitMapNode *node);
+
+void
 printHitMapTransition(HitTransition *hTrans);
 
 #endif

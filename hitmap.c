@@ -122,7 +122,8 @@ printHitMapBuf(BufContext *hitMapBuf)
     }
     printf("HitMapBuf: num of addr:%u\n", hitMapBuf->numOfAddr);
     for(int i = 0; i < hitMapBuf->numOfAddr; i++) {
-        printf("HitMapBuf addr:%p\n", hitMapBuf->addrArray[i]);
+        printf("----------\nHitMapBuf addr:%p\n", hitMapBuf->addrArray[i]);
+        printHitMapNodeAllVersion(hitMapBuf->addrArray[i]);
     }
 }
 
