@@ -372,11 +372,17 @@ printTrans1stChild(union TPMNode *head)
 void
 printTransAllChildren(Transition *transition)
 {
-    if(transition != NULL) {
-        printf("Transition:%p\n seqNo:%u\n", transition, transition->seqNo);
+    u32 numOfTrans = 0;
+
+    while(transition != NULL) {
+        printf("----------\nTransition:%p\n seqNo:%u\n", transition, transition->seqNo);
         printf("Child:\n");
         printNode(transition->child);
+
+        numOfTrans++;
+        transition = transition->next;
     }
+    printf("total number of children transitions:%u\n", numOfTrans);
 }
 
 void 
@@ -391,7 +397,7 @@ printTPMBufHashTable(TPMBufHashTable *tpmBufHT)
         printf("begin addr:0x%-8x end addr:0x%-8x sz:%u numofaddr:%-2u minseq:%d maxseq:%d diffseq:%d bufID:%u\n",
             buf->baddr, buf->eaddr, buf->eaddr - buf->baddr,
             buf->numOfAddr, buf->minseq, buf->maxseq, (buf->maxseq - buf->minseq), buf->headNode->bufid);
-
+        // printMemNode(buf->headNode);
         // printBufNode(buf->headNode);
     }
 }

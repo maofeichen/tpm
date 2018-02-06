@@ -781,6 +781,9 @@ storeAllUnvisitChildren_NoMark(
         u32 *stackTransCnt,
         u32 dfsLevel)
 {
+    // printf("maxSeqN:%d\n", maxseq);
+    // printTransAllChildren(firstChild);
+
      while(firstChild != NULL) {
         if(!isTransitionVisited(*transitionht, firstChild)
            && firstChild->seqNo <= maxseq) {
@@ -955,8 +958,9 @@ dfs2HitMapNode_PopWhenNoChildren(
 
     }
 
-    // printf("dfs source:%p\n", srcnode);
-    // printMemNodeLit(srcnode);
+    // printf("----------\ndfs2HitMapNode_PopWhenNoChildren source:%p\n", srcnode);
+    // printMemNode(srcnode);
+    // printTransAllChildren(sourceTrans);
 
     stckMemnodePush(srcnode, dfsLevel, &stackBufNodePathTop, &stackBufNodePathCnt);
     // stckMemnodeDisplay(stackBufNodePathTop, stackBufNodePathCnt);

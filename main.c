@@ -45,7 +45,7 @@ int main(int argc, char const *argv[])
 			printf("buiid HitMap time: ");
 			printTimeMicroEnd();
 			compHitMapStat(hitMap);
-			detectHitMapAvalanche(hitMap);
+			// detectHitMapAvalanche(hitMap);
 			// printHitMap(hitMap);
 			delHitMap(hitMap);
 

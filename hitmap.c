@@ -82,6 +82,7 @@ buildHitMap(HitMapContext *hitMap, TPMContext *tpm)
     int numOfBuf, i;
     u32 maxBufSeqN;
 
+    // printTPMBufHashTable(hitMap->tpmBuf);
     i = 0;
     currBuf = hitMap->tpmBuf;
     for(; currBuf != NULL; currBuf = currBuf->hh_tpmBufHT.next) {
@@ -228,6 +229,12 @@ buildBufContext(
         HitMapContext *hitMap,
         TPMBufHashTable *buf)
 {
+
+    // printf("----------\nbegin addr:0x%-8x end addr:0x%-8x sz:%u numofaddr:%-2u minseq:%d maxseq:%d diffseq:%d bufID:%u\n",
+    //         buf->baddr, buf->eaddr, buf->eaddr - buf->baddr,
+    //         buf->numOfAddr, buf->minseq, buf->maxseq, (buf->maxseq - buf->minseq), buf->headNode->bufid);
+    // printMemNode(buf->headNode);
+
     TPMNode2 *bufHead = buf->headNode;
     while(bufHead != NULL) {
         // printMemNodeLit(bufHead);
@@ -263,7 +270,7 @@ buildHitMapAddr(
            return;
         }
     }
-
+    // printMemNode(headNode);
     u32 currVersion = headNode->version;
 
     do {
