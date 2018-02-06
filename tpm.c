@@ -393,13 +393,14 @@ printTPMBufHashTable(TPMBufHashTable *tpmBufHT)
 
     bufcnt = HASH_CNT(hh_tpmBufHT, tpmBufHT);
     printf("total buf:%d - min buf sz:%u\n",bufcnt, MIN_BUF_SZ);
-    HASH_ITER(hh_tpmBufHT, tpmBufHT, buf, temp) {
-        printf("begin addr:0x%-8x end addr:0x%-8x sz:%u numofaddr:%-2u minseq:%d maxseq:%d diffseq:%d bufID:%u\n",
-            buf->baddr, buf->eaddr, buf->eaddr - buf->baddr,
-            buf->numOfAddr, buf->minseq, buf->maxseq, (buf->maxseq - buf->minseq), buf->headNode->bufid);
-        // printMemNode(buf->headNode);
-        // printBufNode(buf->headNode);
-    }
+
+    // HASH_ITER(hh_tpmBufHT, tpmBufHT, buf, temp) {
+    //     printf("begin addr:0x%-8x end addr:0x%-8x sz:%u numofaddr:%-2u minseq:%d maxseq:%d diffseq:%d bufID:%u\n",
+    //         buf->baddr, buf->eaddr, buf->eaddr - buf->baddr,
+    //         buf->numOfAddr, buf->minseq, buf->maxseq, (buf->maxseq - buf->minseq), buf->headNode->bufid);
+    //     // printMemNode(buf->headNode);
+    //     // printBufNode(buf->headNode);
+    // }
 }
 
 
@@ -1282,8 +1283,8 @@ static void
 assignNodeID(TPMNode2 *headNode, u32 bufID)
 // for each node (including neighbor) each version, assigns the bufID to it
 {
-    assert(headNode->leftNBR == NULL);    // headnode should be first node, version 0
-    assert(headNode->version == 0);
+    // assert(headNode->leftNBR == NULL);    // headnode should be first node, version 0
+    // assert(headNode->version == 0);
 
     while(headNode != NULL){
         u32 currVer = headNode->version;

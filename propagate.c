@@ -786,7 +786,7 @@ storeAllUnvisitChildren_NoMark(
 
      while(firstChild != NULL) {
         if(!isTransitionVisited(*transitionht, firstChild)
-           && firstChild->seqNo <= maxseq) {
+           /* && firstChild->seqNo <= maxseq */) {
             // transStackPush(firstChild);
             stackTransPush(firstChild, dfsLevel, stackTransTop, stackTransCnt);
             // markVisitTransition(transitionht, firstChild);
@@ -952,8 +952,8 @@ dfs2HitMapNode_PopWhenNoChildren(
     int stepCount = 0;
 
     if(sourceTrans == NULL) {
-        printf("dfs2HitMapNode: given source node is a leaf\n");
-        printMemNode(srcnode);
+        // printf("dfs2HitMapNode: given source node is a leaf\n");
+        // printMemNode(srcnode);
         return 0;
 
     }

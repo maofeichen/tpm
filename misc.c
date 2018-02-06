@@ -12,7 +12,7 @@ printTime()
 
  	time ( &rawtime );
 	timeinfo = localtime ( &rawtime );
-	printf ( "local time: %s", asctime (timeinfo) );
+	printf ( "----------\nlocal time: %s", asctime (timeinfo) );
 }
 
 void
@@ -25,5 +25,5 @@ void
 printTimeMicroEnd()
 {
     gettimeofday(&stop, NULL);
-    printf("tool %lu microseconds\n", stop.tv_sec - start.tv_sec);
+    printf("took %lu microseconds\n", stop.tv_sec - start.tv_sec);
 }
