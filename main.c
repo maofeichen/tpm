@@ -28,12 +28,12 @@ int main(int argc, char const *argv[])
 		if((tpm = calloc(1, sizeof(struct TPMContext) ) ) != NULL) { 
 			printf("alloc TPMContext: %zu MB\n", sizeof(struct TPMContext) / (1024*1024) );
 			// printTimeMicroStart();
-			printTime();
+			printTime("Before build TPM");
 			if( (numOfNode = buildTPM(log, tpm) ) >= 0) {
 				printf("build TPM successful, total number nodes:%d\n", numOfNode);
 				// printf("building time ");
 				// printTimeMicroEnd();
-				printTime();
+				printTime("Finish building TPM");
 			}
 			else { fprintf(stderr, "error build TPM\n"); }
 #ifdef STAT
@@ -41,8 +41,9 @@ int main(int argc, char const *argv[])
 #endif
 			// printTimeMicroStart();
 			hitMap = initHitMap(tpm);
+			printTime("Finish init HitMap");
 			buildHitMap(hitMap, tpm);
-			printTime();
+			printTime("Finish building HitMap");
 			// printf("buiid HitMap time: ");
 			// printTimeMicroEnd();
 			compHitMapStat(hitMap);

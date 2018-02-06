@@ -5,14 +5,14 @@
 struct timeval start, stop;
 
 void
-printTime()
+printTime(char *s)
 {
     time_t rawtime;
 	struct tm *timeinfo;
 
  	time ( &rawtime );
 	timeinfo = localtime ( &rawtime );
-	printf ( "----------\nlocal time: %s", asctime (timeinfo) );
+	printf ( "----------\n%s\nlocal time: %s", s, asctime (timeinfo) );
 }
 
 void

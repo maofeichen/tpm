@@ -4,7 +4,7 @@
 #include <time.h>
 
 void 
-printTime();
+printTime(char *s);
 
 void
 printTimeMicroStart();

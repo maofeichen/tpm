@@ -45,7 +45,7 @@ HitMapContext *
 initHitMap(TPMContext *tpm)
 {
     HitMapContext *hitMap;
-    TPMBufHashTable *tpmBuf, *currBuf;;
+    TPMBufHashTable *tpmBuf, *currBuf;
     int numOfBuf, i;
     u32 maxBufSeqN;
 
@@ -63,15 +63,15 @@ initHitMap(TPMContext *tpm)
     hitMap->bufArray = calloc(1, sizeof(BufContext *) * numOfBuf);
     hitMap->tpmBuf = tpmBuf;
 
+    printHitMapLit(hitMap);
+
     i = 0;
     for(currBuf = tpmBuf; currBuf != NULL; currBuf = currBuf->hh_tpmBufHT.next) {
         hitMap->bufArray[i] = initBufContext(tpm, hitMap, currBuf);
         i++;
     }
 
-    // delAllTPMBuf(tpmBuf);
     return hitMap;
-
 }
 
 
@@ -185,6 +185,18 @@ printHitMap(HitMapContext *hitmap)
     for(int i = 0; i < hitmap->numOfBuf; i++) {
         printHitMapBuf(hitmap->bufArray[i]);
     }
+}
+
+void
+printHitMapLit(HitMapContext *hitmap)
+{
+    if(hitmap == NULL) {
+        fprintf(stderr, "printHitMapLit:%p\n", hitmap);
+        return;
+    }
+
+    printf("HitMap Summary: TPMBufHTPtr:%p HitMapNodeHTPtr:%p maxBufSeqN:%u num of Bufs:%u buf context ary ptr:%p\n",
+            hitmap->tpmBuf, hitmap->hitMapNodeHT, hitmap->maxBufSeqN, hitmap->numOfBuf, hitmap->bufArray);
 }
 
 void

@@ -209,6 +209,9 @@ analyzeTPMBuf(TPMContext *tpm)
         memNode = memNodeHT->toMem;
         compBufStat(memNode, &baddr, &eaddr, &minseq, &maxseq, &numOfAddr, &firstMemNode);
         if(eaddr - baddr >= tpm->minBufferSz){ // only consider bufs with sz satisfies the min requirement
+            // printf("baddr:%x eaddr:%x minSeqN:%d maxSeqN:%d numOfAddr:%u firstMemNode:%p\n",
+            //         baddr, eaddr, minseq, maxseq, numOfAddr, firstMemNode);
+
             tpmBufNode = initTPMBufHTNode(baddr, eaddr, minseq, maxseq, numOfAddr, firstMemNode);
 
             HASH_FIND(hh_tpmBufHT, tpmBufHT, &baddr, 4, tpmBufFound);
@@ -259,10 +262,12 @@ getTPMBufMaxSeqN(TPMBufHashTable *tpmBuf)
 
     buf = tpmBuf;
     while(buf->hh_tpmBufHT.next != NULL) {
+        if(buf->maxseq > 0 && buf->maxseq > maxSeqN)
+            maxSeqN = buf->maxseq;
+
         buf = buf->hh_tpmBufHT.next;
     }
-
-    maxSeqN = buf->maxseq;
+    // maxSeqN = buf->maxseq;
     return maxSeqN;
 }
 
@@ -394,13 +399,13 @@ printTPMBufHashTable(TPMBufHashTable *tpmBufHT)
     bufcnt = HASH_CNT(hh_tpmBufHT, tpmBufHT);
     printf("total buf:%d - min buf sz:%u\n",bufcnt, MIN_BUF_SZ);
 
-    // HASH_ITER(hh_tpmBufHT, tpmBufHT, buf, temp) {
-    //     printf("begin addr:0x%-8x end addr:0x%-8x sz:%u numofaddr:%-2u minseq:%d maxseq:%d diffseq:%d bufID:%u\n",
-    //         buf->baddr, buf->eaddr, buf->eaddr - buf->baddr,
-    //         buf->numOfAddr, buf->minseq, buf->maxseq, (buf->maxseq - buf->minseq), buf->headNode->bufid);
-    //     // printMemNode(buf->headNode);
-    //     // printBufNode(buf->headNode);
-    // }
+    HASH_ITER(hh_tpmBufHT, tpmBufHT, buf, temp) {
+        printf("begin addr:0x%-8x end addr:0x%-8x sz:%-3u numofaddr:%-3u minseq:%-6d maxseq:%-6d diffseq:%-6d bufID:%u\n",
+            buf->baddr, buf->eaddr, buf->eaddr - buf->baddr,
+            buf->numOfAddr, buf->minseq, buf->maxseq, (buf->maxseq - buf->minseq), buf->headNode->bufid);
+        // printMemNode(buf->headNode);
+        // printBufNode(buf->headNode);
+    }
 }
 
 
@@ -1217,13 +1222,18 @@ is_addr_in_ht(struct TPMContext *tpm, struct Mem2NodeHT **item, u32 addr)
 }
 
 static void 
-compBufStat(TPMNode2 *memNode, u32 *baddr, u32 *eaddr, int *minseq, int *maxseq, u32 *numOfAddr, TPMNode2 **firstnode)
+compBufStat(
+        TPMNode2 *memNode,
+        u32 *baddr,
+        u32 *eaddr,
+        int *minseq,
+        int *maxseq,
+        u32 *numOfAddr,
+        TPMNode2 **firstnode)
 // retruns the begin/end addresses, minseq(>0) maxseq of a given buffer(mem node)
 {
     TPMNode2 *b, *e, *lastend;
 
-    *minseq = INT32_MAX;
-    *maxseq = 0;
     *numOfAddr = 0;
     b = e = memNode;
 
@@ -1232,12 +1242,15 @@ compBufStat(TPMNode2 *memNode, u32 *baddr, u32 *eaddr, int *minseq, int *maxseq,
     *firstnode = b;
     getMemNode1stVersion(firstnode);
 
+    *minseq = (*firstnode)->lastUpdateTS;
+    *maxseq = (*firstnode)->lastUpdateTS;
+
     e = *firstnode;
     while(e != NULL) { // traverse to right most
         u32 currVersion = e->version;
         do{
             int seqNo = e->lastUpdateTS;
-            if(seqNo > 0 && *minseq > seqNo)
+            if(/* seqNo > 0 && */ *minseq > seqNo)
                 *minseq = seqNo;
 
             if(*maxseq < seqNo)

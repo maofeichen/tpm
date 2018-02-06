@@ -25,6 +25,9 @@ void
 printHitMap(HitMapContext *hitmap);
 
 void
+printHitMapLit(HitMapContext *hitmap);
+
+void
 printHitMapBuf(BufContext *hitMapBuf);
 
 #endif

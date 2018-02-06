@@ -786,7 +786,7 @@ storeAllUnvisitChildren_NoMark(
 
      while(firstChild != NULL) {
         if(!isTransitionVisited(*transitionht, firstChild)
-           /* && firstChild->seqNo <= maxseq */) {
+           && firstChild->seqNo <= maxseq) {
             // transStackPush(firstChild);
             stackTransPush(firstChild, dfsLevel, stackTransTop, stackTransCnt);
             // markVisitTransition(transitionht, firstChild);
