@@ -26,6 +26,15 @@ buildHitMapAddr(
         HitMapContext *hitMap,
         TPMNode2 *headNode);
 
+static u32
+getHitMapTotalNode(HitMapContext *hitMap);
+
+static u32
+getHitMapTotalTransaction(HitMapContext *hitMap);
+
+static u32
+getHitMapNodeTransactionNumber(HitMapNode *hmNode);
+
 //static HitMapNode *
 //createHitMapRecordNode(TPMNode2 *node, HitMapContext *hitMap);
 //
@@ -80,6 +89,70 @@ buildHitMap(HitMapContext *hitMap, TPMContext *tpm)
         i++;
     }
     delAllTPMBuf(hitMap->tpmBuf);
+}
+
+void
+detectHitMapAvalanche(HitMapContext *hitMap)
+{
+    u32 numOfBuf;
+
+    numOfBuf = hitMap->numOfBuf;
+    for(int bufIdx = 0; bufIdx < numOfBuf; bufIdx++) {
+        for(int addrIdx = 0; addrIdx < hitMap->bufArray[bufIdx]->numOfAddr; addrIdx++) {
+            HitMapNode *addrHeadNode = hitMap->bufArray[bufIdx]->addrArray[addrIdx];
+            printHitMapNode(addrHeadNode);
+            hitMapNodePropagate(addrHeadNode);
+            goto OutOfLoop;
+        }
+    }
+OutOfLoop:
+    printf("");
+}
+
+
+void
+compHitMapStat(HitMapContext *hitMap)
+{
+    u32 numOfNode;
+    u32 totalTrans;
+
+    sortHitMapHashTable(&(hitMap->hitMapNodeHT) );
+
+    numOfNode = getHitMapTotalNode(hitMap);
+    printf("total number of node in HitMap:%u\n", numOfNode);
+
+    totalTrans = getHitMapTotalTransaction(hitMap);
+    printf("total transitions: %u\n", totalTrans);
+}
+
+static u32
+getHitMapTotalNode(HitMapContext *hitMap)
+{
+    return HASH_CNT(hh_hitMapBufNode2NodeHT, hitMap->hitMapNodeHT);
+}
+
+static u32
+getHitMapTotalTransaction(HitMapContext *hitMap)
+{
+    u32 totalTrans = 0;
+    HitMapBufNodePtr2NodeHashTable *item, *temp;
+    HASH_ITER(hh_hitMapBufNode2NodeHT, hitMap->hitMapNodeHT, item, temp ) {
+        // printHitMapNode(item->toHitMapNode);
+        totalTrans +=  getHitMapNodeTransactionNumber(item->toHitMapNode);
+    }
+    return totalTrans;
+}
+
+static u32
+getHitMapNodeTransactionNumber(HitMapNode *hmNode)
+{
+    u32 numOfTrans = 0;
+    HitTransition *firstChild = hmNode->firstChild;
+    while(firstChild != NULL) {
+        numOfTrans++;
+        firstChild = firstChild->next;
+    }
+    return numOfTrans;
 }
 
 void
@@ -157,7 +230,7 @@ buildBufContext(
 {
     TPMNode2 *bufHead = buf->headNode;
     while(bufHead != NULL) {
-        // printMemNode(bufHead);
+        // printMemNodeLit(bufHead);
         buildHitMapAddr(tpm, hitMap, bufHead);
         bufHead = bufHead->rightNBR;
     }

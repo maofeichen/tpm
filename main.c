@@ -28,17 +28,25 @@ int main(int argc, char const *argv[])
 		if((tpm = calloc(1, sizeof(struct TPMContext) ) ) != NULL) { 
 			printf("alloc TPMContext: %zu MB\n", sizeof(struct TPMContext) / (1024*1024) );
 
+			printTimeMicroStart();
 			if( (numOfNode = buildTPM(log, tpm) ) >= 0) {
 				printf("build TPM successful, total number nodes:%d\n", numOfNode);
-				printTime();
+				printf("building time ");
+				printTimeMicroEnd();
+				// printTime();
 			}
 			else { fprintf(stderr, "error build TPM\n"); }
 #ifdef STAT
 			stat(tpm);
 #endif
+			printTimeMicroStart();
 			hitMap = initHitMap(tpm);
 			buildHitMap(hitMap, tpm);
-			printHitMap(hitMap);
+			printf("buiid HitMap time: ");
+			printTimeMicroEnd();
+			compHitMapStat(hitMap);
+			detectHitMapAvalanche(hitMap);
+			// printHitMap(hitMap);
 			delHitMap(hitMap);
 
 			// searchAllAvalancheInTPM(tpm);

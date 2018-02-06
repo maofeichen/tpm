@@ -30,6 +30,25 @@ typedef struct StckMemnode
     struct StckMemnode *next;
 } StckMemnode;
 
+/* HitMap node */
+typedef struct HitTransitionHashTable
+// Transition hash table
+//	uses in dfs to mark transitions that had been visited
+{
+	// u32 seqNo;
+	HitTransition *toTrans; // the hitTrans ptr is key
+	UT_hash_handle hh_hitTrans;
+} HitTransitionHashTable;
+
+typedef struct StackHitTransitionItem
+{
+	HitTransition *transition;
+	// u32 level;
+	struct StackHitTransitionItem *next;
+} StackHitTransitionItem;
+
+/* function prototype */
+
 int
 cmpAddr2NodeItem(Addr2NodeItem *l, Addr2NodeItem *r);
 
@@ -68,6 +87,12 @@ bufnodePropgt2HitMapNode(
         HitMapContext *hitMapCtxt);
 // Returns:
 //  >=0: success
+//  <0: error
+
+int
+hitMapNodePropagate(HitMapNode *srcnode);
+// Returns:
+//  >= 0: num of hitmap nodes that the srcnode can propagate to
 //  <0: error
 
 int

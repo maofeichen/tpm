@@ -161,6 +161,68 @@ popBufNode(
         StckMemnode **stackBufNodePathTop,
         u32 *stackBufNodePathCnt);
 
+/* HitMap node propagate */
+static int
+dfsHitMapNodePropagate(HitMapNode *srcnode);
+
+/* HitMap Transition hash table operation */
+static void
+add2HitTransitionHT(HitTransitionHashTable **hitTransitionht, HitTransition *toTrans);
+
+static HitTransitionHashTable*
+findInHitTransitionHT(HitTransitionHashTable *hitTransitionht, HitTransition *hitTrans);
+
+static void
+delHitTransitionHT(HitTransitionHashTable **hitTransitionht);
+
+static void
+countHitTransitionHT(HitTransitionHashTable *hitTransitionht);
+
+/* HitMap Transition stack */
+static void
+stackHitTransPush(
+        HitTransition *trans,
+        StackHitTransitionItem **stackTransTop,
+        u32 *stackTransCnt);
+
+static HitTransition *
+stackHitTransPop(
+        StackHitTransitionItem **stackTransTop,
+        u32 *stackTransCnt);
+
+static void
+stackHitTransDisplay(
+        StackHitTransitionItem *stackTransTop,
+        u32 stackTransCnt);
+
+static void
+stackHitTransPopAll(
+        StackHitTransitionItem **stackTransTop,
+        u32 *stackTransCnt);
+
+static bool
+isStackHitTransEmpty(StackHitTransitionItem *stackTransTop);
+
+static void
+printHitTransitionNode(StackHitTransitionItem *transNode);
+
+static void
+storeAllUnvisitHitTransChildren(
+        HitTransitionHashTable **hitTransitionht,
+        HitTransition *firstChild,
+        int maxseq,
+        StackHitTransitionItem **stackHitTransTop,
+        u32 *stackHitTransCnt);
+
+static bool
+isHitTransitionVisited(
+        HitTransitionHashTable *hitTransitionht,
+        HitTransition *hitTransition);
+
+static void
+markVisitHitTransition(
+        HitTransitionHashTable **hitTransitionht,
+        HitTransition *hitTransition);
 
 /* functions */
 
@@ -212,6 +274,15 @@ bufnodePropgt2HitMapNode(
 {
     // return dfs2HitMapNode(tpm, srcnode, hitMapCtxt);
     return dfs2HitMapNode_PopWhenNoChildren(tpm, srcnode, hitMapCtxt);
+}
+
+int
+hitMapNodePropagate(HitMapNode *srcnode)
+// Returns:
+//  >= 0: num of hitmap nodes that the srcnode can propagate to
+//  <0: error
+{
+    return dfsHitMapNodePropagate(srcnode);
 }
 
 
@@ -884,8 +955,8 @@ dfs2HitMapNode_PopWhenNoChildren(
 
     }
 
-    printf("dfs source:%p\n", srcnode);
-    printMemNodeLit(srcnode);
+    // printf("dfs source:%p\n", srcnode);
+    // printMemNodeLit(srcnode);
 
     stckMemnodePush(srcnode, dfsLevel, &stackBufNodePathTop, &stackBufNodePathCnt);
     // stckMemnodeDisplay(stackBufNodePathTop, stackBufNodePathCnt);
@@ -951,4 +1022,201 @@ popBufNode(
            stckMemnodePop(&transLvl, stackBufNodePathTop, stackBufNodePathCnt);
        }
     }
+}
+
+/* HitMap node propagate */
+static int
+dfsHitMapNodePropagate(HitMapNode *srcnode)
+{
+    if(srcnode == NULL) {
+        fprintf(stderr, "dfsHitMapNodePropagate: hit map srcnode:%p\n", srcnode);
+        return -1;
+    }
+
+    HitTransitionHashTable *markVisitHitTransHT = NULL;
+    HitTransition *sourceHitTrans = srcnode->firstChild;
+
+    StackHitTransitionItem *stackHitTransTop = NULL;
+    u32 stackHitTransCnt = 0;
+
+    if(sourceHitTrans == NULL) {
+        printf("given source node is a leaf\n");
+        printHitMapNode(srcnode);
+        return 0;
+    }
+
+    storeAllUnvisitHitTransChildren(&markVisitHitTransHT, sourceHitTrans, 0,
+            &stackHitTransTop, &stackHitTransCnt);
+    // stackHitTransDisplay(stackHitTransTop, stackHitTransCnt);
+
+    while(!isStackHitTransEmpty(stackHitTransTop) ) {
+        HitTransition *popTrans = stackHitTransPop(&stackHitTransTop, &stackHitTransCnt);
+        HitMapNode *popDstHitMapNode = popTrans->child;
+        printHitMapNode(popDstHitMapNode);
+
+        storeAllUnvisitHitTransChildren(&markVisitHitTransHT, popDstHitMapNode->firstChild, 0,
+                &stackHitTransTop, &stackHitTransCnt);
+        // stackHitTransDisplay(stackHitTransTop, stackHitTransCnt);
+
+    }
+    delHitTransitionHT(&markVisitHitTransHT);
+    stackHitTransPopAll(&stackHitTransTop, &stackHitTransCnt);
+
+    return 0;
+}
+
+static void
+add2HitTransitionHT(HitTransitionHashTable **hitTransitionht, HitTransition *toTrans)
+{
+    HitTransitionHashTable *t;
+    t = findInHitTransitionHT(*hitTransitionht, toTrans);
+    if(t == NULL) {
+        t = calloc(1, sizeof(HitTransitionHashTable));
+        t->toTrans = toTrans;
+        HASH_ADD(hh_hitTrans, *hitTransitionht, toTrans, 4, t);
+    }
+    else {}
+}
+
+static HitTransitionHashTable*
+findInHitTransitionHT(HitTransitionHashTable *hitTransitionht, HitTransition *hitTrans)
+{
+    HitTransitionHashTable *s = NULL;
+    HASH_FIND(hh_hitTrans, hitTransitionht, hitTrans, 4, s);
+    return s;
+}
+
+static void
+delHitTransitionHT(HitTransitionHashTable **hitTransitionht)
+{
+    HitTransitionHashTable *curr, *tmp;
+    HASH_ITER(hh_hitTrans, *hitTransitionht, curr, tmp) {
+       HASH_DELETE(hh_hitTrans, *hitTransitionht, curr);
+       free(curr);
+    }
+}
+
+static void
+countHitTransitionHT(HitTransitionHashTable *hitTransitionht)
+{
+    // TODO
+}
+
+static void
+stackHitTransPush(
+        HitTransition *hitTrans,
+        StackHitTransitionItem **stackHitTransTop,
+        u32 *stackHitTransCnt)
+{
+    StackHitTransitionItem *i = calloc(1, sizeof(StackHitTransitionItem));
+    i->transition = hitTrans;
+
+    i->next = *stackHitTransTop;
+    *stackHitTransTop = i;
+    (*stackHitTransCnt)++;
+}
+
+static HitTransition *
+stackHitTransPop(
+        StackHitTransitionItem **stackHitTransTop,
+        u32 *stackHitTransCnt)
+{
+    StackHitTransitionItem *toDel;
+    HitTransition *hitTrans = NULL;
+
+    if(*stackHitTransTop != NULL) {
+        toDel = *stackHitTransTop;
+        *stackHitTransTop = toDel->next;
+
+        hitTrans = toDel->transition;
+        free(toDel);
+        (*stackHitTransCnt)--;
+    }
+    return hitTrans;
+}
+
+static void
+stackHitTransDisplay(
+        StackHitTransitionItem *stackHitTransTop,
+        u32 stackHitTransCnt)
+{
+    if(stackHitTransCnt > 0)
+        printf("--------------------\ntotal transitions in stack:%u\n", stackHitTransCnt);
+
+    while(stackHitTransTop != NULL) {
+        printHitMapNode(stackHitTransTop->transition->child);
+        stackHitTransTop = stackHitTransTop->next;
+    }
+}
+
+static void
+stackHitTransPopAll(
+        StackHitTransitionItem **stackHitTransTop,
+        u32 *stackHitTransCnt)
+{
+    while(*stackHitTransTop != NULL) {
+        stackHitTransPop(stackHitTransTop, stackHitTransCnt);
+    }
+}
+
+static bool
+isStackHitTransEmpty(StackHitTransitionItem *stackHitTransTop)
+{
+    if(stackHitTransTop != NULL)
+        return false;
+    else
+        return true;
+}
+
+static void
+printHitTransitionNode(StackHitTransitionItem *transNode)
+{
+
+}
+
+static void
+storeAllUnvisitHitTransChildren(
+        HitTransitionHashTable **hitTransitionht,
+        HitTransition *firstChild,
+        int maxseq,
+        StackHitTransitionItem **stackHitTransTop,
+        u32 *stackHitTransCnt)
+{
+
+    while(firstChild != NULL) {
+        if(!isHitTransitionVisited(*hitTransitionht, firstChild)
+           /* && firstChild->seqNo <= maxseq */) {
+            stackHitTransPush(firstChild, stackHitTransTop, stackHitTransCnt);
+            markVisitHitTransition(hitTransitionht, firstChild);
+        }
+        firstChild = firstChild->next;
+    }
+}
+
+static bool
+isHitTransitionVisited(
+        HitTransitionHashTable *hitTransitionht,
+        HitTransition *hitTransition)
+{
+	if(hitTransition == NULL)
+		return false;
+
+	HitTransitionHashTable *found = NULL;
+
+	found = findInHitTransitionHT(hitTransitionht, hitTransition);
+	if(found != NULL)
+		return true;
+	else
+		return false;
+}
+
+static void
+markVisitHitTransition(
+        HitTransitionHashTable **hitTransitionht,
+        HitTransition *hitTransition)
+{
+	if (hitTransitionht == NULL || hitTransition == NULL)
+		return;
+
+	add2HitTransitionHT(hitTransitionht, hitTransition);
 }

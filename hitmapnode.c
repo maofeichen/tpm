@@ -73,6 +73,15 @@ createHitMapNode(
     return h;
 }
 
+int
+compareHitMapHTItem(HitMapBufNodePtr2NodeHashTable *l, HitMapBufNodePtr2NodeHashTable *r)
+{
+    if(l->toHitMapNode->addr < r->toHitMapNode->addr) { return -1;}
+    else if(l->toHitMapNode->addr == r->toHitMapNode->addr ) { return 0; }
+    else { return 1; }
+}
+
+
 bool
 isHitMapNodeExist(TPMNode2 *node, HitMapContext *hitMap)
 {
@@ -82,6 +91,12 @@ isHitMapNodeExist(TPMNode2 *node, HitMapContext *hitMap)
         return false;
     else
         return true;
+}
+
+void
+sortHitMapHashTable(HitMapBufNodePtr2NodeHashTable **hitMapHT)
+{
+    HASH_SRT(hh_hitMapBufNode2NodeHT, *hitMapHT, compareHitMapHTItem);
 }
 
 

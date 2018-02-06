@@ -73,10 +73,16 @@ createHitMapNode(
         u32 bytesz,
         int lastUpdateTS);
 
+int
+compareHitMapHTItem(HitMapBufNodePtr2NodeHashTable *l, HitMapBufNodePtr2NodeHashTable *r);
+
 // TODO: delHitMapNode
 
 bool
 isHitMapNodeExist(TPMNode2 *node, HitMapContext *hitMap);
+
+void
+sortHitMapHashTable(HitMapBufNodePtr2NodeHashTable **hitMapHT);
 
 void
 createHitMapRecord(

@@ -5,4 +5,11 @@
 
 void 
 printTime();
+
+void
+printTimeMicroStart();
+
+void
+printTimeMicroEnd();
+
 #endif
