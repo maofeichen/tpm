@@ -19,6 +19,7 @@ struct TPMNode1		// for temp, register addresses
     u32 val;        
     int lastUpdateTS;	// the TS (seq#) of last update of the node
     struct Transition *firstChild;  // points to structure that points to the first child
+    char hasVisit;  // determines if the node had been visited during building HitMap
 };
 typedef struct TPMNode1 TPMNode1;
 
@@ -29,6 +30,7 @@ struct TPMNode2		// for memory address
     u32 val;
     int lastUpdateTS;	// the TS (seq#) of last update of the node
     struct Transition *firstChild;  // points to structure that points to the first child
+    char hasVisit;  // determines if the node had been visited during building HitMap
     /* the following fields are only for TPMNode for memory */
     u32 bytesz;                   // byte sz
     struct TPMNode2 *leftNBR;	  // point to node of adjacent, smaller memory address

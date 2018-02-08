@@ -364,7 +364,7 @@ searchAvalancheInOutBuf(TPMContext *tpm, AvalancheSearchCtxt *avalsctxt, Propaga
                 propaStat->totalstep, propaStat->numOfSearch);
     }
 
-	printTime();
+	printTime("");
 #ifdef DEBUG
 	printDstMemNodesHTTotal(avalsctxt->addr2Node);
 	printDstMemNodesHT(avalsctxt->addr2Node);
@@ -701,7 +701,7 @@ detectAvalancheInOutBufFast(TPMContext *tpm, AvalancheSearchCtxt *avalsctxt)
 		        if(srcnode->node->hitcnt >= avalsctxt->minBufferSz){    // only considers nodes satisfy min buf sz
 		            printf("--------------------%d detect avalanche\n", detectcnt);
 		            printf("begin node:addr:%x version:%u\n", srcnode->node->addr, srcnode->node->version);
-		            printTime();
+		            printTime("");
 	                detectAvalancheOfSourceFast(avalsctxt, srcnode, addridx+1, &addrIdxInterval);
 	                // goto OUTLOOP;
 
