@@ -786,7 +786,8 @@ storeAllUnvisitChildren_NoMark(
 
      while(firstChild != NULL) {
         if(!isTransitionVisited(*transitionht, firstChild)
-           && firstChild->seqNo <= maxseq) {
+           && firstChild->seqNo <= maxseq
+           && firstChild->child->tpmnode1.hasVisit == 0 ) {    // A bug in propagate
             // transStackPush(firstChild);
             stackTransPush(firstChild, dfsLevel, stackTransTop, stackTransCnt);
             // markVisitTransition(transitionht, firstChild);
@@ -977,11 +978,12 @@ dfs2HitMapNode_PopWhenNoChildren(
         if(isTransitionVisited(markVisitTransHT, topTrans) ) {
             stackTransPop(&transLvl, &stackTransTop, &stackTransCnt);
             // stackTransDisplay(stackTransTop, stackTransCnt);
-
             popBufNode(dstNode, &stackBufNodePathTop, &stackBufNodePathCnt);
         }
         else {
             markVisitTransition(&markVisitTransHT, topTrans);
+            if(dstNode->tpmnode1.hasVisit == 0)
+                dstNode->tpmnode1.hasVisit = 1;
 
             if(dstNode->tpmnode1.type == TPM_Type_Memory && isValidBufNode((TPMNode2 *)dstNode) ) {
                 // printf("----------src hitmap node:\n");
