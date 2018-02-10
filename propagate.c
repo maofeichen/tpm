@@ -975,7 +975,7 @@ dfs2HitMapNode_PopWhenNoChildren(
         TPMNode *dstNode = getTransitionDst(topTrans);
         u32 transLvl;   // Not used
 
-        if(isTransitionVisited(markVisitTransHT, topTrans) ) {
+        if(isTransitionVisited(markVisitTransHT, topTrans) ) {  // if the memory node had been visited
             stackTransPop(&transLvl, &stackTransTop, &stackTransCnt);
             // stackTransDisplay(stackTransTop, stackTransCnt);
             popBufNode(dstNode, &stackBufNodePathTop, &stackBufNodePathCnt);

@@ -42,15 +42,22 @@ typedef struct HitTransition HitTransition;
 
 typedef struct HitMapBufNodePtr2NodeHashTable
 {
-    // u32 addr;                   // key: addr of in each node in hitmap
+    // u32 addr;                // key: addr of in each node in hitmap
     TPMNode2 *srcnode;          // key: pointers of TPMNode2
     HitMapNode *toHitMapNode;   // val: pointes to first version of node in HitMap
     UT_hash_handle hh_hitMapBufNode2NodeHT;
 } HitMapBufNodePtr2NodeHashTable;  // stores nodes that has correspond hitmap node in the hitmap
 
+typedef struct IntrtmdtNode2HitMapNodeHashTalbe
+{
+    TPMNode1 *srcnode;          // key: pointer of TPMNode2
+    HitMapNode *toHitMapNode;    // val: pointer to the particular HitMap Node
+    UT_hash_handle hh_intrtmdtNode2HitMapNodeHT;
+} IntrtmdtNode2HitMapNodeHashTalbe;
+
 typedef struct BufContext
 {
-    u32 numOfAddr;  // num of addr of the buffer
+    u32 numOfAddr;          // num of addr of the buffer
     HitMapNode **addrArray; // addr array of the buffer,
                             // each points to the earliest version node in the hitmap
 } BufContext;
