@@ -58,6 +58,7 @@ initHitMap(TPMContext *tpm)
     assert(hitMap != NULL);
 
     hitMap->hitMapNodeHT = NULL;
+    hitMap->intrtmdt2HitMapNodeHT = NULL;
     hitMap->maxBufSeqN = getTPMBufMaxSeqN(tpmBuf);
     hitMap->numOfBuf = numOfBuf;
     hitMap->bufArray = calloc(1, sizeof(BufContext *) * numOfBuf);

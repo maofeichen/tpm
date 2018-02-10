@@ -28,7 +28,13 @@ typedef struct StckMemnode
 {   u32 level;
     TPMNode2 *memnode;
     struct StckMemnode *next;
-} StckMemnode;
+} StckMemnode;  // stores buf nodes during dfs search of building HitMap
+
+typedef struct StackTPMNode
+{
+    TPMNode *node;   // Can be either memory or reg/temp node
+    struct StackTPMNode *next;
+} StackTPMNode;
 
 /* HitMap node */
 typedef struct HitTransitionHashTable

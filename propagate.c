@@ -61,7 +61,7 @@ isStackTransEmpty(StackTransitionNode *stackTransTop);
 static void
 printTransitionNode(StackTransitionNode *transNode);
 
-/* IGNORE! stack of memory nodes during dfsfast */
+/* stack of memory nodes during dfsfast */
 static void
 stckMemnodePush(TPMNode2 *memnode, u32 level, StckMemnode **stckMemnodeTop, u32 *stckMemnodeCnt);
 
@@ -160,6 +160,28 @@ popBufNode(
         TPMNode *dstNode,
         StckMemnode **stackBufNodePathTop,
         u32 *stackBufNodePathCnt);
+
+/* TPM node stack operation
+ *  used as in building HitMap with intermediate nodes, the tpm nodes can be
+ *  either memory or reg/temp node
+ */
+static void
+tpmNodePush(
+        TPMNode *node,
+        StackTPMNode **stackTPMNodeTop,
+        u32 *stackTPMNodeCnt);
+
+static TPMNode *
+tpmNodePop(StackTPMNode **stackTPMNodeTop, u32 *stackTPMNodeCnt);
+
+static void
+printTPMNodeStack(StackTPMNode *stackTPMNodeTop, u32 stackTPMNodeCnt);
+
+static void
+tpmNodePopAll(StackTPMNode **stackTPMNodeTop, u32 *stackTPMNodeCnt);
+
+static bool
+isTPMNodeStackEmpty(StackTPMNode *stackTPMNodeTop);
 
 /* HitMap node propagate */
 static int
@@ -1029,6 +1051,72 @@ popBufNode(
        }
     }
 }
+
+/* TPMNode stack operations */
+static void
+tpmNodePush(
+        TPMNode *node,
+        StackTPMNode **stackTPMNodeTop,
+        u32 *stackTPMNodeCnt)
+{
+    StackTPMNode *n = calloc(1, sizeof(StackTPMNode) );
+    assert(n != NULL);
+
+    n->node = node;
+    n->next = *stackTPMNodeTop;
+    *stackTPMNodeTop = n;
+    (*stackTPMNodeCnt)++;
+}
+
+static TPMNode *
+tpmNodePop(StackTPMNode **stackTPMNodeTop, u32 *stackTPMNodeCnt)
+{
+    StackTPMNode *toDel;
+    TPMNode *node = NULL;
+
+    if(*stackTPMNodeTop != NULL) {
+        toDel = *stackTPMNodeTop;
+        *stackTPMNodeTop = toDel->next;
+        node = toDel->node;
+
+        free(toDel);
+        (*stackTPMNodeCnt)++;
+    }
+    return node;
+}
+
+static void
+printTPMNodeStack(StackTPMNode *stackTPMNodeTop, u32 stackTPMNodeCnt)
+{
+    if(stackTPMNodeCnt > 0)
+        printf("---------------\ntotal TPM stack nodes:%u\n", stackTPMNodeCnt);
+
+    while(stackTPMNodeTop != NULL) {
+        TPMNode *node = stackTPMNodeTop->node;
+        if(node->tpmnode1.type == TPM_Type_Memory)
+            printMemNodeLit((TPMNode2 *)node);
+        else
+            printNonmemNode((TPMNode1 *)node);
+    }
+}
+
+static void
+tpmNodePopAll(StackTPMNode **stackTPMNodeTop, u32 *stackTPMNodeCnt)
+{
+    while(*stackTPMNodeTop != NULL) {
+        tpmNodePop(stackTPMNodeTop, stackTPMNodeCnt);
+    }
+}
+
+static bool
+isTPMNodeStackEmpty(StackTPMNode *stackTPMNodeTop)
+{
+    if(stackTPMNodeTop != NULL)
+        return false;
+    else
+        return true;
+}
+
 
 /* HitMap node propagate */
 static int

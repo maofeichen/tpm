@@ -65,7 +65,8 @@ typedef struct BufContext
 typedef struct HitMapContext
 {
     TPMBufHashTable *tpmBuf;// points to TPMBuf
-    HitMapBufNodePtr2NodeHashTable *hitMapNodeHT;  // hash table head
+    HitMapBufNodePtr2NodeHashTable *hitMapNodeHT; // hash table head
+    IntrtmdtNode2HitMapNodeHashTalbe *intrtmdt2HitMapNodeHT;
     u32 maxBufSeqN;         // max seqN of all buffers in TPM
     u32 numOfBuf;           // num of buffers in TPM
     BufContext **bufArray;  // buf array, each points to a buffer context
