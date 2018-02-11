@@ -1097,6 +1097,8 @@ printTPMNodeStack(StackTPMNode *stackTPMNodeTop, u32 stackTPMNodeCnt)
             printMemNodeLit((TPMNode2 *)node);
         else
             printNonmemNode((TPMNode1 *)node);
+
+        stackTPMNodeTop = stackTPMNodeTop->next;
     }
 }
 
