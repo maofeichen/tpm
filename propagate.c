@@ -168,6 +168,9 @@ dfsBuildHitMap_intermediateNode(
         TPMNode2 *srcnode,
         HitMapContext *hitMapCtxt);
 
+static bool
+isLeafTransition(Transition *trans);
+
 /* TPM node stack operation
  *  used as in building HitMap with intermediate nodes, the tpm nodes can be
  *  either memory or reg/temp node
@@ -878,12 +881,12 @@ dfs2HitMapNode(
 
         TPMNode *dstnode = getTransitionDst(popTrans);
         if(dstnode->tpmnode1.type == TPM_Type_Memory && isValidBufNode((TPMNode2 *)dstnode) ) {
-            printf("--------------------\ndfs depth level:%u\n", transLvl);
+            // printf("--------------------\ndfs depth level:%u\n", transLvl);
             printMemNodeLit((TPMNode2 *)dstnode);
             // printMemNode((TPMNode2 *)dstnode);
 
             storeDFSBufNodeVisitPath((TPMNode2 *)dstnode, transLvl, &stackBufNodePathTop, &stackBufNodePathCnt);
-            stckMemnodeDisplay(stackBufNodePathTop, stackBufNodePathCnt);
+            // stckMemnodeDisplay(stackBufNodePathTop, stackBufNodePathCnt);
 
         }
         else {
@@ -927,10 +930,10 @@ storeDFSBufNodeVisitPath(
     if(*stackBufNodePathTop != NULL) {
         u32 nodeLvl = (*stackBufNodePathTop)->level;
         if(nodeLvl < lvl) {
-            printf("----------src hitmap node:\n");
-            printMemNodeLit((*stackBufNodePathTop)->memnode);
-            printf("dst hitmap node:\n");
-            printMemNodeLit(node);
+            // printf("----------src hitmap node:\n");
+            // printMemNodeLit((*stackBufNodePathTop)->memnode);
+            // printf("dst hitmap node:\n");
+            // printMemNodeLit(node);
 
             // createHitMapRecord((*stackBufNodePathTop)->memnode, (*stackBufNodePathTop)->level, node, lvl);
             stckMemnodePush(node, lvl, stackBufNodePathTop, stackBufNodePathCnt);
@@ -940,10 +943,10 @@ storeDFSBufNodeVisitPath(
                 stckMemnodePop(&nodeLvl, stackBufNodePathTop, stackBufNodePathCnt);
             }
 
-            printf("----------src hitmap node:\n");
-            printMemNodeLit((*stackBufNodePathTop)->memnode);
-            printf("dst hitmap node:\n");
-            printMemNodeLit(node);
+            // printf("----------src hitmap node:\n");
+            // printMemNodeLit((*stackBufNodePathTop)->memnode);
+            // printf("dst hitmap node:\n");
+            // printMemNodeLit(node);
 
             // createHitMapRecord((*stackBufNodePathTop)->memnode, (*stackBufNodePathTop)->level, node, lvl);
             stckMemnodePush(node, lvl, stackBufNodePathTop, stackBufNodePathCnt);
@@ -1003,7 +1006,7 @@ dfs2HitMapNode_PopWhenNoChildren(
         TPMNode *dstNode = getTransitionDst(topTrans);
         u32 transLvl;   // Not used
 
-        if(isTransitionVisited(markVisitTransHT, topTrans) ) {  // if the memory node had been visited
+        if(isTransitionVisited(markVisitTransHT, topTrans) ) {  // if the transition had been visited
             stackTransPop(&transLvl, &stackTransTop, &stackTransCnt);
             // stackTransDisplay(stackTransTop, stackTransCnt);
             popBufNode(dstNode, &stackBufNodePathTop, &stackBufNodePathCnt);
@@ -1094,6 +1097,57 @@ dfsBuildHitMap_intermediateNode(
 
     storeAllUnvisitChildren_NoMark(&HT_visitedTrans, srcTrans, hitMapCtxt->maxBufSeqN, &stackTransTop, &stackTransCnt, 0);
     // stackTransDisplay(stackTransTop, stackTransCnt);
+
+    while(!isStackTransEmpty(stackTransTop) ) {
+        u32 transLvl;   // Not used, only for method interface
+        Transition *topTrans = stackTransTop->transition;
+        TPMNode *child = topTrans->child;
+
+        // if(child->tpmnode1.type == TPM_Type_Memory)
+            // printMemNodeLit((TPMNode2 *)child);
+
+
+        if(isTransitionVisited(HT_visitedTrans, topTrans) ) {  // if the transition had been visited
+            // if(child->tpmnode1.type == TPM_Type_Memory)
+            //     printMemNodeLit((TPMNode2 *)child);
+
+            stackTransPop(&transLvl, &stackTransTop, &stackTransCnt);
+            // stackTransDisplay(stackTransTop, stackTransCnt);
+            // TODO: TPMNode
+        }
+        else {  // if the transition hasn't been visited
+            if(isLeafTransition(topTrans) ) {
+                if(child->tpmnode1.type == TPM_Type_Memory)
+                    printMemNodeLit((TPMNode2 *)child);
+
+                stackTransPop(&transLvl, &stackTransTop, &stackTransCnt);
+                // stackTransDisplay(stackTransTop, stackTransCnt);
+                // TODO: TPMNode
+            }
+            else {
+                if(child->tpmnode1.type == TPM_Type_Memory)
+                    printMemNodeLit((TPMNode2 *)child);
+
+                storeAllUnvisitChildren_NoMark(&HT_visitedTrans, child->tpmnode1.firstChild,
+                        hitMapCtxt->maxBufSeqN, &stackTransTop, &stackTransCnt, 0);
+                markVisitTransition(&HT_visitedTrans, topTrans);
+            }
+        }
+    }
+    delTransitionHT(&HT_visitedTrans);
+    stackTransPopAll(&stackTransTop, &stackTransCnt);
+
+    return 0;
+}
+
+static bool
+isLeafTransition(Transition *trans)
+{
+    TPMNode *child = trans->child;
+    if(child->tpmnode1.firstChild == NULL)
+        return true;
+    else
+        return false;
 }
 
 /* TPMNode stack operations */
