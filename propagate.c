@@ -161,6 +161,13 @@ popBufNode(
         StckMemnode **stackBufNodePathTop,
         u32 *stackBufNodePathCnt);
 
+/* dfs search to build HitMap with intermediate node */
+static int
+dfsBuildHitMap_intermediateNode(
+        TPMContext *tpm,
+        TPMNode2 *srcnode,
+        HitMapContext *hitMapCtxt);
+
 /* TPM node stack operation
  *  used as in building HitMap with intermediate nodes, the tpm nodes can be
  *  either memory or reg/temp node
@@ -295,7 +302,8 @@ bufnodePropgt2HitMapNode(
         HitMapContext *hitMapCtxt)
 {
     // return dfs2HitMapNode(tpm, srcnode, hitMapCtxt);
-    return dfs2HitMapNode_PopWhenNoChildren(tpm, srcnode, hitMapCtxt);
+    // return dfs2HitMapNode_PopWhenNoChildren(tpm, srcnode, hitMapCtxt);
+    return dfsBuildHitMap_intermediateNode(tpm, srcnode, hitMapCtxt);
 }
 
 int
@@ -802,17 +810,15 @@ storeAllUnvisitChildren_NoMark(
         StackTransitionNode **stackTransTop,
         u32 *stackTransCnt,
         u32 dfsLevel)
+// Push all the transition children into the transition stack, but don't mark them as visited yet
 {
     // printf("maxSeqN:%d\n", maxseq);
     // printTransAllChildren(firstChild);
-
      while(firstChild != NULL) {
-        if(!isTransitionVisited(*transitionht, firstChild)
+        if(!isTransitionVisited(*transitionht, firstChild)  // only push non visit node (dfs routine)
            && firstChild->seqNo <= maxseq
-           && firstChild->child->tpmnode1.hasVisit == 0 ) {    // A bug in propagate
-            // transStackPush(firstChild);
+           && firstChild->child->tpmnode1.hasVisit == 0 ) { // A bug in propagate
             stackTransPush(firstChild, dfsLevel, stackTransTop, stackTransCnt);
-            // markVisitTransition(transitionht, firstChild);
         }
         firstChild = firstChild->next;
     }
@@ -1050,6 +1056,44 @@ popBufNode(
            stckMemnodePop(&transLvl, stackBufNodePathTop, stackBufNodePathCnt);
        }
     }
+}
+
+static int
+dfsBuildHitMap_intermediateNode(
+        TPMContext *tpm,
+        TPMNode2 *srcnode,
+        HitMapContext *hitMapCtxt)
+{
+    if(tpm == NULL || srcnode == NULL || hitMapCtxt == NULL) {
+        fprintf(stderr, "dfsBuildHitMap_intermediateNode: tpm:%p srcnode:%p hitMap:%p\n", tpm, srcnode, hitMapCtxt);
+        return -1;
+    }
+
+    if(isHitMapNodeExist(srcnode, hitMapCtxt) ) // if the srcnode had already been searched
+        return 0;                               // no need to search again
+
+    TransitionHashTable *HT_visitedTrans = NULL; // used to mark nodes had been visited during dfs (dfs routine)
+
+    StackTransitionNode *stackTransTop = NULL;  // used to store transitions during dfs (routine)
+    u32 stackTransCnt = 0;
+
+    StackTPMNode *stackTPMNodePathTop = NULL;    // used to store path node during dfs (for building HitMap)
+    u32 stackTPMNodePathCnt = 0;
+
+    Transition *srcTrans = srcnode->firstChild;
+    if(srcTrans == NULL) {
+        printf("dfs2HitMapNode: given source node is a leaf\n");
+        printMemNode(srcnode);
+        return 0;
+    }
+    printf("---------------\ndfsBuildHitMap_intermediateNode source:%p\n", srcnode);
+    printMemNode(srcnode);
+
+    tpmNodePush((TPMNode *)srcnode, &stackTPMNodePathTop, &stackTPMNodePathCnt);
+    printTPMNodeStack(stackTPMNodePathTop, stackTPMNodePathCnt);
+
+    storeAllUnvisitChildren_NoMark(&HT_visitedTrans, srcTrans, hitMapCtxt->maxBufSeqN, &stackTransTop, &stackTransCnt, 0);
+    // stackTransDisplay(stackTransTop, stackTransCnt);
 }
 
 /* TPMNode stack operations */
