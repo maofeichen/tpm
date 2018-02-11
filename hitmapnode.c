@@ -55,7 +55,8 @@ createHitMapNode(
         u32 version,
         u32 val,
         u32 bytesz,
-        int lastUpdateTS)
+        int lastUpdateTS,
+        u32 type)
 {
     HitMapNode *h = calloc(1, sizeof(HitMapNode));
     assert(h != NULL);
@@ -70,6 +71,7 @@ createHitMapNode(
     h->rightNBR = NULL;
     h->nextVersion = h; // points to itsefl
     h->hitcnt = 0;
+    h->type = type;
     return h;
 }
 
@@ -183,7 +185,7 @@ createHitMapRecordNode(TPMNode2 *node, HitMapContext *hitMap)
     // is in HitMap hash table?
     HASH_FIND(hh_hitMapBufNode2NodeHT, hitMap->hitMapNodeHT, &node, 4, find);
     if(find == NULL) {
-        HMNode = createHitMapNode(node->bufid, node->addr, node->version, node->val, node->bytesz, node->lastUpdateTS);
+        HMNode = createHitMapNode(node->bufid, node->addr, node->version, node->val, node->bytesz, node->lastUpdateTS, node->type);
 
         updateHitMapHashTable(node, HMNode, hitMap);
         updateHMNodeVersion(HMNode, hitMap);

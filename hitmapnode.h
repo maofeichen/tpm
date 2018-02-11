@@ -80,7 +80,8 @@ createHitMapNode(
         u32 version,
         u32 val,
         u32 bytesz,
-        int lastUpdateTS);
+        int lastUpdateTS,
+        u32 type);
 
 int
 compareHitMapHTItem(HitMapBufNodePtr2NodeHashTable *l, HitMapBufNodePtr2NodeHashTable *r);
