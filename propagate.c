@@ -1130,8 +1130,12 @@ dfsBuildHitMap_intermediateNode(
         else {  // if the transition hasn't been visited, examine the top of transiton stack
             // if(child->tpmnode1.type == TPM_Type_Memory)
             //     printMemNodeLit((TPMNode2 *)child);
+            if(child->tpmnode1.hasVisit == 0)
+                child->tpmnode1.hasVisit = 1;
+
             markVisitTransition(&HT_visitedTrans, topTrans); // mark the transtition as visited
                                                              // even it could be a leaf
+
             tpmNodePush(child, &stackTPMNodePathTop, &stackTPMNodePathCnt); // push the TPMNode to stack, as path
             // printTPMNodeStack(stackTPMNodePathTop, stackTPMNodePathCnt);
 
