@@ -7,9 +7,18 @@
 static HitMapNode *
 createHitMapRecordNode(TPMNode2 *node, HitMapContext *hitMap);
 
+static HitMapNode *
+createHitMapRecordNodeIntermediate(TPMNode1 *node, HitMapContext *hitMap);
+
 static void
 updateHitMapHashTable(
         TPMNode2 *node,
+        HitMapNode *hmNode,
+        HitMapContext *hitMap);
+
+static void
+updateHitMapHashTableIntermediate(
+        TPMNode1 *node,
         HitMapNode *hmNode,
         HitMapContext *hitMap);
 
@@ -134,6 +143,37 @@ createHitMapRecord(
     // printHitMapTransition(t);
 }
 
+void
+createHitMapRecord_IntrmdtNode(
+        TPMNode *src,
+        TPMNode *dst,
+        HitMapContext *hitMapCtxt)
+{
+    HitMapNode *srcHMNode, *dstHMNode;
+    HitTransition *ht;
+
+    printf("---------------\nHitMapRecord with Intermediate\nsrc:\n");
+    printNode(src);
+    printf("dst:\n");
+    printNode(dst);
+
+    if(src->tpmnode1.type == TPM_Type_Memory) {
+        srcHMNode = createHitMapRecordNode((TPMNode2 *)src, hitMapCtxt);
+    }
+    else {
+        srcHMNode = createHitMapRecordNodeIntermediate((TPMNode1 *)src, hitMapCtxt);
+    }
+
+    if(dst->tpmnode1.type == TPM_Type_Memory) {
+        dstHMNode = createHitMapRecordNode((TPMNode2 *)dst, hitMapCtxt);
+    }
+    else {
+        dstHMNode = createHitMapRecordNodeIntermediate((TPMNode1 *)dst, hitMapCtxt);
+    }
+
+    ht = createHitTransition(0, 0, dstHMNode);
+    attachHitTransition(srcHMNode, ht);
+}
 
 HitTransition *
 createHitTransition(
@@ -163,6 +203,19 @@ createHitMapBufNode2NodeHT(TPMNode2 *srcnode, HitMapNode *hitMapNode)
     return h;
 }
 
+IntrtmdtNode2HitMapNodeHashTalbe *
+createIntermediateHitMapNode2HT(TPMNode1 *srcnode, HitMapNode *hitMapNode)
+{
+    IntrtmdtNode2HitMapNodeHashTalbe *i;
+    i = calloc(1, sizeof(IntrtmdtNode2HitMapNodeHashTalbe) );
+    assert(i != NULL);
+
+    i->srcnode = srcnode;
+    i->toHitMapNode = hitMapNode;
+    return i;
+}
+
+
 static HitMapNode *
 //  1  detects if node exists in HitMap
 //      a) yes, return pointer
@@ -181,7 +234,6 @@ createHitMapRecordNode(TPMNode2 *node, HitMapContext *hitMap)
         return NULL;
     }
 
-
     // is in HitMap hash table?
     HASH_FIND(hh_hitMapBufNode2NodeHT, hitMap->hitMapNodeHT, &node, 4, find);
     if(find == NULL) {
@@ -199,6 +251,29 @@ createHitMapRecordNode(TPMNode2 *node, HitMapContext *hitMap)
     }
 }
 
+static HitMapNode *
+createHitMapRecordNodeIntermediate(TPMNode1 *node, HitMapContext *hitMap)
+{
+    HitMapNode *HMNode;
+    IntrtmdtNode2HitMapNodeHashTalbe *find, *htItem;
+
+    if(node == NULL || hitMap == NULL) {
+        fprintf(stderr, "createHitMapNodeNonMemory:node:%p hitMap:%p\n", node, hitMap);
+        return NULL;
+    }
+
+    HASH_FIND(hh_intrtmdtNode2HitMapNodeHT, hitMap->intrtmdt2HitMapNodeHT, &node, 4, find);
+    if(find == NULL) {
+        HMNode = createHitMapNode(0, node->addr, 0, node->val, 0, node->lastUpdateTS, node->type);
+        updateHitMapHashTableIntermediate(node, HMNode, hitMap);
+        return HMNode;
+    }
+    else {
+        return find->toHitMapNode;
+    }
+}
+
+
 static void
 updateHitMapHashTable(
         TPMNode2 *node,
@@ -214,6 +289,23 @@ updateHitMapHashTable(
     htItem = createHitMapBufNode2NodeHT(node, hmNode);
     HASH_ADD(hh_hitMapBufNode2NodeHT, hitMap->hitMapNodeHT, srcnode, 4, htItem);
 }
+
+static void
+updateHitMapHashTableIntermediate(
+        TPMNode1 *node,
+        HitMapNode *hmNode,
+        HitMapContext *hitMap)
+{
+     if(node == NULL || hmNode == NULL || hitMap == NULL){
+        fprintf(stderr, "update HitMap Hash Table: node:%p hmNode:%p HitMap:%p",
+                node, hmNode, hitMap);
+        return;
+    }
+    IntrtmdtNode2HitMapNodeHashTalbe *htItem;
+    htItem = createIntermediateHitMapNode2HT(node, hmNode);
+    HASH_ADD(hh_intrtmdtNode2HitMapNodeHT, hitMap->intrtmdt2HitMapNodeHT, srcnode, 4, htItem);
+}
+
 
 static void
 updateHMNodeVersion(HitMapNode *hmNode, HitMapContext *hitMap)
@@ -258,7 +350,7 @@ updateHitMapArray(HitMapNode *hmNode, HitMapContext *hitMap)
         return;
     }
 
-    bufAryIdx = getBufArrayIdx(hmNode->bufId);;
+    bufAryIdx = getBufArrayIdx(hmNode->bufId);
     addr = hmNode->addr;
     addrIdx = getTPMBufAddrIdx(hmNode->bufId, addr, hitMap->tpmBuf);
 

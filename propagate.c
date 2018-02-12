@@ -171,6 +171,20 @@ dfsBuildHitMap_intermediateNode(
 static bool
 isLeafTransition(Transition *trans);
 
+static void
+processIntermediateTrans(
+        TPMNode *leafChild,
+        StackTPMNode *stackTPMNodePathTop,
+        u32 stackTPMNodePathCnt,
+        HitMapContext *hitMapCtxt);
+
+static void
+processLeafTrans(
+        TPMNode *leafChild,
+        StackTPMNode *stackTPMNodePathTop,
+        u32 stackTPMNodePathCnt,
+        HitMapContext *hitMapCtxt);
+
 /* TPM node stack operation
  *  used as in building HitMap with intermediate nodes, the tpm nodes can be
  *  either memory or reg/temp node
@@ -1103,30 +1117,31 @@ dfsBuildHitMap_intermediateNode(
         Transition *topTrans = stackTransTop->transition;
         TPMNode *child = topTrans->child;
 
-
         if(isTransitionVisited(HT_visitedTrans, topTrans) ) {  // if the transition had been examined and
                                                                // has children been pushed to transtiion stack
             assert(child == stackTPMNodePathTop->node);
+            processIntermediateTrans(child, stackTPMNodePathTop, stackTPMNodePathCnt, hitMapCtxt);
+
             tpmNodePop(&stackTPMNodePathTop, &stackTPMNodePathCnt); // pop the TPMNode stack accordingly
             // printTPMNodeStack(stackTPMNodePathTop, stackTPMNodePathCnt);
-
             stackTransPop(&transLvl, &stackTransTop, &stackTransCnt);
             // stackTransDisplay(stackTransTop, stackTransCnt);
         }
         else {  // if the transition hasn't been visited, examine the top of transiton stack
-            if(child->tpmnode1.type == TPM_Type_Memory)
-                printMemNodeLit((TPMNode2 *)child);
-
+            // if(child->tpmnode1.type == TPM_Type_Memory)
+            //     printMemNodeLit((TPMNode2 *)child);
             markVisitTransition(&HT_visitedTrans, topTrans); // mark the transtition as visited
                                                              // even it could be a leaf
             tpmNodePush(child, &stackTPMNodePathTop, &stackTPMNodePathCnt); // push the TPMNode to stack, as path
             // printTPMNodeStack(stackTPMNodePathTop, stackTPMNodePathCnt);
 
             if(isLeafTransition(topTrans) ) {
-                assert(child == stackTPMNodePathTop->node);
+                assert(child == stackTPMNodePathTop->node); // the top of TPMNode stack and the top of transtion
+                                                            // stack point to the same node
+                processLeafTrans(child, stackTPMNodePathTop, stackTPMNodePathCnt, hitMapCtxt);
+
                 tpmNodePop(&stackTPMNodePathTop, &stackTPMNodePathCnt); // pop the TPMNode stack accordingly
                 // printTPMNodeStack(stackTPMNodePathTop, stackTPMNodePathCnt);
-
                 stackTransPop(&transLvl, &stackTransTop, &stackTransCnt);
                 // stackTransDisplay(stackTransTop, stackTransCnt);
             }
@@ -1151,6 +1166,49 @@ isLeafTransition(Transition *trans)
         return true;
     else
         return false;
+}
+
+static void
+processIntermediateTrans(
+        TPMNode *leafChild,
+        StackTPMNode *stackTPMNodePathTop,
+        u32 stackTPMNodePathCnt,
+        HitMapContext *hitMapCtxt)
+{
+    if((leafChild->tpmnode1.type == TPM_Type_Memory
+        && leafChild->tpmnode2.bufid > 0)
+       || stackTPMNodePathTop->flagCreateHM == 1) { // if it's a memory node child or it belongs to path to a memory node
+        stackTPMNodePathTop->flagCreateHM = 1;
+        if(stackTPMNodePathCnt > 1)
+        {
+            stackTPMNodePathTop->next->flagCreateHM = 1;
+
+            TPMNode *src = stackTPMNodePathTop->next->node;
+            TPMNode *dst = stackTPMNodePathTop->node;
+            createHitMapRecord_IntrmdtNode(src, dst, hitMapCtxt);
+        }
+    }
+}
+
+static void
+processLeafTrans(
+        TPMNode *leafChild,
+        StackTPMNode *stackTPMNodePathTop,
+        u32 stackTPMNodePathCnt,
+        HitMapContext *hitMapCtxt)
+{
+    if(leafChild->tpmnode1.type == TPM_Type_Memory
+       && leafChild->tpmnode2.bufid > 0) { // if the leaf transition child is a memory node,
+                                           // need to create HitMap nodes
+        stackTPMNodePathTop->flagCreateHM = 1;
+
+        if(stackTPMNodePathCnt > 1) {
+            stackTPMNodePathTop->next->flagCreateHM = 1; // set last second item in TPMNode stack as true
+            TPMNode *dst = stackTPMNodePathTop->node;
+            TPMNode *src = stackTPMNodePathTop->next->node;
+            createHitMapRecord_IntrmdtNode(src, dst, hitMapCtxt);
+        }
+    }
 }
 
 /* TPMNode stack operations */

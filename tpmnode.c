@@ -135,7 +135,7 @@ printNode(TPMNode *tpmnode)
 {
     if(tpmnode != NULL) {
         if(tpmnode->tpmnode1.type == TPM_Type_Memory) {
-            printMemNode(&(tpmnode->tpmnode2) );
+            printMemNodeLit(&(tpmnode->tpmnode2) );
         }
         else {
             printNonmemNode(&(tpmnode->tpmnode1) );

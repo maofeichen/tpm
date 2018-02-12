@@ -102,6 +102,12 @@ createHitMapRecord(
         u32 dstLvl,
         HitMapContext *hitMapCtxt);
 
+void
+createHitMapRecord_IntrmdtNode(
+        TPMNode *src,
+        TPMNode *dst,
+        HitMapContext *hitMapCtxt);
+
 HitTransition *
 createHitTransition(
         u32 minSeqN,
@@ -110,6 +116,9 @@ createHitTransition(
 
 HitMapBufNodePtr2NodeHashTable *
 createHitMapBufNode2NodeHT(TPMNode2 *srcnode, HitMapNode *hitMapNode);
+
+IntrtmdtNode2HitMapNodeHashTalbe *
+createIntermediateHitMapNode2HT(TPMNode1 *srcnode, HitMapNode *hitMapNode);
 
 void
 printHitMapNode(HitMapNode *node);
