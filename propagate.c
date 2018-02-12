@@ -1103,39 +1103,42 @@ dfsBuildHitMap_intermediateNode(
         Transition *topTrans = stackTransTop->transition;
         TPMNode *child = topTrans->child;
 
-        // if(child->tpmnode1.type == TPM_Type_Memory)
-            // printMemNodeLit((TPMNode2 *)child);
 
-
-        if(isTransitionVisited(HT_visitedTrans, topTrans) ) {  // if the transition had been visited
-            // if(child->tpmnode1.type == TPM_Type_Memory)
-            //     printMemNodeLit((TPMNode2 *)child);
+        if(isTransitionVisited(HT_visitedTrans, topTrans) ) {  // if the transition had been examined and
+                                                               // has children been pushed to transtiion stack
+            assert(child == stackTPMNodePathTop->node);
+            tpmNodePop(&stackTPMNodePathTop, &stackTPMNodePathCnt); // pop the TPMNode stack accordingly
+            // printTPMNodeStack(stackTPMNodePathTop, stackTPMNodePathCnt);
 
             stackTransPop(&transLvl, &stackTransTop, &stackTransCnt);
             // stackTransDisplay(stackTransTop, stackTransCnt);
-            // TODO: TPMNode
         }
-        else {  // if the transition hasn't been visited
+        else {  // if the transition hasn't been visited, examine the top of transiton stack
+            if(child->tpmnode1.type == TPM_Type_Memory)
+                printMemNodeLit((TPMNode2 *)child);
+
+            markVisitTransition(&HT_visitedTrans, topTrans); // mark the transtition as visited
+                                                             // even it could be a leaf
+            tpmNodePush(child, &stackTPMNodePathTop, &stackTPMNodePathCnt); // push the TPMNode to stack, as path
+            // printTPMNodeStack(stackTPMNodePathTop, stackTPMNodePathCnt);
+
             if(isLeafTransition(topTrans) ) {
-                if(child->tpmnode1.type == TPM_Type_Memory)
-                    printMemNodeLit((TPMNode2 *)child);
+                assert(child == stackTPMNodePathTop->node);
+                tpmNodePop(&stackTPMNodePathTop, &stackTPMNodePathCnt); // pop the TPMNode stack accordingly
+                // printTPMNodeStack(stackTPMNodePathTop, stackTPMNodePathCnt);
 
                 stackTransPop(&transLvl, &stackTransTop, &stackTransCnt);
                 // stackTransDisplay(stackTransTop, stackTransCnt);
-                // TODO: TPMNode
             }
             else {
-                if(child->tpmnode1.type == TPM_Type_Memory)
-                    printMemNodeLit((TPMNode2 *)child);
-
                 storeAllUnvisitChildren_NoMark(&HT_visitedTrans, child->tpmnode1.firstChild,
                         hitMapCtxt->maxBufSeqN, &stackTransTop, &stackTransCnt, 0);
-                markVisitTransition(&HT_visitedTrans, topTrans);
             }
         }
     }
     delTransitionHT(&HT_visitedTrans);
     stackTransPopAll(&stackTransTop, &stackTransCnt);
+    tpmNodePopAll(&stackTPMNodePathTop, &stackTPMNodePathCnt);
 
     return 0;
 }
