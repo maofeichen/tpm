@@ -152,19 +152,20 @@ createHitMapRecord_IntrmdtNode(
     HitMapNode *srcHMNode, *dstHMNode;
     HitTransition *ht;
 
-    printf("---------------\nHitMapRecord with Intermediate\nsrc:\n");
-    printNode(src);
-    printf("dst:\n");
-    printNode(dst);
+    // printf("---------------\nHitMapRecord with Intermediate\nsrc:\n");
+    // printNode(src);
+    // printf("dst:\n");
+    // printNode(dst);
 
-    if(src->tpmnode1.type == TPM_Type_Memory) {
+    // if the memory node bufid is 0, considers it as intermediate node
+    if(src->tpmnode1.type == TPM_Type_Memory && src->tpmnode2.bufid > 0) {
         srcHMNode = createHitMapRecordNode((TPMNode2 *)src, hitMapCtxt);
     }
     else {
         srcHMNode = createHitMapRecordNodeIntermediate((TPMNode1 *)src, hitMapCtxt);
     }
 
-    if(dst->tpmnode1.type == TPM_Type_Memory) {
+    if(dst->tpmnode1.type == TPM_Type_Memory && dst->tpmnode2.bufid > 0) {
         dstHMNode = createHitMapRecordNode((TPMNode2 *)dst, hitMapCtxt);
     }
     else {

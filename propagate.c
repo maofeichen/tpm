@@ -1099,15 +1099,15 @@ dfsBuildHitMap_intermediateNode(
 
     Transition *srcTrans = srcnode->firstChild;
     if(srcTrans == NULL) {
-        printf("dfs2HitMapNode: given source node is a leaf\n");
-        printMemNode(srcnode);
+        // printf("dfs2HitMapNode: given source node is a leaf\n");
+        // printMemNode(srcnode);
         return 0;
     }
-    printf("---------------\ndfsBuildHitMap_intermediateNode source:%p\n", srcnode);
-    printMemNode(srcnode);
+    // printf("---------------\ndfsBuildHitMap_intermediateNode source:%p\n", srcnode);
+    // printMemNode(srcnode);
 
     tpmNodePush((TPMNode *)srcnode, &stackTPMNodePathTop, &stackTPMNodePathCnt);
-    printTPMNodeStack(stackTPMNodePathTop, stackTPMNodePathCnt);
+    // printTPMNodeStack(stackTPMNodePathTop, stackTPMNodePathCnt);
 
     storeAllUnvisitChildren_NoMark(&HT_visitedTrans, srcTrans, hitMapCtxt->maxBufSeqN, &stackTransTop, &stackTransCnt, 0);
     // stackTransDisplay(stackTransTop, stackTransCnt);
