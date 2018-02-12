@@ -33,6 +33,7 @@ typedef struct StckMemnode
 typedef struct StackTPMNode
 {
     TPMNode *node;   // Can be either memory or reg/temp node
+    char flagCreateHM;    // indicates if the TPMNode should create a hitmap node
     struct StackTPMNode *next;
 } StackTPMNode;
 

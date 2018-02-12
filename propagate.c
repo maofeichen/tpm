@@ -1165,6 +1165,7 @@ tpmNodePush(
 
     n->node = node;
     n->next = *stackTPMNodeTop;
+    n->flagCreateHM = 0;
     *stackTPMNodeTop = n;
     (*stackTPMNodeCnt)++;
 }
