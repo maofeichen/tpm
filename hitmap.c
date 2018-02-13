@@ -35,6 +35,12 @@ getHitMapTotalTransaction(HitMapContext *hitMap);
 static u32
 getHitMapNodeTransactionNumber(HitMapNode *hmNode);
 
+static u32
+getHitMapTotalIntermediateNode(HitMapContext *hitMapCtxt);
+
+static u32
+getHitMapIntermediateTotalTrans(HitMapContext *hitMap);
+
 //static HitMapNode *
 //createHitMapRecordNode(TPMNode2 *node, HitMapContext *hitMap);
 //
@@ -115,8 +121,8 @@ OutOfLoop:
 void
 compHitMapStat(HitMapContext *hitMap)
 {
-    u32 numOfNode;
-    u32 totalTrans;
+    u32 numOfNode, numOfIntermediateNode;
+    u32 totalTrans, totalIntermediateTrans;
 
     sortHitMapHashTable(&(hitMap->hitMapNodeHT) );
 
@@ -125,6 +131,12 @@ compHitMapStat(HitMapContext *hitMap)
 
     totalTrans = getHitMapTotalTransaction(hitMap);
     printf("total transitions: %u\n", totalTrans);
+
+    numOfIntermediateNode = getHitMapTotalIntermediateNode(hitMap);
+    printf("total number of intermediate node in HitMap:%u\n", numOfIntermediateNode);
+
+    totalIntermediateTrans = getHitMapIntermediateTotalTrans(hitMap);
+    printf("total intermediate transitions:%u\n", totalIntermediateTrans);
 }
 
 static u32
@@ -155,6 +167,23 @@ getHitMapNodeTransactionNumber(HitMapNode *hmNode)
         firstChild = firstChild->next;
     }
     return numOfTrans;
+}
+
+static u32
+getHitMapTotalIntermediateNode(HitMapContext *hitMapCtxt)
+{
+    return HASH_CNT(hh_intrtmdtNode2HitMapNodeHT, hitMapCtxt->intrtmdt2HitMapNodeHT);
+}
+
+static u32
+getHitMapIntermediateTotalTrans(HitMapContext *hitMap)
+{
+    u32 totalIntermediateTrans = 0;
+    IntrtmdtNode2HitMapNodeHashTalbe *item, *temp;
+    HASH_ITER(hh_intrtmdtNode2HitMapNodeHT, hitMap->intrtmdt2HitMapNodeHT, item, temp) {
+        totalIntermediateTrans += getHitMapNodeTransactionNumber(item->toHitMapNode);
+    }
+    return totalIntermediateTrans;
 }
 
 void
