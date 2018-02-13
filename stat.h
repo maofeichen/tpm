@@ -41,4 +41,7 @@ void compute_total_node(struct TPMContext *tpm);
 
 void stat(struct TPMContext *tpm);
 
+void
+benchTPMDFS(TPMContext *tpm);
+
 #endif

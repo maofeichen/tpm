@@ -478,8 +478,8 @@ dfsPrintResult(TPMContext *tpm, TPMNode2 *s)
 	}
 
 // #ifdef DEBUG
-	printf("--------------------\n");
-	printf("dfs: source addr:%x val:%x ts:%u version%u\n", s->addr, s->val, s->lastUpdateTS, s->version);
+	// printf("--------------------\n");
+	// printf("dfs: source addr:%x val:%x ts:%u version%u\n", s->addr, s->val, s->lastUpdateTS, s->version);
 // #endif
 
 	TransitionHashTable *markVisitTransHT = NULL;
@@ -492,8 +492,10 @@ dfsPrintResult(TPMContext *tpm, TPMNode2 *s)
 			Transition *pop = transStackPop();
 			TPMNode *dst = getTransitionDst(pop);
 // #ifdef DEBUG
-			if(dst->tpmnode1.type == TPM_Type_Memory)
-				printf("propagate to addr:%x val:%x\n", dst->tpmnode2.addr, dst->tpmnode2.val);
+			if(dst->tpmnode1.type == TPM_Type_Memory) {
+				// printf("propagate to addr:%x val:%x\n", dst->tpmnode2.addr, dst->tpmnode2.val);
+			    // printMemNodeLit((TPMNode2 *)dst);
+			}
 // #endif
 			stepCount++;
 

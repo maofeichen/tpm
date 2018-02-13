@@ -366,6 +366,48 @@ stat(struct TPMContext *tpm)
 	compute_cont_buf(tpm);
 }
 
+void
+benchTPMDFS(TPMContext *tpm)
+{
+    TPMBufHashTable *tpmBuf, *buf;
+    int numOfBuf, i;
+    TPMNode2 *headNode;
+
+    tpmBuf = analyzeTPMBuf(tpm);
+    assignTPMBufID(tpmBuf);
+    // numOfBuf= HASH_CNT(hh_tpmBufHT, tpmBuf);
+    // printTPMBufHashTable(tpmBuf);
+    printTime("Finish analyzing buffers");
+
+    i = 0;
+    for(buf = tpmBuf; buf != NULL; buf = buf->hh_tpmBufHT.next) {
+        if(i >= 10)
+            break;
+
+        printf("----------\nbegin addr:0x%-8x end addr:0x%-8x sz:%-3u numofaddr:%-3u minseq:%-6d maxseq:%-6d diffseq:%-6d bufID:%u\n",
+                buf->baddr, buf->eaddr, buf->eaddr - buf->baddr,
+                buf->numOfAddr, buf->minseq, buf->maxseq, (buf->maxseq - buf->minseq), buf->headNode->bufid);
+
+        headNode = buf->headNode;
+
+        while(headNode != NULL) {
+            u32 version = headNode->version;
+            // printMemNodeLit(headNode);
+            do {
+                if(headNode->lastUpdateTS < 0) {
+                    // printMemNodeLit(headNode);
+                    printMemNodePropagate(tpm, headNode);
+                }
+                headNode = headNode->nextVersion;
+            } while (version != headNode->version);
+            headNode = headNode->rightNBR;
+        }
+        i++;
+    }
+    printTime("Finish dfs of source buffer");
+}
+
+
 static u32  
 get_out_degree(union TPMNode *t)
 {

@@ -5,6 +5,7 @@
  * 
  * */
 
+#include "misc.h"
 #include "tpm.h"
 #include "record.h"
 #include <assert.h>
