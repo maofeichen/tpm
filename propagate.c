@@ -1138,7 +1138,7 @@ dfsBuildHitMap_intermediateNode(
     tpmNodePush((TPMNode *)srcnode, &stackTPMNodePathTop, &stackTPMNodePathCnt);
     // printTPMNodeStack(stackTPMNodePathTop, stackTPMNodePathCnt);
 
-    storeAllUnvisitChildren_NoMark(&HT_visitedTrans, srcTrans, hitMapCtxt->maxBufSeqN, &stackTransTop, &stackTransCnt, 0);
+    storeUnvisitChildren(&HT_visitedTrans, srcTrans, hitMapCtxt->maxBufSeqN, &stackTransTop, &stackTransCnt, 0);
     // stackTransDisplay(stackTransTop, stackTransCnt);
 
     while(!isStackTransEmpty(stackTransTop) ) {
@@ -1159,8 +1159,14 @@ dfsBuildHitMap_intermediateNode(
         else {  // if the transition hasn't been visited, examine the top of transiton stack
             // if(child->tpmnode1.type == TPM_Type_Memory)
             //     printMemNodeLit((TPMNode2 *)child);
-            if(child->tpmnode1.hasVisit == 0)
+            if(child->tpmnode1.hasVisit == 0){
                 child->tpmnode1.hasVisit = 1;
+            }
+            else { // indicates the child had been visited by other source nodes, do not need to visit again
+                stackTransPop(&transLvl, &stackTransTop, &stackTransCnt);
+                // stackTransDisplay(stackTransTop, stackTransCnt);
+                continue;
+            }
 
             markVisitTransition(&HT_visitedTrans, topTrans); // mark the transtition as visited
                                                              // even it could be a leaf
@@ -1179,7 +1185,7 @@ dfsBuildHitMap_intermediateNode(
                 // stackTransDisplay(stackTransTop, stackTransCnt);
             }
             else {
-                storeAllUnvisitChildren_NoMark(&HT_visitedTrans, child->tpmnode1.firstChild,
+                storeUnvisitChildren(&HT_visitedTrans, child->tpmnode1.firstChild,
                         hitMapCtxt->maxBufSeqN, &stackTransTop, &stackTransCnt, 0);
             }
         }
