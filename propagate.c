@@ -130,6 +130,15 @@ storeAllUnvisitChildren_NoMark(
         u32 dfsLevel);
 
 static void
+storeUnvisitChildren(
+        TransitionHashTable **transitionht,
+        Transition *firstChild,
+        int maxseq,
+        StackTransitionNode **stackTransTop,
+        u32 *stackTransCnt,
+        u32 dfsLevel);
+
+static void
 storePropagateDstMemNode(TPMNode2 *memNode, TaintedBuf **dstMemNodes);
 
 /* dfs implementation: buf node propagates to hitmap nodes */
@@ -837,6 +846,24 @@ storeAllUnvisitChildren_NoMark(
         if(!isTransitionVisited(*transitionht, firstChild)  // only push non visit node (dfs routine)
            && firstChild->seqNo <= maxseq
            && firstChild->child->tpmnode1.hasVisit == 0 ) { // A bug in propagate
+            stackTransPush(firstChild, dfsLevel, stackTransTop, stackTransCnt);
+        }
+        firstChild = firstChild->next;
+    }
+}
+
+static void
+storeUnvisitChildren(
+        TransitionHashTable **transitionht,
+        Transition *firstChild,
+        int maxseq,
+        StackTransitionNode **stackTransTop,
+        u32 *stackTransCnt,
+        u32 dfsLevel)
+{
+      while(firstChild != NULL) {
+        if(!isTransitionVisited(*transitionht, firstChild)  // only push non visit node (dfs routine)
+           && firstChild->seqNo <= maxseq ) {
             stackTransPush(firstChild, dfsLevel, stackTransTop, stackTransCnt);
         }
         firstChild = firstChild->next;

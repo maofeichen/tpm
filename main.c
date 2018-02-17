@@ -36,15 +36,15 @@ int main(int argc, char const *argv[])
 #ifdef STAT
 			stat(tpm);
 #endif
-			benchTPMDFS(tpm);
-			// hitMap = initHitMap(tpm);
-			// printTime("Finish init HitMap");
-			// buildHitMap(hitMap, tpm);
-			// printTime("Finish building HitMap");
-			// compHitMapStat(hitMap);
+			// benchTPMDFS(tpm);
+			hitMap = initHitMap(tpm);
+			printTime("Finish init HitMap");
+			buildHitMap(hitMap, tpm);
+			printTime("Finish building HitMap");
+			compHitMapStat(hitMap);
 			// detectHitMapAvalanche(hitMap);
 			// printHitMap(hitMap);
-			// delHitMap(hitMap);
+			delHitMap(hitMap);
 
 			// searchAllAvalancheInTPM(tpm);
 			// searchTPMAvalancheFast(tpm);
