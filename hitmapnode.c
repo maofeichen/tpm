@@ -104,6 +104,19 @@ isHitMapNodeExist(TPMNode2 *node, HitMapContext *hitMap)
         return true;
 }
 
+bool
+isIntermediateNodeExist(TPMNode1 *node, HitMapContext *hitMap)
+{
+    IntrtmdtNode2HitMapNodeHashTalbe *find;
+    HASH_FIND(hh_intrtmdtNode2HitMapNodeHT, hitMap->intrtmdt2HitMapNodeHT, &node, 4, find);
+    if(find == NULL)
+        return false;
+    else
+        return true;
+}
+
+
+
 void
 sortHitMapHashTable(HitMapBufNodePtr2NodeHashTable **hitMapHT)
 {

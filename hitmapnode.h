@@ -91,6 +91,9 @@ compareHitMapHTItem(HitMapBufNodePtr2NodeHashTable *l, HitMapBufNodePtr2NodeHash
 bool
 isHitMapNodeExist(TPMNode2 *node, HitMapContext *hitMap);
 
+bool
+isIntermediateNodeExist(TPMNode1 *node, HitMapContext *hitMap);
+
 void
 sortHitMapHashTable(HitMapBufNodePtr2NodeHashTable **hitMapHT);
 

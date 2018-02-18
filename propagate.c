@@ -194,6 +194,13 @@ processLeafTrans(
         u32 stackTPMNodePathCnt,
         HitMapContext *hitMapCtxt);
 
+static void
+processHasVisitTrans(
+        TPMNode *child,
+        StackTPMNode *stackTPMNodePathTop,
+        u32 stackTPMNodePathCnt,
+        HitMapContext *hitMapCtxt);
+
 /* TPM node stack operation
  *  used as in building HitMap with intermediate nodes, the tpm nodes can be
  *  either memory or reg/temp node
@@ -1163,6 +1170,8 @@ dfsBuildHitMap_intermediateNode(
                 child->tpmnode1.hasVisit = 1;
             }
             else { // indicates the child had been visited by other source nodes, do not need to visit again
+                processHasVisitTrans(child, stackTPMNodePathTop, stackTPMNodePathCnt, hitMapCtxt);
+
                 stackTransPop(&transLvl, &stackTransTop, &stackTransCnt);
                 // stackTransDisplay(stackTransTop, stackTransCnt);
                 continue;
@@ -1246,6 +1255,41 @@ processLeafTrans(
             TPMNode *dst = stackTPMNodePathTop->node;
             TPMNode *src = stackTPMNodePathTop->next->node;
             createHitMapRecord_IntrmdtNode(src, dst, hitMapCtxt);
+        }
+    }
+}
+
+static void
+processHasVisitTrans(
+        TPMNode *child,
+        StackTPMNode *stackTPMNodePathTop,
+        u32 stackTPMNodePathCnt,
+        HitMapContext *hitMapCtxt)
+// Nodes had been visited via other sources:
+// 1. Memory nodes
+//  should be in the hitmap, creates a transition to it
+// 2. Non_memory node
+//  if it's in the hitmap, creates a transition to it
+//  otherwise, do nothing
+{
+    bool isMemNodeExist, isInterNodeExist;
+    if(child->tpmnode1.type == TPM_Type_Memory) {
+       isMemNodeExist = isHitMapNodeExist((TPMNode2 *)child, hitMapCtxt);
+       assert(isMemNodeExist == true);
+
+       if(stackTPMNodePathCnt > 0) {
+           TPMNode *src = stackTPMNodePathTop->node;
+           TPMNode *dst = child;
+           createHitMapRecord_IntrmdtNode(src, dst, hitMapCtxt);
+       }
+    }
+    else {
+        if(isIntermediateNodeExist((TPMNode1 *)child, hitMapCtxt) ) {
+            if(stackTPMNodePathCnt > 0) {
+                TPMNode *src = stackTPMNodePathTop->node;
+                TPMNode *dst = child;
+                createHitMapRecord_IntrmdtNode(src, dst, hitMapCtxt);
+            }
         }
     }
 }
