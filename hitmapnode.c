@@ -524,6 +524,16 @@ printHitMapNode(HitMapNode *node)
 }
 
 void
+printHitMapNodeLit(HitMapNode *node)
+{
+    if(node == NULL)
+        return;
+    printf(" addr:0x%-8x val:%-8x sz:%u lastUpdateTS:%-16d version:%-4u bufID:%u\n",
+            node->addr, node->val, node->bytesz, node->lastUpdateTS,
+            node->version, node->bufId);
+}
+
+void
 printHitMapNodeAllVersion(HitMapNode *node)
 {
     u32 currVersion = node->version;

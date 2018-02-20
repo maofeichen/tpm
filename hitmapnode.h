@@ -127,6 +127,9 @@ void
 printHitMapNode(HitMapNode *node);
 
 void
+printHitMapNodeLit(HitMapNode *node);
+
+void
 printHitMapNodeAllVersion(HitMapNode *node);
 
 void

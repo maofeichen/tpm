@@ -494,8 +494,8 @@ dfsPrintResult(TPMContext *tpm, TPMNode2 *s)
 	}
 
 // #ifdef DEBUG
-	// printf("--------------------\n");
-	// printf("dfs: source addr:%x val:%x ts:%u version%u\n", s->addr, s->val, s->lastUpdateTS, s->version);
+	printf("--------------------\n");
+	printf("dfs: source addr:%x val:%x ts:%u version%u\n", s->addr, s->val, s->lastUpdateTS, s->version);
 // #endif
 
 	TransitionHashTable *markVisitTransHT = NULL;
@@ -510,7 +510,7 @@ dfsPrintResult(TPMContext *tpm, TPMNode2 *s)
 // #ifdef DEBUG
 			if(dst->tpmnode1.type == TPM_Type_Memory) {
 				// printf("propagate to addr:%x val:%x\n", dst->tpmnode2.addr, dst->tpmnode2.val);
-			    // printMemNodeLit((TPMNode2 *)dst);
+			    printMemNodeLit((TPMNode2 *)dst);
 			}
 // #endif
 			stepCount++;
@@ -1272,7 +1272,7 @@ processHasVisitTrans(
 //  if it's in the hitmap, creates a transition to it
 //  otherwise, do nothing
 {
-    bool isMemNodeExist, isInterNodeExist;
+    bool isMemNodeExist;
     if(child->tpmnode1.type == TPM_Type_Memory) {
        isMemNodeExist = isHitMapNodeExist((TPMNode2 *)child, hitMapCtxt);
        assert(isMemNodeExist == true);
@@ -1372,12 +1372,15 @@ dfsHitMapNodePropagate(HitMapNode *srcnode)
         return -1;
     }
 
+    printf("---------------\nsource:");
+    printHitMapNode(srcnode);
+
     HitTransitionHashTable *markVisitHitTransHT = NULL;
-    HitTransition *sourceHitTrans = srcnode->firstChild;
 
     StackHitTransitionItem *stackHitTransTop = NULL;
     u32 stackHitTransCnt = 0;
 
+    HitTransition *sourceHitTrans = srcnode->firstChild;
     if(sourceHitTrans == NULL) {
         printf("given source node is a leaf\n");
         printHitMapNode(srcnode);
@@ -1391,7 +1394,8 @@ dfsHitMapNodePropagate(HitMapNode *srcnode)
     while(!isStackHitTransEmpty(stackHitTransTop) ) {
         HitTransition *popTrans = stackHitTransPop(&stackHitTransTop, &stackHitTransCnt);
         HitMapNode *popDstHitMapNode = popTrans->child;
-        printHitMapNode(popDstHitMapNode);
+        if(popDstHitMapNode->bufId > 0)
+            printHitMapNodeLit(popDstHitMapNode);
 
         storeAllUnvisitHitTransChildren(&markVisitHitTransHT, popDstHitMapNode->firstChild, 0,
                 &stackHitTransTop, &stackHitTransCnt);
