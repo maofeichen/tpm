@@ -13,7 +13,7 @@ void
 buildHitMap(HitMapContext *hitMap, TPMContext *tpm);
 
 void
-detectHitMapAvalanche(HitMapContext *hitMap);
+detectHitMapAvalanche(HitMapContext *hitMap, TPMContext *tpm);
 
 void
 compHitMapStat(HitMapContext *hitMap);

@@ -97,7 +97,7 @@ bufnodePropgt2HitMapNode(
 //  <0: error
 
 int
-hitMapNodePropagate(HitMapNode *srcnode);
+hitMapNodePropagate(HitMapNode *srcnode, HitMapContext *hitMap, TPMContext *tpm);
 // Returns:
 //  >= 0: num of hitmap nodes that the srcnode can propagate to
 //  <0: error

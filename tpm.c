@@ -262,7 +262,7 @@ getTPMBufMaxSeqN(TPMBufHashTable *tpmBuf)
         return 0;
 
     buf = tpmBuf;
-    while(buf->hh_tpmBufHT.next != NULL) {
+    while(buf != NULL) {
         if(buf->maxseq > 0 && buf->maxseq > maxSeqN)
             maxSeqN = buf->maxseq;
 

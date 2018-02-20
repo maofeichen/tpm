@@ -225,7 +225,7 @@ isTPMNodeStackEmpty(StackTPMNode *stackTPMNodeTop);
 
 /* HitMap node propagate */
 static int
-dfsHitMapNodePropagate(HitMapNode *srcnode);
+dfsHitMapNodePropagate(HitMapNode *srcnode, HitMapContext *hitMap, TPMContext *tpm);
 
 /* HitMap Transition hash table operation */
 static void
@@ -340,12 +340,12 @@ bufnodePropgt2HitMapNode(
 }
 
 int
-hitMapNodePropagate(HitMapNode *srcnode)
+hitMapNodePropagate(HitMapNode *srcnode, HitMapContext *hitMap, TPMContext *tpm)
 // Returns:
 //  >= 0: num of hitmap nodes that the srcnode can propagate to
 //  <0: error
 {
-    return dfsHitMapNodePropagate(srcnode);
+    return dfsHitMapNodePropagate(srcnode, hitMap, tpm);
 }
 
 
@@ -1141,6 +1141,7 @@ dfsBuildHitMap_intermediateNode(
     }
     // printf("---------------\ndfsBuildHitMap_intermediateNode source:%p\n", srcnode);
     // printMemNode(srcnode);
+    // printf("maxseqN:%u\n", hitMapCtxt->maxBufSeqN);
 
     tpmNodePush((TPMNode *)srcnode, &stackTPMNodePathTop, &stackTPMNodePathCnt);
     // printTPMNodeStack(stackTPMNodePathTop, stackTPMNodePathCnt);
@@ -1152,6 +1153,12 @@ dfsBuildHitMap_intermediateNode(
         u32 transLvl;   // Not used, only for method interface
         Transition *topTrans = stackTransTop->transition;
         TPMNode *child = topTrans->child;
+
+        if(child->tpmnode1.type == TPM_Type_Memory
+           /* && child->tpmnode2.addr == 0xbffff240 */) {
+            // printMemNodeLit((TPMNode2 *)child);
+        }
+
 
         if(isTransitionVisited(HT_visitedTrans, topTrans) ) {  // if the transition had been examined and
                                                                // has children been pushed to transtiion stack
@@ -1365,7 +1372,7 @@ isTPMNodeStackEmpty(StackTPMNode *stackTPMNodeTop)
 
 /* HitMap node propagate */
 static int
-dfsHitMapNodePropagate(HitMapNode *srcnode)
+dfsHitMapNodePropagate(HitMapNode *srcnode, HitMapContext *hitMap, TPMContext *tpm)
 {
     if(srcnode == NULL) {
         fprintf(stderr, "dfsHitMapNodePropagate: hit map srcnode:%p\n", srcnode);

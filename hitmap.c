@@ -66,6 +66,7 @@ initHitMap(TPMContext *tpm)
     hitMap->hitMapNodeHT = NULL;
     hitMap->intrtmdt2HitMapNodeHT = NULL;
     hitMap->maxBufSeqN = getTPMBufMaxSeqN(tpmBuf);
+    // printf("maxBufSeqN:%u\n", hitMap->maxBufSeqN);
     hitMap->numOfBuf = numOfBuf;
     hitMap->bufArray = calloc(1, sizeof(BufContext *) * numOfBuf);
     hitMap->tpmBuf = tpmBuf;
@@ -100,7 +101,7 @@ buildHitMap(HitMapContext *hitMap, TPMContext *tpm)
 }
 
 void
-detectHitMapAvalanche(HitMapContext *hitMap)
+detectHitMapAvalanche(HitMapContext *hitMap, TPMContext *tpm)
 {
     u32 numOfBuf;
 
@@ -109,7 +110,7 @@ detectHitMapAvalanche(HitMapContext *hitMap)
         for(int addrIdx = 0; addrIdx < hitMap->bufArray[bufIdx]->numOfAddr; addrIdx++) {
             HitMapNode *addrHeadNode = hitMap->bufArray[bufIdx]->addrArray[addrIdx];
             printHitMapNode(addrHeadNode);
-            hitMapNodePropagate(addrHeadNode);
+            hitMapNodePropagate(addrHeadNode, hitMap, tpm);
             goto OutOfLoop;
         }
     }
@@ -151,7 +152,7 @@ getHitMapTotalTransaction(HitMapContext *hitMap)
     u32 totalTrans = 0;
     HitMapBufNodePtr2NodeHashTable *item, *temp;
     HASH_ITER(hh_hitMapBufNode2NodeHT, hitMap->hitMapNodeHT, item, temp ) {
-        // printHitMapNode(item->toHitMapNode);
+        printHitMapNode(item->toHitMapNode);
         totalTrans +=  getHitMapNodeTransactionNumber(item->toHitMapNode);
     }
     return totalTrans;
