@@ -12,8 +12,8 @@ initHitMap(TPMContext *tpm);
 void
 buildHitMap(HitMapContext *hitMap, TPMContext *tpm);
 
-void
-detectHitMapAvalanche(HitMapContext *hitMap, TPMContext *tpm);
+//void
+//detectHitMapAvalanche(HitMapContext *hitMap, TPMContext *tpm);
 
 void
 compHitMapStat(HitMapContext *hitMap);

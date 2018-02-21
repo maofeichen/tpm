@@ -97,26 +97,25 @@ buildHitMap(HitMapContext *hitMap, TPMContext *tpm)
         buildBufContext(tpm, hitMap, currBuf);
         i++;
     }
-    delAllTPMBuf(hitMap->tpmBuf);
 }
 
-void
-detectHitMapAvalanche(HitMapContext *hitMap, TPMContext *tpm)
-{
-    u32 numOfBuf;
-
-    numOfBuf = hitMap->numOfBuf;
-    for(int bufIdx = 0; bufIdx < numOfBuf; bufIdx++) {
-        for(int addrIdx = 0; addrIdx < hitMap->bufArray[bufIdx]->numOfAddr; addrIdx++) {
-            HitMapNode *addrHeadNode = hitMap->bufArray[bufIdx]->addrArray[addrIdx];
-            printHitMapNode(addrHeadNode);
-            hitMapNodePropagate(addrHeadNode, hitMap, tpm);
-            goto OutOfLoop;
-        }
-    }
-OutOfLoop:
-    printf("");
-}
+//void
+//detectHitMapAvalanche(HitMapContext *hitMap, TPMContext *tpm)
+//{
+//    u32 numOfBuf;
+//
+//    numOfBuf = hitMap->numOfBuf;
+//    for(int bufIdx = 0; bufIdx < numOfBuf; bufIdx++) {
+//        for(int addrIdx = 0; addrIdx < hitMap->bufArray[bufIdx]->numOfAddr; addrIdx++) {
+//            HitMapNode *addrHeadNode = hitMap->bufArray[bufIdx]->addrArray[addrIdx];
+//            // printHitMapNode(addrHeadNode);
+//            hitMapNodePropagate(addrHeadNode, hitMap, tpm);
+//            goto OutOfLoop;
+//        }
+//    }
+//OutOfLoop:
+//    printf("");
+//}
 
 
 void
@@ -152,7 +151,7 @@ getHitMapTotalTransaction(HitMapContext *hitMap)
     u32 totalTrans = 0;
     HitMapBufNodePtr2NodeHashTable *item, *temp;
     HASH_ITER(hh_hitMapBufNode2NodeHT, hitMap->hitMapNodeHT, item, temp ) {
-        printHitMapNode(item->toHitMapNode);
+        // printHitMapNode(item->toHitMapNode);
         totalTrans +=  getHitMapNodeTransactionNumber(item->toHitMapNode);
     }
     return totalTrans;
@@ -201,6 +200,7 @@ delHitMap(HitMapContext *hitmap)
     free(hitmap->bufArray);
     hitmap->bufArray = NULL;
     free(hitmap);
+    printf("del HitMap\n");
 }
 
 

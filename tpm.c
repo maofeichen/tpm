@@ -241,6 +241,18 @@ assignTPMBufID(TPMBufHashTable *tpmBuf)
     }
 }
 
+TPMBufHashTable *
+getTPMBuf(TPMBufHashTable *bufHead, u32 bufIdx)
+{
+    u32 idx = 0;
+    while(bufHead != NULL && idx < bufIdx) {
+        bufHead = bufHead->hh_tpmBufHT.next;
+        idx++;
+    }
+    return bufHead;
+}
+
+
 int
 getTPMBufTotal(TPMBufHashTable *tpmBuf)
 {
@@ -324,6 +336,7 @@ delAllTPMBuf(TPMBufHashTable *tpmBuf)
         HASH_DELETE(hh_tpmBufHT, tpmBuf, curr);
         free(curr);
     }
+    printf("del tpm buffers\n");
 }
 
 
@@ -332,6 +345,7 @@ void delTPM(struct TPMContext *tpm)
     del_mem_ht(&(tpm->mem2NodeHT) ); // clear mem addr hash table
     free(tpm);                       // TODO: merge in delTPM()
 
+    printf("del TPM\n");
     // TODO:
     // - free TPMBufHashTable
 }
@@ -392,6 +406,15 @@ printTransAllChildren(Transition *transition)
 }
 
 void 
+print1TPMBufHashTable(char *s, TPMBufHashTable *tpmBufHT)
+{
+     TPMBufHashTable *buf = tpmBufHT;
+     printf("%sbegin addr:0x%-8x end addr:0x%-8x sz:%-3u numofaddr:%-3u minseq:%-6d maxseq:%-6d diffseq:%-6d bufID:%u\n",
+        s, buf->baddr, buf->eaddr, buf->eaddr - buf->baddr,
+        buf->numOfAddr, buf->minseq, buf->maxseq, (buf->maxseq - buf->minseq), buf->headNode->bufid);
+}
+
+void
 printTPMBufHashTable(TPMBufHashTable *tpmBufHT)
 {
     TPMBufHashTable *buf, *temp;

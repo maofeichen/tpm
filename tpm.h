@@ -115,6 +115,9 @@ void
 assignTPMBufID(TPMBufHashTable *tpmBuf);
 // assignes id to each buffer, starts with 1
 
+TPMBufHashTable *
+getTPMBuf(TPMBufHashTable *bufHead, u32 bufIdx);
+
 int
 getTPMBufTotal(TPMBufHashTable *tpmBuf);
 
@@ -138,5 +141,8 @@ void
 printTransAllChildren(Transition *transition);
 
 void 
+print1TPMBufHashTable(char *s, TPMBufHashTable *tpmBufHT);
+
+void
 printTPMBufHashTable(TPMBufHashTable *tpmBufHT);
 #endif
