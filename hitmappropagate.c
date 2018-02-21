@@ -211,9 +211,9 @@ dfsHitMapNodePropagate(
         return -1;
     }
 
-    printf("---------------\nsource:");
-    printHitMapNode(srcnode);
-    printf("dst max seqN:%u\n", dstMaxSeqN);
+    // printf("---------------\nsource:");
+    // printHitMapNode(srcnode);
+    // printf("dst max seqN:%u\n", dstMaxSeqN);
 
     HitTransitionHashTable *markVisitHitTransHT = NULL;
 
@@ -234,8 +234,14 @@ dfsHitMapNodePropagate(
     while(!isStackHitTransEmpty(stackHitTransTop) ) {
         HitTransition *popTrans = stackHitTransPop(&stackHitTransTop, &stackHitTransCnt);
         HitMapNode *popDstHitMapNode = popTrans->child;
-        if(popDstHitMapNode->bufId > 0)
-            printHitMapNodeLit(popDstHitMapNode);
+
+        if(popDstHitMapNode->bufId > 0
+           && popDstHitMapNode->addr >= dstAddrStart && popDstHitMapNode->addr <= dstAddrEnd
+           && popDstHitMapNode->lastUpdateTS >= dstMinSeqN && popDstHitMapNode->lastUpdateTS <= dstMaxSeqN) {
+            // printHitMapNodeLit(popDstHitMapNode);
+            HitMapAddr2NodeItem *toHitMapNodeItem = createHitMapAddr2NodeItem(popDstHitMapNode->addr, popDstHitMapNode, NULL, NULL);
+            HASH_ADD(hh_hmAddr2NodeItem, hmAddr2NodeItem->subHash, node, 4, toHitMapNodeItem);
+        }
 
         storeAllUnvisitHitTransChildren(&markVisitHitTransHT, popDstHitMapNode->firstChild, dstMaxSeqN,
                 &stackHitTransTop, &stackHitTransCnt);

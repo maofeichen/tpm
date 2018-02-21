@@ -20,4 +20,10 @@ createHitMapAddr2NodeItem(
         HitMapAddr2NodeItem *subHash,
         HitMapNode *toHitMapNode);
 
+void
+printHitMap2LAddr2NodeItem(HitMapAddr2NodeItem *hmAddr2NodeItem);
+
+void
+printHitMapAddr2NodeItemSubhash(HitMapAddr2NodeItem *hmAddr2NodeItem);
+
 #endif /* HITMAPAVALTYPE_H_ */
