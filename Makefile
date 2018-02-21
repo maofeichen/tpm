@@ -5,7 +5,7 @@ CF	= -Wall -Wno-unused-variable -Wno-unused-function -Wno-unused-label -g -std=c
 LF	= -g 
 
 OBJS	= main.o tpm.o tpmnode.o record.o stat.o propagate.o avalanche.o continbuf.o avalanchetype.o \
-		  misc.o hitmapnode.o hitmap.o hitmapavalanche.o
+		  misc.o hitmapnode.o hitmap.o hitmapavaltype.o hitmapavalanche.o hitmappropagate.o
 
 all	: tpm #testtpm
 
@@ -51,8 +51,14 @@ hitmapnode.o: hitmapnode.c
 hitmap.o: hitmap.c
 	$(CC) $(CF) -c hitmap.c
 
+hitmapavaltype.o: hitmapavaltype.c
+	$(CC) $(CF) -c hitmapavaltype.c
+
 hitmapavalanche.o: hitmapavalanche.c
 	$(CC) $(CF) -c hitmapavalanche.c
+
+hitmappropagate.o: hitmappropagate.c
+	$(CC) $(CF) -c hitmappropagate.c
 
 misc.o: misc.c
 	$(CC) $(CF) -c misc.c

@@ -1,4 +1,5 @@
 #include "hitmapavalanche.h"
+#include "hitmappropagate.h"
 #include <assert.h>
 
 static HitMapAvalSearchCtxt *
@@ -28,8 +29,6 @@ detectHitMapAvalanche(HitMapContext *hitMap, TPMContext *tpm)
     numOfBuf = hitMap->numOfBuf;
     for(u32 srcBufIdx = 0; srcBufIdx < numOfBuf-1; srcBufIdx++) {
         for(u32 dstBufIdx = srcBufIdx + 1; dstBufIdx < numOfBuf; dstBufIdx++) {
-//            if(srcBufIdx == 6)
-//                continue;
 
             srcTPMBuf = getTPMBuf(hitMap->tpmBuf, srcBufIdx);
             dstTPMBuf = getTPMBuf(hitMap->tpmBuf, dstBufIdx);
@@ -126,7 +125,17 @@ searchHitMapPropgtInOut(HitMapAvalSearchCtxt *hitMapAvalSrchCtxt, HitMapContext 
 
     for(srcAddrIdx = 0; srcAddrIdx < hitMap->bufArray[srcBufID]->numOfAddr; srcAddrIdx++) {
         HitMapNode *head = hitMap->bufArray[srcBufID]->addrArray[srcAddrIdx];
-        printHitMapNodeLit(head);
+        if(head == NULL)
+            continue;   // TODO: Debug
+
+        u32 ver = head->version;
+
+        do {
+            printHitMapNodeLit(head);
+            hitMapNodePropagate(head, hitMap);
+            head = head->nextVersion;
+        } while(ver != head->version);
+
         // assert(head->leftNBR == NULL);
         break;
     }
