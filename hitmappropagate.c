@@ -43,7 +43,14 @@ static void
 printHitTransitionNode(StackHitTransitionItem *transNode);
 
 static int
-dfsHitMapNodePropagate(HitMapNode *srcnode, HitMapContext *hitMap);
+dfsHitMapNodePropagate(
+        HitMapNode *srcnode,
+        HitMapContext *hitMap,
+        HitMapAddr2NodeItem *hmAddr2NodeItem,
+        u32 dstAddrStart,
+        u32 dstAddrEnd,
+        int dstMinSeqN,
+        int dstMaxSeqN);
 
 static void
 storeAllUnvisitHitTransChildren(
@@ -64,12 +71,19 @@ markVisitHitTransition(
         HitTransition *hitTransition);
 
 int
-hitMapNodePropagate(HitMapNode *srcnode, HitMapContext *hitMap)
+hitMapNodePropagate(
+        HitMapNode *srcnode,
+        HitMapContext *hitMap,
+        HitMapAddr2NodeItem *hmAddr2NodeItem,
+        u32 dstAddrStart,
+        u32 dstAddrEnd,
+        int dstMinSeqN,
+        int dstMaxSeqN)
 // Returns:
 //  >= 0: num of hitmap nodes that the srcnode can propagate to
 //  <0: error
 {
-    return dfsHitMapNodePropagate(srcnode, hitMap);
+    return dfsHitMapNodePropagate(srcnode, hitMap, hmAddr2NodeItem, dstAddrStart, dstAddrEnd, dstMinSeqN, dstMaxSeqN);
 }
 
 static void
@@ -183,7 +197,14 @@ printHitTransitionNode(StackHitTransitionItem *transNode)
 /* HitMap node propagate */
 
 static int
-dfsHitMapNodePropagate(HitMapNode *srcnode, HitMapContext *hitMap)
+dfsHitMapNodePropagate(
+        HitMapNode *srcnode,
+        HitMapContext *hitMap,
+        HitMapAddr2NodeItem *hmAddr2NodeItem,
+        u32 dstAddrStart,
+        u32 dstAddrEnd,
+        int dstMinSeqN,
+        int dstMaxSeqN)
 {
     if(srcnode == NULL) {
         fprintf(stderr, "dfsHitMapNodePropagate: hit map srcnode:%p\n", srcnode);
@@ -205,7 +226,7 @@ dfsHitMapNodePropagate(HitMapNode *srcnode, HitMapContext *hitMap)
         return 0;
     }
 
-    storeAllUnvisitHitTransChildren(&markVisitHitTransHT, sourceHitTrans, 0,
+    storeAllUnvisitHitTransChildren(&markVisitHitTransHT, sourceHitTrans, dstMaxSeqN,
             &stackHitTransTop, &stackHitTransCnt);
     // stackHitTransDisplay(stackHitTransTop, stackHitTransCnt);
 
@@ -215,7 +236,7 @@ dfsHitMapNodePropagate(HitMapNode *srcnode, HitMapContext *hitMap)
         if(popDstHitMapNode->bufId > 0)
             printHitMapNodeLit(popDstHitMapNode);
 
-        storeAllUnvisitHitTransChildren(&markVisitHitTransHT, popDstHitMapNode->firstChild, 0,
+        storeAllUnvisitHitTransChildren(&markVisitHitTransHT, popDstHitMapNode->firstChild, dstMaxSeqN,
                 &stackHitTransTop, &stackHitTransCnt);
         // stackHitTransDisplay(stackHitTransTop, stackHitTransCnt);
 

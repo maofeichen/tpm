@@ -1,5 +1,6 @@
 #include "hitmapavalanche.h"
 #include "hitmappropagate.h"
+#include "uthash.h"
 #include <assert.h>
 
 static HitMapAvalSearchCtxt *
@@ -132,7 +133,10 @@ searchHitMapPropgtInOut(HitMapAvalSearchCtxt *hitMapAvalSrchCtxt, HitMapContext 
 
         do {
             printHitMapNodeLit(head);
-            hitMapNodePropagate(head, hitMap);
+            HitMapAddr2NodeItem *hmAddr2NodeItem = createHitMapAddr2NodeItem(head->addr, head, NULL, NULL);
+            HASH_ADD(hh_hmAddr2NodeItem, hitMapAvalSrchCtxt->hitMapAddr2NodeAry[srcAddrIdx], node, 4, hmAddr2NodeItem);
+            hitMapNodePropagate(head, hitMap, hmAddr2NodeItem, hitMapAvalSrchCtxt->dstAddrStart, hitMapAvalSrchCtxt->dstAddrEnd,
+                    hitMapAvalSrchCtxt->dstMinSeqN, hitMapAvalSrchCtxt->dstMaxSeqN);
             head = head->nextVersion;
         } while(ver != head->version);
 

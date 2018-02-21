@@ -3,6 +3,7 @@
 
 #include "uthash.h"
 #include "hitmapnode.h"
+#include "hitmapavaltype.h"
 #include "type.h"
 
 /* HitMap node */
@@ -23,7 +24,14 @@ typedef struct StackHitTransitionItem
 } StackHitTransitionItem;
 
 int
-hitMapNodePropagate(HitMapNode *srcnode, HitMapContext *hitMap);
+hitMapNodePropagate(
+        HitMapNode *srcnode,
+        HitMapContext *hitMap,
+        HitMapAddr2NodeItem *hmAddr2NodeItem,
+        u32 dstAddrStart,
+        u32 dstAddrEnd,
+        int dstMinSeqN,
+        int dstMaxSeqN);
 // Returns:
 //  >= 0: num of hitmap nodes that the srcnode can propagate to
 //  <0: error
