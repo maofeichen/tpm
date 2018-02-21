@@ -41,5 +41,6 @@ typedef struct HitMapAvalSearchCtxt
 void
 detectHitMapAvalanche(HitMapContext *hitMap, TPMContext *tpm);
 
-
+void
+printHitMapAvalSrchCtxt(HitMapAvalSearchCtxt *hmAvalSrchCtxt);
 #endif

@@ -12,7 +12,10 @@ static void
 freeHitMapAvalSearchCtxt(HitMapAvalSearchCtxt *hitMapAvalSrchCtxt);
 
 static void
-detectHitMapAvalInOut(HitMapAvalSearchCtxt *hitMapAvalSrchCtxt);
+detectHitMapAvalInOut(HitMapAvalSearchCtxt *hitMapAvalSrchCtxt, HitMapContext *hitMap);
+
+static void
+searchHitMapPropgtInOut(HitMapAvalSearchCtxt *hitMapAvalSrchCtxt, HitMapContext *hitMap);
 
 void
 detectHitMapAvalanche(HitMapContext *hitMap, TPMContext *tpm)
@@ -25,11 +28,15 @@ detectHitMapAvalanche(HitMapContext *hitMap, TPMContext *tpm)
     numOfBuf = hitMap->numOfBuf;
     for(u32 srcBufIdx = 0; srcBufIdx < numOfBuf-1; srcBufIdx++) {
         for(u32 dstBufIdx = srcBufIdx + 1; dstBufIdx < numOfBuf; dstBufIdx++) {
+//            if(srcBufIdx == 6)
+//                continue;
+
             srcTPMBuf = getTPMBuf(hitMap->tpmBuf, srcBufIdx);
             dstTPMBuf = getTPMBuf(hitMap->tpmBuf, dstBufIdx);
             hitMapAvalSrchCtxt = initHitMapAvalSearchCtxt(srcBufIdx, srcTPMBuf, dstBufIdx, dstTPMBuf);
-            detectHitMapAvalInOut(hitMapAvalSrchCtxt);
+            detectHitMapAvalInOut(hitMapAvalSrchCtxt, hitMap);
             freeHitMapAvalSearchCtxt(hitMapAvalSrchCtxt);
+            break;
         }
 //        for(int addrIdx = 0; addrIdx < hitMap->bufArray[srcBufIdx]->numOfAddr; addrIdx++) {
 //            HitMapNode *addrHeadNode = hitMap->bufArray[srcBufIdx]->addrArray[addrIdx];
@@ -41,6 +48,15 @@ detectHitMapAvalanche(HitMapContext *hitMap, TPMContext *tpm)
 OutOfLoop:
     printf("");
 }
+
+void
+printHitMapAvalSrchCtxt(HitMapAvalSearchCtxt *hmAvalSrchCtxt)
+{
+    if(hmAvalSrchCtxt == NULL)
+        return;
+
+}
+
 
 static HitMapAvalSearchCtxt *
 initHitMapAvalSearchCtxt(
@@ -82,9 +98,36 @@ freeHitMapAvalSearchCtxt(HitMapAvalSearchCtxt *hitMapAvalSrchCtxt)
 }
 
 static void
-detectHitMapAvalInOut(HitMapAvalSearchCtxt *hitMapAvalSrchCtxt)
+detectHitMapAvalInOut(HitMapAvalSearchCtxt *hitMapAvalSrchCtxt, HitMapContext *hitMap)
 {
     printf("---------------\n");
     print1TPMBufHashTable("srcTPMBuf:\n", hitMapAvalSrchCtxt->srcTPMBuf);
     print1TPMBufHashTable("dstTPMBuf:\n", hitMapAvalSrchCtxt->dstTPMBuf);
+
+    searchHitMapPropgtInOut(hitMapAvalSrchCtxt, hitMap);
+
+}
+
+static void
+searchHitMapPropgtInOut(HitMapAvalSearchCtxt *hitMapAvalSrchCtxt, HitMapContext *hitMap)
+// Searches propagations of source buffer (all version of each node) to dst buf,
+// results store in dstMemNodesHT
+// 1. Search propagation
+// For each version node of each addr of input buffer as source
+// 1.1 searches the source node propagations to destination buffers (within addr/seqNo range)
+{
+    u32 srcAddrIdx, srcBufID;
+
+    srcBufID = hitMapAvalSrchCtxt->srcBufID;
+    if(hitMapAvalSrchCtxt->srcBufID >= hitMap->numOfBuf) {
+        fprintf(stderr, "searchHitMapPropgtInOut error: invalid src buf ID\n");
+        return;
+    }
+
+    for(srcAddrIdx = 0; srcAddrIdx < hitMap->bufArray[srcBufID]->numOfAddr; srcAddrIdx++) {
+        HitMapNode *head = hitMap->bufArray[srcBufID]->addrArray[srcAddrIdx];
+        printHitMapNodeLit(head);
+        // assert(head->leftNBR == NULL);
+        break;
+    }
 }
