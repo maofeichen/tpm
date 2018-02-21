@@ -222,8 +222,8 @@ dfsHitMapNodePropagate(
 
     HitTransition *sourceHitTrans = srcnode->firstChild;
     if(sourceHitTrans == NULL) {
-        printf("given source node is a leaf\n");
-        printHitMapNode(srcnode);
+        // printf("given source node is a leaf\n");
+        // printHitMapNode(srcnode);
         return 0;
     }
 

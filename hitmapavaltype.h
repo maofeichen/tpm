@@ -21,6 +21,9 @@ createHitMapAddr2NodeItem(
         HitMapNode *toHitMapNode);
 
 void
+freeHitMapAddr2NodeItem(HitMapAddr2NodeItem *hmAddr2NodeItem);
+
+void
 printHitMap2LAddr2NodeItem(HitMapAddr2NodeItem *hmAddr2NodeItem);
 
 void

@@ -19,6 +19,27 @@ createHitMapAddr2NodeItem(
 }
 
 void
+freeHitMapAddr2NodeItem(HitMapAddr2NodeItem *hmAddr2NodeItem)
+{
+    HitMapAddr2NodeItem *item, *temp, *subItem, *subTemp;
+
+    if(hmAddr2NodeItem == NULL) {
+        // fprintf(stderr, "freeHitMapAddr2NodeItem error invalid:%p\n", hmAddr2NodeItem);
+        return;
+    }
+
+    HASH_ITER(hh_hmAddr2NodeItem, hmAddr2NodeItem, item, temp) {
+        HASH_ITER(hh_hmAddr2NodeItem, hmAddr2NodeItem->subHash, subItem, subTemp) {
+            HASH_DELETE(hh_hmAddr2NodeItem, hmAddr2NodeItem->subHash, subItem);
+            free(subItem);
+        }
+        HASH_DELETE(hh_hmAddr2NodeItem, hmAddr2NodeItem, item);
+        free(item);
+    }
+}
+
+
+void
 printHitMap2LAddr2NodeItem(HitMapAddr2NodeItem *hmAddr2NodeItem)
 {
     u32 totalSrc;

@@ -1,5 +1,6 @@
 #include "hitmapavalanche.h"
 #include "hitmappropagate.h"
+#include "misc.h"
 #include "uthash.h"
 #include <assert.h>
 
@@ -36,7 +37,7 @@ detectHitMapAvalanche(HitMapContext *hitMap, TPMContext *tpm)
             hitMapAvalSrchCtxt = initHitMapAvalSearchCtxt(srcBufIdx, srcTPMBuf, dstBufIdx, dstTPMBuf);
             detectHitMapAvalInOut(hitMapAvalSrchCtxt, hitMap);
             freeHitMapAvalSearchCtxt(hitMapAvalSrchCtxt);
-            break;
+            // break;
         }
 //        for(int addrIdx = 0; addrIdx < hitMap->bufArray[srcBufIdx]->numOfAddr; addrIdx++) {
 //            HitMapNode *addrHeadNode = hitMap->bufArray[srcBufIdx]->addrArray[addrIdx];
@@ -91,21 +92,26 @@ initHitMapAvalSearchCtxt(
 static void
 freeHitMapAvalSearchCtxt(HitMapAvalSearchCtxt *hitMapAvalSrchCtxt)
 {
+    for(int addrIdx = 0; addrIdx < hitMapAvalSrchCtxt->numOfSrcAddr; addrIdx++) {
+        freeHitMapAddr2NodeItem(hitMapAvalSrchCtxt->hitMapAddr2NodeAry[addrIdx]);
+    }
+
     free(hitMapAvalSrchCtxt->hitMapAddr2NodeAry);
     hitMapAvalSrchCtxt->hitMapAddr2NodeAry = NULL;
     free(hitMapAvalSrchCtxt);
     hitMapAvalSrchCtxt = NULL;
+    printf("del hitMapAvalSrchCtxt\n");
 }
 
 static void
 detectHitMapAvalInOut(HitMapAvalSearchCtxt *hitMapAvalSrchCtxt, HitMapContext *hitMap)
 {
-    printf("---------------\n");
-    print1TPMBufHashTable("srcTPMBuf:\n", hitMapAvalSrchCtxt->srcTPMBuf);
-    print1TPMBufHashTable("dstTPMBuf:\n", hitMapAvalSrchCtxt->dstTPMBuf);
-
+    printf("--------------------\n");
+    print1TPMBufHashTable("src Buf:\n", hitMapAvalSrchCtxt->srcTPMBuf);
+    print1TPMBufHashTable("dst Buf:\n", hitMapAvalSrchCtxt->dstTPMBuf);
+    printTime("before search propagation");
     searchHitMapPropgtInOut(hitMapAvalSrchCtxt, hitMap);
-
+    printTime("after search propagation");
 }
 
 static void
@@ -132,7 +138,7 @@ searchHitMapPropgtInOut(HitMapAvalSearchCtxt *hitMapAvalSrchCtxt, HitMapContext 
         u32 ver = head->version;
 
         do {
-            printHitMapNodeLit(head);
+            // printHitMapNodeLit(head);
             HitMapAddr2NodeItem *hmAddr2NodeItem = createHitMapAddr2NodeItem(head->addr, head, NULL, NULL);
             HASH_ADD(hh_hmAddr2NodeItem, hitMapAvalSrchCtxt->hitMapAddr2NodeAry[srcAddrIdx], node, 4, hmAddr2NodeItem);
             hitMapNodePropagate(head, hitMap, hmAddr2NodeItem, hitMapAvalSrchCtxt->dstAddrStart, hitMapAvalSrchCtxt->dstAddrEnd,
@@ -141,8 +147,8 @@ searchHitMapPropgtInOut(HitMapAvalSearchCtxt *hitMapAvalSrchCtxt, HitMapContext 
             head = head->nextVersion;
         } while(ver != head->version);
 
-        printHitMap2LAddr2NodeItem(hitMapAvalSrchCtxt->hitMapAddr2NodeAry[srcAddrIdx]);
+        // printHitMap2LAddr2NodeItem(hitMapAvalSrchCtxt->hitMapAddr2NodeAry[srcAddrIdx]);
         // assert(head->leftNBR == NULL);
-        break;
+        // break;
     }
 }
