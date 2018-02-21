@@ -160,7 +160,8 @@ void
 createHitMapRecord_IntrmdtNode(
         TPMNode *src,
         TPMNode *dst,
-        HitMapContext *hitMapCtxt)
+        HitMapContext *hitMapCtxt,
+        u32 tranSeqN)
 {
     HitMapNode *srcHMNode, *dstHMNode;
     HitTransition *ht;
@@ -185,7 +186,7 @@ createHitMapRecord_IntrmdtNode(
         dstHMNode = createHitMapRecordNodeIntermediate((TPMNode1 *)dst, hitMapCtxt);
     }
 
-    ht = createHitTransition(0, 0, dstHMNode);
+    ht = createHitTransition(0, tranSeqN, dstHMNode);
     attachHitTransition(srcHMNode, ht);
 }
 

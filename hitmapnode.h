@@ -109,7 +109,8 @@ void
 createHitMapRecord_IntrmdtNode(
         TPMNode *src,
         TPMNode *dst,
-        HitMapContext *hitMapCtxt);
+        HitMapContext *hitMapCtxt,
+        u32 tranSeqN);
 
 HitTransition *
 createHitTransition(

@@ -213,6 +213,7 @@ dfsHitMapNodePropagate(
 
     printf("---------------\nsource:");
     printHitMapNode(srcnode);
+    printf("dst max seqN:%u\n", dstMaxSeqN);
 
     HitTransitionHashTable *markVisitHitTransHT = NULL;
 
@@ -258,7 +259,7 @@ storeAllUnvisitHitTransChildren(
 
     while(firstChild != NULL) {
         if(!isHitTransitionVisited(*hitTransitionht, firstChild)
-           /* && firstChild->seqNo <= maxseq */) {
+            && firstChild->maxSeqNo <= maxseq ) {
             stackHitTransPush(firstChild, stackHitTransTop, stackHitTransCnt);
             markVisitHitTransition(hitTransitionht, firstChild);
         }

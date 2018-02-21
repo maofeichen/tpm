@@ -182,24 +182,27 @@ isLeafTransition(Transition *trans);
 
 static void
 processIntermediateTrans(
-        TPMNode *leafChild,
+        TPMNode *child,
         StackTPMNode *stackTPMNodePathTop,
         u32 stackTPMNodePathCnt,
-        HitMapContext *hitMapCtxt);
+        HitMapContext *hitMapCtxt,
+        u32 transSeqN);
 
 static void
 processLeafTrans(
         TPMNode *leafChild,
         StackTPMNode *stackTPMNodePathTop,
         u32 stackTPMNodePathCnt,
-        HitMapContext *hitMapCtxt);
+        HitMapContext *hitMapCtxt,
+        u32 transSeqN);
 
 static void
 processHasVisitTrans(
         TPMNode *child,
         StackTPMNode *stackTPMNodePathTop,
         u32 stackTPMNodePathCnt,
-        HitMapContext *hitMapCtxt);
+        HitMapContext *hitMapCtxt,
+        u32 transSeqN);
 
 /* TPM node stack operation
  *  used as in building HitMap with intermediate nodes, the tpm nodes can be
@@ -1062,9 +1065,11 @@ dfsBuildHitMap_intermediateNode(
     if(isHitMapNodeExist(srcnode, hitMapCtxt) ) // if the srcnode had already been searched
         return 0;                               // no need to search again
 
+    int maxSeqN, minSeqN;
+
     TransitionHashTable *HT_visitedTrans = NULL; // used to mark nodes had been visited during dfs (dfs routine)
 
-    StackTransitionNode *stackTransTop = NULL;  // used to store transitions during dfs (routine)
+    StackTransitionNode *stackTransTop = NULL;   // used to store transitions during dfs (routine)
     u32 stackTransCnt = 0;
 
     StackTPMNode *stackTPMNodePathTop = NULL;    // used to store path node during dfs (for building HitMap)
@@ -1100,7 +1105,7 @@ dfsBuildHitMap_intermediateNode(
         if(isTransitionVisited(HT_visitedTrans, topTrans) ) {  // if the transition had been examined and
                                                                // has children been pushed to transtiion stack
             assert(child == stackTPMNodePathTop->node);
-            processIntermediateTrans(child, stackTPMNodePathTop, stackTPMNodePathCnt, hitMapCtxt);
+            processIntermediateTrans(child, stackTPMNodePathTop, stackTPMNodePathCnt, hitMapCtxt, topTrans->seqNo);
 
             tpmNodePop(&stackTPMNodePathTop, &stackTPMNodePathCnt); // pop the TPMNode stack accordingly
             // printTPMNodeStack(stackTPMNodePathTop, stackTPMNodePathCnt);
@@ -1114,7 +1119,7 @@ dfsBuildHitMap_intermediateNode(
                 child->tpmnode1.hasVisit = 1;
             }
             else { // indicates the child had been visited by other source nodes, do not need to visit again
-                processHasVisitTrans(child, stackTPMNodePathTop, stackTPMNodePathCnt, hitMapCtxt);
+                processHasVisitTrans(child, stackTPMNodePathTop, stackTPMNodePathCnt, hitMapCtxt, topTrans->seqNo);
 
                 stackTransPop(&transLvl, &stackTransTop, &stackTransCnt);
                 // stackTransDisplay(stackTransTop, stackTransCnt);
@@ -1130,7 +1135,7 @@ dfsBuildHitMap_intermediateNode(
             if(isLeafTransition(topTrans) ) {
                 assert(child == stackTPMNodePathTop->node); // the top of TPMNode stack and the top of transtion
                                                             // stack point to the same node
-                processLeafTrans(child, stackTPMNodePathTop, stackTPMNodePathCnt, hitMapCtxt);
+                processLeafTrans(child, stackTPMNodePathTop, stackTPMNodePathCnt, hitMapCtxt, topTrans->seqNo);
 
                 tpmNodePop(&stackTPMNodePathTop, &stackTPMNodePathCnt); // pop the TPMNode stack accordingly
                 // printTPMNodeStack(stackTPMNodePathTop, stackTPMNodePathCnt);
@@ -1162,13 +1167,14 @@ isLeafTransition(Transition *trans)
 
 static void
 processIntermediateTrans(
-        TPMNode *leafChild,
+        TPMNode *child,
         StackTPMNode *stackTPMNodePathTop,
         u32 stackTPMNodePathCnt,
-        HitMapContext *hitMapCtxt)
+        HitMapContext *hitMapCtxt,
+        u32 transSeqN)
 {
-    if((leafChild->tpmnode1.type == TPM_Type_Memory
-        && leafChild->tpmnode2.bufid > 0)
+    if((child->tpmnode1.type == TPM_Type_Memory
+        && child->tpmnode2.bufid > 0)
        || stackTPMNodePathTop->flagCreateHM == 1) { // if it's a memory node child or it belongs to path to a memory node
         stackTPMNodePathTop->flagCreateHM = 1;
         if(stackTPMNodePathCnt > 1)
@@ -1177,7 +1183,7 @@ processIntermediateTrans(
 
             TPMNode *src = stackTPMNodePathTop->next->node;
             TPMNode *dst = stackTPMNodePathTop->node;
-            createHitMapRecord_IntrmdtNode(src, dst, hitMapCtxt);
+            createHitMapRecord_IntrmdtNode(src, dst, hitMapCtxt, transSeqN);
         }
     }
 }
@@ -1187,7 +1193,8 @@ processLeafTrans(
         TPMNode *leafChild,
         StackTPMNode *stackTPMNodePathTop,
         u32 stackTPMNodePathCnt,
-        HitMapContext *hitMapCtxt)
+        HitMapContext *hitMapCtxt,
+        u32 transSeqN)
 {
     if(leafChild->tpmnode1.type == TPM_Type_Memory
        && leafChild->tpmnode2.bufid > 0) { // if the leaf transition child is a memory node,
@@ -1198,7 +1205,7 @@ processLeafTrans(
             stackTPMNodePathTop->next->flagCreateHM = 1; // set last second item in TPMNode stack as true
             TPMNode *dst = stackTPMNodePathTop->node;
             TPMNode *src = stackTPMNodePathTop->next->node;
-            createHitMapRecord_IntrmdtNode(src, dst, hitMapCtxt);
+            createHitMapRecord_IntrmdtNode(src, dst, hitMapCtxt, transSeqN);
         }
     }
 }
@@ -1208,7 +1215,8 @@ processHasVisitTrans(
         TPMNode *child,
         StackTPMNode *stackTPMNodePathTop,
         u32 stackTPMNodePathCnt,
-        HitMapContext *hitMapCtxt)
+        HitMapContext *hitMapCtxt,
+        u32 transSeqN)
 // Nodes had been visited via other sources:
 // 1. Memory nodes
 //  should be in the hitmap, creates a transition to it
@@ -1224,7 +1232,7 @@ processHasVisitTrans(
        if(stackTPMNodePathCnt > 0) {
            TPMNode *src = stackTPMNodePathTop->node;
            TPMNode *dst = child;
-           createHitMapRecord_IntrmdtNode(src, dst, hitMapCtxt);
+           createHitMapRecord_IntrmdtNode(src, dst, hitMapCtxt, transSeqN);
        }
     }
     else {
@@ -1232,7 +1240,7 @@ processHasVisitTrans(
             if(stackTPMNodePathCnt > 0) {
                 TPMNode *src = stackTPMNodePathTop->node;
                 TPMNode *dst = child;
-                createHitMapRecord_IntrmdtNode(src, dst, hitMapCtxt);
+                createHitMapRecord_IntrmdtNode(src, dst, hitMapCtxt, transSeqN);
             }
         }
     }
