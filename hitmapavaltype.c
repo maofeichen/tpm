@@ -45,12 +45,11 @@ printHitMap2LAddr2NodeItem(HitMapAddr2NodeItem *hmAddr2NodeItem)
     u32 totalSrc;
 
     totalSrc = HASH_CNT(hh_hmAddr2NodeItem, hmAddr2NodeItem);
-    printf("total src HitMap nodes:%u\n", totalSrc);
+    // printf("total src HitMap nodes:%u\n", totalSrc);
     for(; hmAddr2NodeItem != NULL; hmAddr2NodeItem = hmAddr2NodeItem->hh_hmAddr2NodeItem.next) {
         printHitMapAddr2NodeItemSubhash(hmAddr2NodeItem);
     }
 }
-
 
 void
 printHitMapAddr2NodeItemSubhash(HitMapAddr2NodeItem *hmAddr2NodeItem)
@@ -62,9 +61,11 @@ printHitMapAddr2NodeItemSubhash(HitMapAddr2NodeItem *hmAddr2NodeItem)
 	    return;
 	}
 	totalSubItem = HASH_CNT(hh_hmAddr2NodeItem, hmAddr2NodeItem->subHash);
-	printf("----------\nsrc hitmap node:\n");
+
+	printf("--------------------\nsrc node in 2L ht:\n");
 	printHitMapNodeLit(hmAddr2NodeItem->node);
-	printf("total propagate dst hitmap node:%u\n", totalSubItem);
+    printf("propagate to:\n");
+	// printf("total propagate dst hitmap node:%u\n", totalSubItem);
 	for(subitem = hmAddr2NodeItem->subHash; subitem != NULL; subitem = subitem->hh_hmAddr2NodeItem.next) {
 	    printHitMapNodeLit(subitem->node);
 	}

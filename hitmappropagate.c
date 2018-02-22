@@ -86,6 +86,18 @@ hitMapNodePropagate(
     return dfsHitMapNodePropagate(srcnode, hitMap, hmAddr2NodeItem, dstAddrStart, dstAddrEnd, dstMinSeqN, dstMaxSeqN);
 }
 
+int
+cmpHitMapAddr2NodeItem(HitMapAddr2NodeItem *l, HitMapAddr2NodeItem *r)
+{
+    if(l->addr < r->addr) { return -1; }
+    else if(l->addr == r->addr) {
+        if(l->node->version < r->node->version) { return -1; }
+        else if(l->node->version < r->node->version) { return 0; }
+        else { return 1; }
+    }
+    else { return 1; }
+}
+
 static void
 add2HitTransitionHT(HitTransitionHashTable **hitTransitionht, HitTransition *toTrans)
 {
@@ -255,6 +267,7 @@ dfsHitMapNodePropagate(
     delHitTransitionHT(&markVisitHitTransHT);
     stackHitTransPopAll(&stackHitTransTop, &stackHitTransCnt);
 
+    HASH_SRT(hh_hmAddr2NodeItem, hmAddr2NodeItem->subHash, cmpHitMapAddr2NodeItem);
     return 0;
 }
 
@@ -304,3 +317,4 @@ markVisitHitTransition(
 
 	add2HitTransitionHT(hitTransitionht, hitTransition);
 }
+

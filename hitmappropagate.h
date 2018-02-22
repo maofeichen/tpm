@@ -36,4 +36,7 @@ hitMapNodePropagate(
 //  >= 0: num of hitmap nodes that the srcnode can propagate to
 //  <0: error
 
+int
+cmpHitMapAddr2NodeItem(HitMapAddr2NodeItem *l, HitMapAddr2NodeItem *r);
+
 #endif

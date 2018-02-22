@@ -47,7 +47,7 @@ detectHitMapAvalanche(HitMapContext *hitMap, TPMContext *tpm)
             detectHitMapAvalInOut(hitMapAvalSrchCtxt, hitMap);
             freeHitMapAvalSearchCtxt(hitMapAvalSrchCtxt);
         }
-        // break;
+        break;
     }
 OutOfLoop:
     printf("");
@@ -103,21 +103,23 @@ freeHitMapAvalSearchCtxt(HitMapAvalSearchCtxt *hitMapAvalSrchCtxt)
     hitMapAvalSrchCtxt->hitMapAddr2NodeAry = NULL;
     free(hitMapAvalSrchCtxt);
     hitMapAvalSrchCtxt = NULL;
-    printf("del hitMapAvalSrchCtxt\n");
+    // printf("del hitMapAvalSrchCtxt\n");
 }
 
 static void
 detectHitMapAvalInOut(HitMapAvalSearchCtxt *hitMapAvalSrchCtxt, HitMapContext *hitMap)
 {
-    printf("------------------------------ ------------------------------\n");
-    print1TPMBufHashTable("src Buf:\n", hitMapAvalSrchCtxt->srcTPMBuf);
-    print1TPMBufHashTable("dst Buf:\n", hitMapAvalSrchCtxt->dstTPMBuf);
+    printf("----------------------------------------\n");
+    print1TPMBufHashTable("src buf: ", hitMapAvalSrchCtxt->srcTPMBuf);
+    print1TPMBufHashTable("dst buf: ", hitMapAvalSrchCtxt->dstTPMBuf);
     // printTime("before search propagation");
-    printTimeMicroStart();
+    // printTimeMicroStart();
     searchHitMapPropgtInOut(hitMapAvalSrchCtxt, hitMap);
     // printTime("after search propagation");
-    printTimeMicroEnd();
+    // printTimeMicroEnd();
 }
+
+
 
 static void
 searchHitMapPropgtInOut(HitMapAvalSearchCtxt *hitMapAvalSrchCtxt, HitMapContext *hitMap)
@@ -152,8 +154,10 @@ searchHitMapPropgtInOut(HitMapAvalSearchCtxt *hitMapAvalSrchCtxt, HitMapContext 
             head = head->nextVersion;
         } while(ver != head->version);
 
-        // printHitMap2LAddr2NodeItem(hitMapAvalSrchCtxt->hitMapAddr2NodeAry[srcAddrIdx]);
+        HASH_SRT(hh_hmAddr2NodeItem, hitMapAvalSrchCtxt->hitMapAddr2NodeAry[srcAddrIdx], cmpHitMapAddr2NodeItem);
+        printHitMap2LAddr2NodeItem(hitMapAvalSrchCtxt->hitMapAddr2NodeAry[srcAddrIdx]);
         // assert(head->leftNBR == NULL);
         // break;
     }
+
 }

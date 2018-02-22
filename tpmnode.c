@@ -157,13 +157,12 @@ printMemNode(struct TPMNode2 *n)
 void 
 printMemNodeLit(TPMNode2 *node)
 {
-//    printf("addr:0x%-8x val:%-8x sz:%u lastUpdateTS:%-16d"
-//            " version:%-4u bufID:%u\n",
-//            node->addr, node->val, node->bytesz, node->lastUpdateTS,
-//            node->version, node->bufid);
-    printf("%-16d\n",node->lastUpdateTS);
+    printf("addr:0x%-8x val:%-8x sz:%u lastUpdateTS:%-16d"
+            " version:%-4u bufID:%u\n",
+            node->addr, node->val, node->bytesz, node->lastUpdateTS,
+            node->version, node->bufid);
+    // printf("%-16d\n",node->lastUpdateTS);
 }
-
 
 void
 printNonmemNode(struct TPMNode1 *n)

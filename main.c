@@ -38,21 +38,21 @@ int main(int argc, char const *argv[])
 			stat(tpm);
 #endif
 			// benchTPMDFS(tpm);
+
 			hitMap = initHitMap(tpm);
-			printTime("Finish init HitMap");
+			// printTime("Finish init HitMap");
 			buildHitMap(hitMap, tpm);
-			printTime("Finish building HitMap");
-			compHitMapStat(hitMap);
+			// printTime("Finish building HitMap");
+			// compHitMapStat(hitMap);
 
-			delTPM(tpm);
-
-			// detectHitMapAvalanche(hitMap, tpm);
+			detectHitMapAvalanche(hitMap, tpm);
 			// printHitMap(hitMap);
 			delAllTPMBuf(hitMap->tpmBuf);
 			delHitMap(hitMap);
 
 			// searchAllAvalancheInTPM(tpm);
 			// searchTPMAvalancheFast(tpm);
+			delTPM(tpm);
 		} 
 		else { fprintf(stderr, "error alloc: TPMContext\n"); }
 		fclose(log);

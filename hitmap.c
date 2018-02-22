@@ -71,7 +71,7 @@ initHitMap(TPMContext *tpm)
     hitMap->bufArray = calloc(1, sizeof(BufContext *) * numOfBuf);
     hitMap->tpmBuf = tpmBuf;
 
-    printHitMapLit(hitMap);
+    // printHitMapLit(hitMap);
 
     i = 0;
     for(currBuf = tpmBuf; currBuf != NULL; currBuf = currBuf->hh_tpmBufHT.next) {

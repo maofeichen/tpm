@@ -267,6 +267,7 @@ searchAllAvalancheInTPM(TPMContext *tpm)
 	for(srcBuf = tpmBufHT; srcBuf != NULL; srcBuf = srcBuf->hh_tpmBufHT.next) {
 		for(dstBuf = srcBuf->hh_tpmBufHT.next; dstBuf != NULL; dstBuf = dstBuf->hh_tpmBufHT.next) {
 
+#if 0
 		    // if(srcBuf->baddr == 0xc3fb7d80 && dstBuf->baddr == 0xc3fb7d40){ // test signle buf
 		    if(srcBuf->baddr == 0xde911000 && dstBuf->baddr == 0x804c170){ // test signle buf
 	            init_AvalancheSearchCtxt(&avalsctxt, tpm->minBufferSz,
@@ -278,32 +279,31 @@ searchAllAvalancheInTPM(TPMContext *tpm)
 	    		// goto OUTLOOP;
 			}
 
-#if 0
+#endif
 		    init_AvalancheSearchCtxt(&avalsctxt, tpm->minBufferSz,
 		            srcBuf->headNode, dstBuf->headNode, srcBuf->baddr, srcBuf->eaddr,
 		            dstBuf->baddr, dstBuf->eaddr, srcBuf->numOfAddr, dstBuf->numOfAddr);
 			setSeqNo(avalsctxt, srcBuf->minseq, srcBuf->maxseq, dstBuf->minseq, dstBuf->maxseq);
 
-			printf("----------------------------------------%d pair-buf search\n", searchcnt);
-	    	printTime();
+			// printf("----------------------------------------%d pair-buf search\n", searchcnt);
+	    	// printTime("");
 	    	searchAvalancheInOutBuf(tpm, avalsctxt, &propaStat);
 	    	free_AvalancheSearchCtxt(avalsctxt);     
 
-#endif
 	    	searchcnt++;
 		}
+		break;
 	}
 OUTLOOP:
 #ifdef DEBUG
 	printBufNode(avalsctxt->srcBuf);
 	printBufNode(avalsctxt->dstBuf);
 #endif
-	if(propaStat.numOfSearch > 0) {
-	    printf("----------------------------------------\n");
-		printf("minstep:%u maxstep:%u avgstep:%u\n",
-	        propaStat.minstep, propaStat.maxstep, propaStat.totalstep / propaStat.numOfSearch);
-	}
-
+	// if(propaStat.numOfSearch > 0) {
+	//     printf("----------------------------------------\n");
+	// 	printf("minstep:%u maxstep:%u avgstep:%u\n",
+	//         propaStat.minstep, propaStat.maxstep, propaStat.totalstep / propaStat.numOfSearch);
+	// }
 	delAllTPMBuf(tpmBufHT);
 }
 
@@ -347,31 +347,33 @@ free_AvalancheSearchCtxt(struct AvalancheSearchCtxt *avalsctxt)
 int 
 searchAvalancheInOutBuf(TPMContext *tpm, AvalancheSearchCtxt *avalsctxt, PropagateStat *propaStat)
 {
-	printf("src buf: start:%-8x end:%-8x sz:%u minseq:%d maxseq:%d diffSeq:%d\n", 
+    printf("----------------------------------------\n");
+	printf("src buf: start:%-8x end:%-8x sz:%u minseq:%d maxseq:%d diffSeq:%d bufID:%u\n",
 		avalsctxt->srcAddrStart, avalsctxt->srcAddrEnd, avalsctxt->srcAddrEnd - avalsctxt->srcAddrStart, 
-		avalsctxt->srcMinSeqN, avalsctxt->srcMaxSeqN, avalsctxt->srcMaxSeqN - avalsctxt->srcMinSeqN);
-	printf("dst buf: start:%-8x end:%-8x sz:%u minseq:%d maxseq:%d diffSeq:%d\n", 
+		avalsctxt->srcMinSeqN, avalsctxt->srcMaxSeqN, avalsctxt->srcMaxSeqN - avalsctxt->srcMinSeqN,
+		avalsctxt->srcBuf->bufid);
+	printf("dst buf: start:%-8x end:%-8x sz:%u minseq:%d maxseq:%d diffSeq:%d bufID:%u\n",
 		avalsctxt->dstAddrStart, avalsctxt->dstAddrEnd, avalsctxt->dstAddrEnd - avalsctxt->dstAddrStart, 
-		avalsctxt->dstMinSeqN, avalsctxt->dstMaxSeqN, avalsctxt->dstMaxSeqN - avalsctxt->dstMinSeqN);
+		avalsctxt->dstMinSeqN, avalsctxt->dstMaxSeqN, avalsctxt->dstMaxSeqN - avalsctxt->dstMinSeqN,
+		avalsctxt->dstBuf->bufid);
 
 	searchPropagateInOutBuf(tpm, avalsctxt, &(avalsctxt->addr2Node), propaStat);
-	printf("--------------------\n");
-	printf("finish searching propagation\n");
-    if(propaStat->numOfSearch > 0) {
-        printf("--------------------\n");
-        printf("minstep:%u maxstep:%u avgstep:%u totalstep:%u numofsearch:%u\n",
-                propaStat->minstep, propaStat->maxstep, propaStat->totalstep / propaStat->numOfSearch,
-                propaStat->totalstep, propaStat->numOfSearch);
-    }
-
-	printTime("");
+	// printf("--------------------\n");
+	// printf("finish searching propagation\n");
+    // if(propaStat->numOfSearch > 0) {
+    //     printf("--------------------\n");
+    //     printf("minstep:%u maxstep:%u avgstep:%u totalstep:%u numofsearch:%u\n",
+    //             propaStat->minstep, propaStat->maxstep, propaStat->totalstep / propaStat->numOfSearch,
+    //             propaStat->totalstep, propaStat->numOfSearch);
+    // }
+	// printTime("");
 #ifdef DEBUG
 	printDstMemNodesHTTotal(avalsctxt->addr2Node);
 	printDstMemNodesHT(avalsctxt->addr2Node);
-	print2LevelHashTable(avalsctxt->addr2NodeAry, avalsctxt->numOfSrcAddr);
 #endif
+	print2LevelHashTable(avalsctxt->addr2NodeAry, avalsctxt->numOfSrcAddr);
 	// detectAvalancheInOutBuf(tpm, avalsctxt);
-	detectAvalancheInOutBufFast(tpm, avalsctxt);
+	// detectAvalancheInOutBufFast(tpm, avalsctxt); // latest use
 	return 0;
 }
 
@@ -1604,11 +1606,11 @@ print2LevelHashTable(struct addr2NodeItem **addr2NodeAry, u32 numOfAddr)
   int addridx = 0;
   for(; addridx < numOfAddr; addridx++) {
     for(src = addr2NodeAry[addridx]; src != NULL; src = src->hh_addr2NodeItem.next) {
-      printf("src node in 2-L ht:\n");
-      printMemNode(src->node);
-      printf("dst node:\n");
+      printf("--------------------\nsrc node in 2L ht:\n");
+      printMemNodeLit(src->node);
+      printf("propagate to:\n");
       for(dst = src->subHash; dst != NULL; dst = dst->hh_addr2NodeItem.next) {
-        printMemNode(dst->node);
+        printMemNodeLit(dst->node);
       }
     }
   }
