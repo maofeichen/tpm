@@ -31,7 +31,8 @@ detectHitMapAvalanche(HitMapContext *hitMap, TPMContext *tpm)
     numOfBuf = hitMap->numOfBuf;
     for(srcBufIdx = 0; srcBufIdx < numOfBuf-1; srcBufIdx++) {
         for(dstBufIdx = srcBufIdx + 1; dstBufIdx < numOfBuf; dstBufIdx++) {
-//            if(srcBufIdx <= 2 || (srcBufIdx >= numOfBuf/2 && srcBufIdx <= numOfBuf/2 + 2) ) {
+//            if((srcBufIdx >= 265 && srcBufIdx <= 270)
+//                || (srcBufIdx >= 925 && srcBufIdx <= 930) ) {
 //                if(dstBufIdx == srcBufIdx+1 || dstBufIdx == numOfBuf-1) {
 //                    srcTPMBuf = getTPMBuf(hitMap->tpmBuf, srcBufIdx);
 //                    dstTPMBuf = getTPMBuf(hitMap->tpmBuf, dstBufIdx);
@@ -46,6 +47,7 @@ detectHitMapAvalanche(HitMapContext *hitMap, TPMContext *tpm)
             detectHitMapAvalInOut(hitMapAvalSrchCtxt, hitMap);
             freeHitMapAvalSearchCtxt(hitMapAvalSrchCtxt);
         }
+        // break;
     }
 OutOfLoop:
     printf("");
@@ -110,9 +112,11 @@ detectHitMapAvalInOut(HitMapAvalSearchCtxt *hitMapAvalSrchCtxt, HitMapContext *h
     printf("------------------------------ ------------------------------\n");
     print1TPMBufHashTable("src Buf:\n", hitMapAvalSrchCtxt->srcTPMBuf);
     print1TPMBufHashTable("dst Buf:\n", hitMapAvalSrchCtxt->dstTPMBuf);
-    printTime("before search propagation");
+    // printTime("before search propagation");
+    printTimeMicroStart();
     searchHitMapPropgtInOut(hitMapAvalSrchCtxt, hitMap);
-    printTime("after search propagation");
+    // printTime("after search propagation");
+    printTimeMicroEnd();
 }
 
 static void

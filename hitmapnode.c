@@ -535,7 +535,6 @@ printHitMapNodeLit(HitMapNode *node)
             node->addr, node->val, node->bytesz, node->lastUpdateTS,
             node->version, node->bufId);
 //    printf("%-16d\n",node->lastUpdateTS);
-
 }
 
 void

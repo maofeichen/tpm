@@ -235,6 +235,10 @@ dfsHitMapNodePropagate(
         HitTransition *popTrans = stackHitTransPop(&stackHitTransTop, &stackHitTransCnt);
         HitMapNode *popDstHitMapNode = popTrans->child;
 
+        if(popDstHitMapNode->bufId > 0) {
+            // printHitMapNodeLit(popDstHitMapNode);
+        }
+
         if(popDstHitMapNode->bufId > 0
            && popDstHitMapNode->addr >= dstAddrStart && popDstHitMapNode->addr <= dstAddrEnd
            && popDstHitMapNode->lastUpdateTS >= dstMinSeqN && popDstHitMapNode->lastUpdateTS <= dstMaxSeqN) {

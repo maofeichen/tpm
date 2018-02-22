@@ -275,8 +275,8 @@ bufnodePropgt2HitMapNode(
         HitMapContext *hitMapCtxt)
 {
     // return dfs2HitMapNode(tpm, srcnode, hitMapCtxt);
-    // return dfs2HitMapNode_PopWhenNoChildren(tpm, srcnode, hitMapCtxt);
-    return dfsBuildHitMap_intermediateNode(tpm, srcnode, hitMapCtxt);
+    return dfs2HitMapNode_PopWhenNoChildren(tpm, srcnode, hitMapCtxt);
+    // return dfsBuildHitMap_intermediateNode(tpm, srcnode, hitMapCtxt);
 }
 
 //int
@@ -792,7 +792,7 @@ storeAllUnvisitChildren_NoMark(
      while(firstChild != NULL) {
         if(!isTransitionVisited(*transitionht, firstChild)  // only push non visit node (dfs routine)
            && firstChild->seqNo <= maxseq
-           && firstChild->child->tpmnode1.hasVisit == 0 ) { // A bug in propagate
+           && firstChild->child->tpmnode1.hasVisit == 0  ) { // A bug in propagate
             stackTransPush(firstChild, dfsLevel, stackTransTop, stackTransCnt);
         }
         firstChild = firstChild->next;
