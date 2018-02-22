@@ -121,7 +121,7 @@ storeAllUnvisitChildrenFast(
         u32 dfsLevel);
 
 static void
-storeAllUnvisitChildren_NoMark(
+storeUnvisitChildren(
         TransitionHashTable **transitionht,
         Transition *firstChild,
         int maxseq,
@@ -130,7 +130,7 @@ storeAllUnvisitChildren_NoMark(
         u32 dfsLevel);
 
 static void
-storeUnvisitChildren(
+storeUnvisitChildren_Intermediate(
         TransitionHashTable **transitionht,
         Transition *firstChild,
         int maxseq,
@@ -159,7 +159,7 @@ storeDFSBufNodeVisitPath(
         u32 *stackBufNodePathCnt);
 
 static int
-dfs2HitMapNode_PopWhenNoChildren(
+dfs2HitMapNode_PopAtEnd(
         TPMContext *tpm,
         TPMNode2 *srcnode,
         HitMapContext *hitMapCtxt);
@@ -275,7 +275,7 @@ bufnodePropgt2HitMapNode(
         HitMapContext *hitMapCtxt)
 {
     // return dfs2HitMapNode(tpm, srcnode, hitMapCtxt);
-    return dfs2HitMapNode_PopWhenNoChildren(tpm, srcnode, hitMapCtxt);
+    return dfs2HitMapNode_PopAtEnd(tpm, srcnode, hitMapCtxt);
     // return dfsBuildHitMap_intermediateNode(tpm, srcnode, hitMapCtxt);
 }
 
@@ -744,6 +744,7 @@ storeAllUnvisitChildren(
         TransitionHashTable **transitionht,
         Transition *firstChild,
         int maxseq)
+// Not use!
 {
 	while(firstChild != NULL){
 		if(!isTransitionVisited(*transitionht, firstChild)
@@ -764,6 +765,7 @@ storeAllUnvisitChildrenFast(
         u32 *stackTransCnt,
         u32 dfsLevel)
 // Same as storeAllUnvisitChildren, additionally add level info
+// Not use!
 {
 
     while(firstChild != NULL) {
@@ -778,7 +780,7 @@ storeAllUnvisitChildrenFast(
 }
 
 static void
-storeAllUnvisitChildren_NoMark(
+storeUnvisitChildren(
         TransitionHashTable **transitionht,
         Transition *firstChild,
         int maxseq,
@@ -792,7 +794,7 @@ storeAllUnvisitChildren_NoMark(
      while(firstChild != NULL) {
         if(!isTransitionVisited(*transitionht, firstChild)  // only push non visit node (dfs routine)
            && firstChild->seqNo <= maxseq
-           && firstChild->child->tpmnode1.hasVisit == 0  ) { // A bug in propagate
+           /* && firstChild->child->tpmnode1.hasVisit == 0 */  ) { // A bug in propagate
             stackTransPush(firstChild, dfsLevel, stackTransTop, stackTransCnt);
         }
         firstChild = firstChild->next;
@@ -800,7 +802,7 @@ storeAllUnvisitChildren_NoMark(
 }
 
 static void
-storeUnvisitChildren(
+storeUnvisitChildren_Intermediate(
         TransitionHashTable **transitionht,
         Transition *firstChild,
         int maxseq,
@@ -948,7 +950,7 @@ storeDFSBufNodeVisitPath(
 }
 
 static int
-dfs2HitMapNode_PopWhenNoChildren(
+dfs2HitMapNode_PopAtEnd(
         TPMContext *tpm,
         TPMNode2 *srcnode,
         HitMapContext *hitMapCtxt)
@@ -987,7 +989,7 @@ dfs2HitMapNode_PopWhenNoChildren(
     stckMemnodePush(srcnode, dfsLevel, &stackBufNodePathTop, &stackBufNodePathCnt);
     // stckMemnodeDisplay(stackBufNodePathTop, stackBufNodePathCnt);
 
-    storeAllUnvisitChildren_NoMark(&markVisitTransHT, sourceTrans,
+    storeUnvisitChildren(&markVisitTransHT, sourceTrans,
             hitMapCtxt->maxBufSeqN, &stackTransTop, &stackTransCnt, dfsLevel);
     // stackTransDisplay(stackTransTop, stackTransCnt);
 
@@ -1002,11 +1004,16 @@ dfs2HitMapNode_PopWhenNoChildren(
             popBufNode(dstNode, &stackBufNodePathTop, &stackBufNodePathCnt);
         }
         else {
-            markVisitTransition(&markVisitTransHT, topTrans);
-            if(dstNode->tpmnode1.hasVisit == 0)
-                dstNode->tpmnode1.hasVisit = 1;
-
             if(dstNode->tpmnode1.type == TPM_Type_Memory && isValidBufNode((TPMNode2 *)dstNode) ) {
+                if(dstNode->tpmnode2.hasVisit != 0) { // the buf node had been visited by other source buffer node
+                    createHitMapRecord(stackBufNodePathTop->memnode, 0, (TPMNode2 *)dstNode, 0, hitMapCtxt); // creates a transition to the visited buf node
+                    stackTransPop(&transLvl, &stackTransTop, &stackTransCnt);
+                    continue;
+                }
+                else {
+                    dstNode->tpmnode2.hasVisit = 1;
+                }
+
                 // printf("----------src hitmap node:\n");
                 // printMemNodeLit(stackBufNodePathTop->memnode);
                 // printf("dst hitmap node:\n");
@@ -1014,16 +1021,16 @@ dfs2HitMapNode_PopWhenNoChildren(
                 createHitMapRecord(stackBufNodePathTop->memnode, 0, (TPMNode2 *)dstNode, 0, hitMapCtxt);
                 stckMemnodePush((TPMNode2 *)dstNode, dfsLevel, &stackBufNodePathTop, &stackBufNodePathCnt);
             }
-            else {}
+
+            markVisitTransition(&markVisitTransHT, topTrans);
 
             if(dstNode->tpmnode1.firstChild == NULL) { // leaf nodes
                 stackTransPop(&transLvl, &stackTransTop, &stackTransCnt);
                 // stackTransDisplay(stackTransTop, stackTransCnt);
-
                 popBufNode(dstNode, &stackBufNodePathTop, &stackBufNodePathCnt);
             }
             else {
-              storeAllUnvisitChildren_NoMark(&markVisitTransHT, dstNode->tpmnode1.firstChild,
+              storeUnvisitChildren(&markVisitTransHT, dstNode->tpmnode1.firstChild,
                       hitMapCtxt->maxBufSeqN, &stackTransTop, &stackTransCnt, dfsLevel);
               // stackTransDisplay(stackTransTop, stackTransCnt);
             }
@@ -1088,7 +1095,7 @@ dfsBuildHitMap_intermediateNode(
     tpmNodePush((TPMNode *)srcnode, &stackTPMNodePathTop, &stackTPMNodePathCnt);
     // printTPMNodeStack(stackTPMNodePathTop, stackTPMNodePathCnt);
 
-    storeUnvisitChildren(&HT_visitedTrans, srcTrans, hitMapCtxt->maxBufSeqN, &stackTransTop, &stackTransCnt, 0);
+    storeUnvisitChildren_Intermediate(&HT_visitedTrans, srcTrans, hitMapCtxt->maxBufSeqN, &stackTransTop, &stackTransCnt, 0);
     // stackTransDisplay(stackTransTop, stackTransCnt);
 
     while(!isStackTransEmpty(stackTransTop) ) {
@@ -1143,7 +1150,7 @@ dfsBuildHitMap_intermediateNode(
                 // stackTransDisplay(stackTransTop, stackTransCnt);
             }
             else {
-                storeUnvisitChildren(&HT_visitedTrans, child->tpmnode1.firstChild,
+                storeUnvisitChildren_Intermediate(&HT_visitedTrans, child->tpmnode1.firstChild,
                         hitMapCtxt->maxBufSeqN, &stackTransTop, &stackTransCnt, 0);
             }
         }
