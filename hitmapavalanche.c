@@ -23,28 +23,30 @@ searchHitMapPropgtInOut(HitMapAvalSearchCtxt *hitMapAvalSrchCtxt, HitMapContext 
 void
 detectHitMapAvalanche(HitMapContext *hitMap, TPMContext *tpm)
 {
-    u32 numOfBuf;
+    u32 numOfBuf, srcBufIdx, dstBufIdx;
     TPMBufHashTable *srcTPMBuf;
     TPMBufHashTable *dstTPMBuf;
     HitMapAvalSearchCtxt *hitMapAvalSrchCtxt;
 
     numOfBuf = hitMap->numOfBuf;
-    for(u32 srcBufIdx = 0; srcBufIdx < numOfBuf-1; srcBufIdx++) {
-        for(u32 dstBufIdx = srcBufIdx + 1; dstBufIdx < numOfBuf; dstBufIdx++) {
-
-            srcTPMBuf = getTPMBuf(hitMap->tpmBuf, srcBufIdx);
-            dstTPMBuf = getTPMBuf(hitMap->tpmBuf, dstBufIdx);
-            hitMapAvalSrchCtxt = initHitMapAvalSearchCtxt(srcBufIdx, srcTPMBuf, dstBufIdx, dstTPMBuf);
-            detectHitMapAvalInOut(hitMapAvalSrchCtxt, hitMap);
-            freeHitMapAvalSearchCtxt(hitMapAvalSrchCtxt);
+    for(srcBufIdx = 0; srcBufIdx < numOfBuf-1; srcBufIdx++) {
+        for(dstBufIdx = srcBufIdx + 1; dstBufIdx < numOfBuf; dstBufIdx++) {
+            if(srcBufIdx <= 2 || (srcBufIdx >= numOfBuf/2 && srcBufIdx <= numOfBuf/2 + 2) ) {
+                if(dstBufIdx == srcBufIdx+1 || dstBufIdx == numOfBuf-1) {
+                    srcTPMBuf = getTPMBuf(hitMap->tpmBuf, srcBufIdx);
+                    dstTPMBuf = getTPMBuf(hitMap->tpmBuf, dstBufIdx);
+                    hitMapAvalSrchCtxt = initHitMapAvalSearchCtxt(srcBufIdx, srcTPMBuf, dstBufIdx, dstTPMBuf);
+                    detectHitMapAvalInOut(hitMapAvalSrchCtxt, hitMap);
+                    freeHitMapAvalSearchCtxt(hitMapAvalSrchCtxt);
+                }
+            }
+//            srcTPMBuf = getTPMBuf(hitMap->tpmBuf, srcBufIdx);
+//            dstTPMBuf = getTPMBuf(hitMap->tpmBuf, dstBufIdx);
+//            hitMapAvalSrchCtxt = initHitMapAvalSearchCtxt(srcBufIdx, srcTPMBuf, dstBufIdx, dstTPMBuf);
+//            detectHitMapAvalInOut(hitMapAvalSrchCtxt, hitMap);
+//            freeHitMapAvalSearchCtxt(hitMapAvalSrchCtxt);
             // break;
         }
-//        for(int addrIdx = 0; addrIdx < hitMap->bufArray[srcBufIdx]->numOfAddr; addrIdx++) {
-//            HitMapNode *addrHeadNode = hitMap->bufArray[srcBufIdx]->addrArray[addrIdx];
-//            // printHitMapNode(addrHeadNode);
-//            // hitMapNodePropagate(addrHeadNode, hitMap, tpm);
-//            goto OutOfLoop;
-//        }
     }
 OutOfLoop:
     printf("");
@@ -106,7 +108,7 @@ freeHitMapAvalSearchCtxt(HitMapAvalSearchCtxt *hitMapAvalSrchCtxt)
 static void
 detectHitMapAvalInOut(HitMapAvalSearchCtxt *hitMapAvalSrchCtxt, HitMapContext *hitMap)
 {
-    printf("--------------------\n");
+    printf("------------------------------\n");
     print1TPMBufHashTable("src Buf:\n", hitMapAvalSrchCtxt->srcTPMBuf);
     print1TPMBufHashTable("dst Buf:\n", hitMapAvalSrchCtxt->dstTPMBuf);
     printTime("before search propagation");
