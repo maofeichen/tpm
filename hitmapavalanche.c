@@ -31,21 +31,20 @@ detectHitMapAvalanche(HitMapContext *hitMap, TPMContext *tpm)
     numOfBuf = hitMap->numOfBuf;
     for(srcBufIdx = 0; srcBufIdx < numOfBuf-1; srcBufIdx++) {
         for(dstBufIdx = srcBufIdx + 1; dstBufIdx < numOfBuf; dstBufIdx++) {
-            if(srcBufIdx <= 2 || (srcBufIdx >= numOfBuf/2 && srcBufIdx <= numOfBuf/2 + 2) ) {
-                if(dstBufIdx == srcBufIdx+1 || dstBufIdx == numOfBuf-1) {
-                    srcTPMBuf = getTPMBuf(hitMap->tpmBuf, srcBufIdx);
-                    dstTPMBuf = getTPMBuf(hitMap->tpmBuf, dstBufIdx);
-                    hitMapAvalSrchCtxt = initHitMapAvalSearchCtxt(srcBufIdx, srcTPMBuf, dstBufIdx, dstTPMBuf);
-                    detectHitMapAvalInOut(hitMapAvalSrchCtxt, hitMap);
-                    freeHitMapAvalSearchCtxt(hitMapAvalSrchCtxt);
-                }
-            }
-//            srcTPMBuf = getTPMBuf(hitMap->tpmBuf, srcBufIdx);
-//            dstTPMBuf = getTPMBuf(hitMap->tpmBuf, dstBufIdx);
-//            hitMapAvalSrchCtxt = initHitMapAvalSearchCtxt(srcBufIdx, srcTPMBuf, dstBufIdx, dstTPMBuf);
-//            detectHitMapAvalInOut(hitMapAvalSrchCtxt, hitMap);
-//            freeHitMapAvalSearchCtxt(hitMapAvalSrchCtxt);
-            // break;
+//            if(srcBufIdx <= 2 || (srcBufIdx >= numOfBuf/2 && srcBufIdx <= numOfBuf/2 + 2) ) {
+//                if(dstBufIdx == srcBufIdx+1 || dstBufIdx == numOfBuf-1) {
+//                    srcTPMBuf = getTPMBuf(hitMap->tpmBuf, srcBufIdx);
+//                    dstTPMBuf = getTPMBuf(hitMap->tpmBuf, dstBufIdx);
+//                    hitMapAvalSrchCtxt = initHitMapAvalSearchCtxt(srcBufIdx, srcTPMBuf, dstBufIdx, dstTPMBuf);
+//                    detectHitMapAvalInOut(hitMapAvalSrchCtxt, hitMap);
+//                    freeHitMapAvalSearchCtxt(hitMapAvalSrchCtxt);
+//                }
+//            }
+            srcTPMBuf = getTPMBuf(hitMap->tpmBuf, srcBufIdx);
+            dstTPMBuf = getTPMBuf(hitMap->tpmBuf, dstBufIdx);
+            hitMapAvalSrchCtxt = initHitMapAvalSearchCtxt(srcBufIdx, srcTPMBuf, dstBufIdx, dstTPMBuf);
+            detectHitMapAvalInOut(hitMapAvalSrchCtxt, hitMap);
+            freeHitMapAvalSearchCtxt(hitMapAvalSrchCtxt);
         }
     }
 OutOfLoop:
