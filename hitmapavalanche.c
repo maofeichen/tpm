@@ -108,7 +108,7 @@ freeHitMapAvalSearchCtxt(HitMapAvalSearchCtxt *hitMapAvalSrchCtxt)
 static void
 detectHitMapAvalInOut(HitMapAvalSearchCtxt *hitMapAvalSrchCtxt, HitMapContext *hitMap)
 {
-    printf("------------------------------\n");
+    printf("------------------------------ ------------------------------\n");
     print1TPMBufHashTable("src Buf:\n", hitMapAvalSrchCtxt->srcTPMBuf);
     print1TPMBufHashTable("dst Buf:\n", hitMapAvalSrchCtxt->dstTPMBuf);
     printTime("before search propagation");

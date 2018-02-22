@@ -44,6 +44,8 @@ int main(int argc, char const *argv[])
 			printTime("Finish building HitMap");
 			compHitMapStat(hitMap);
 
+			delTPM(tpm);
+
 			detectHitMapAvalanche(hitMap, tpm);
 			// printHitMap(hitMap);
 			delAllTPMBuf(hitMap->tpmBuf);
@@ -51,7 +53,6 @@ int main(int argc, char const *argv[])
 
 			// searchAllAvalancheInTPM(tpm);
 			// searchTPMAvalancheFast(tpm);
-			delTPM(tpm);
 		} 
 		else { fprintf(stderr, "error alloc: TPMContext\n"); }
 		fclose(log);
