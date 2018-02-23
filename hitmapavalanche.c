@@ -62,8 +62,8 @@ detectHitMapAvalanche(HitMapContext *hitMap, TPMContext *tpm)
         }
         break;
     }
-    // if(searchCnt > 0)
-    //     printf("---------------\navg build 2-level hash table time:%.1f microseconds\n", totalElapse/searchCnt);
+    if(searchCnt > 0)
+        printf("---------------\navg build 2-level hash table time:%.1f microseconds\n", totalElapse/searchCnt);
 OutOfLoop:
     printf("");
 }
@@ -136,22 +136,20 @@ detectHitMapAvalInOut(
     printf("----------------------------------------\n");
     print1TPMBufHashTable("src buf: ", hitMapAvalSrchCtxt->srcTPMBuf);
     print1TPMBufHashTable("dst buf: ", hitMapAvalSrchCtxt->dstTPMBuf);
-    // printf("total src buf node:%u - total dst buf node:%u\n", srcBufNodeTotal, dstBufNodeTotal);
+    printf("total src buf node:%u - total dst buf node:%u\n", srcBufNodeTotal, dstBufNodeTotal);
     // printTime("before search propagation");
-    // printTimeMicroStart();
+    printTimeMicroStart();
     searchHitMapPropgtInOut(hitMapAvalSrchCtxt, hitMap);
     // printTime("after search propagation");
-    // printTimeMicroEnd(totalElapse);
+    printTimeMicroEnd(totalElapse);
 
-    // numOfTrans = 0;
-    // srcBufID = hitMapAvalSrchCtxt->srcBufID;
-    // for(srcAddrIdx = 0; srcAddrIdx < hitMap->bufArray[srcBufID]->numOfAddr; srcAddrIdx++) {
-    //     numOfTrans += getHitMap2LAddr2NodeItemTotal(hitMapAvalSrchCtxt->hitMapAddr2NodeAry[srcAddrIdx]);
-    // }
-    // printf("number of transition of 2-level hash table:%u\n", numOfTrans);
+    numOfTrans = 0;
+    srcBufID = hitMapAvalSrchCtxt->srcBufID;
+    for(srcAddrIdx = 0; srcAddrIdx < hitMap->bufArray[srcBufID]->numOfAddr; srcAddrIdx++) {
+        numOfTrans += getHitMap2LAddr2NodeItemTotal(hitMapAvalSrchCtxt->hitMapAddr2NodeAry[srcAddrIdx]);
+    }
+    printf("number of transition of 2-level hash table:%u\n", numOfTrans);
 }
-
-
 
 static void
 searchHitMapPropgtInOut(HitMapAvalSearchCtxt *hitMapAvalSrchCtxt, HitMapContext *hitMap)
@@ -186,9 +184,8 @@ searchHitMapPropgtInOut(HitMapAvalSearchCtxt *hitMapAvalSrchCtxt, HitMapContext 
             head = head->nextVersion;
         } while(ver != head->version);
 
-        HASH_SRT(hh_hmAddr2NodeItem, hitMapAvalSrchCtxt->hitMapAddr2NodeAry[srcAddrIdx], cmpHitMapAddr2NodeItem);
-        printHitMap2LAddr2NodeItem(hitMapAvalSrchCtxt->hitMapAddr2NodeAry[srcAddrIdx]);
+        // HASH_SRT(hh_hmAddr2NodeItem, hitMapAvalSrchCtxt->hitMapAddr2NodeAry[srcAddrIdx], cmpHitMapAddr2NodeItem);
+        // printHitMap2LAddr2NodeItem(hitMapAvalSrchCtxt->hitMapAddr2NodeAry[srcAddrIdx]);
         // assert(head->leftNBR == NULL);
-        // break;
     }
 }
