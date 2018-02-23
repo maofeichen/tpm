@@ -282,8 +282,8 @@ bufnodePropgt2HitMapNode(
 {
     // return dfs2HitMapNode(tpm, srcnode, hitMapCtxt);
     // return dfs2HitMapNode_PopAtEnd(tpm, srcnode, hitMapCtxt);
-    return dfs2BuildHitMap_DBG(tpm, srcnode, hitMapCtxt);
-    // return dfsBuildHitMap_intermediateNode(tpm, srcnode, hitMapCtxt);
+    // return dfs2BuildHitMap_DBG(tpm, srcnode, hitMapCtxt);
+    return dfsBuildHitMap_intermediateNode(tpm, srcnode, hitMapCtxt);
 }
 
 //int
@@ -986,7 +986,6 @@ dfs2HitMapNode_PopAtEnd(
         // printf("dfs2HitMapNode: given source node is a leaf\n");
         // printMemNode(srcnode);
         return 0;
-
     }
 
     // printf("----------\ndfs2HitMapNode_PopWhenNoChildren source:%p\n", srcnode);
@@ -1013,7 +1012,7 @@ dfs2HitMapNode_PopAtEnd(
         else {
             if(dstNode->tpmnode1.type == TPM_Type_Memory && isValidBufNode((TPMNode2 *)dstNode) ) {
                 if(dstNode->tpmnode2.hasVisit != 0) { // the buf node had been visited by other source buffer node
-                    createHitMapRecord(stackBufNodePathTop->memnode, 0, (TPMNode2 *)dstNode, 0, hitMapCtxt); // creates a transition to the visited buf node
+                    createHitMapRecord(stackBufNodePathTop->memnode, 0, (TPMNode2 *)dstNode, topTrans->seqNo, hitMapCtxt); // creates a transition to the visited buf node
                     stackTransPop(&transLvl, &stackTransTop, &stackTransCnt);
                     continue;
                 }
