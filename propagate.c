@@ -164,6 +164,12 @@ dfs2HitMapNode_PopAtEnd(
         TPMNode2 *srcnode,
         HitMapContext *hitMapCtxt);
 
+static int
+dfs2BuildHitMap_DBG(
+        TPMContext *tpm,
+        TPMNode2 *srcnode,
+        HitMapContext *hitMapCtxt);
+
 static void
 popBufNode(
         TPMNode *dstNode,
@@ -275,7 +281,8 @@ bufnodePropgt2HitMapNode(
         HitMapContext *hitMapCtxt)
 {
     // return dfs2HitMapNode(tpm, srcnode, hitMapCtxt);
-    return dfs2HitMapNode_PopAtEnd(tpm, srcnode, hitMapCtxt);
+    // return dfs2HitMapNode_PopAtEnd(tpm, srcnode, hitMapCtxt);
+    return dfs2BuildHitMap_DBG(tpm, srcnode, hitMapCtxt);
     // return dfsBuildHitMap_intermediateNode(tpm, srcnode, hitMapCtxt);
 }
 
@@ -1043,6 +1050,103 @@ dfs2HitMapNode_PopAtEnd(
 
     return stepCount;
 }
+
+static int
+dfs2BuildHitMap_DBG(
+        TPMContext *tpm,
+        TPMNode2 *srcnode,
+        HitMapContext *hitMapCtxt)
+// Debug dfs build HitMap without intermediate node
+{
+    if(tpm == NULL || srcnode == NULL || hitMapCtxt == NULL) {
+        fprintf(stderr, "dfs2HitMapNode_PopWhenNoChildren: tpm:%p srcnode:%p hitMap:%p\n", tpm, srcnode, hitMapCtxt);
+        return -1;
+    }
+
+    if(isHitMapNodeExist(srcnode, hitMapCtxt) )
+        return 0;
+
+    TransitionHashTable *markVisitTransHT = NULL;
+    Transition *sourceTrans = srcnode->firstChild;
+
+    StackTransitionNode *stackTransTop = NULL;
+    u32 stackTransCnt = 0;
+
+    StckMemnode *stackBufNodePathTop = NULL;
+    u32 stackBufNodePathCnt = 0;
+
+    u32 dfsLevel = 0;   // Not used
+    int stepCount = 0;
+
+    if(sourceTrans == NULL) {
+        // printf("dfs2HitMapNode: given source node is a leaf\n");
+        // printMemNode(srcnode);
+        return 0;
+
+    }
+
+    // printf("----------\ndfs2HitMapNode_PopWhenNoChildren source:%p\n", srcnode);
+    // printMemNode(srcnode);
+    // printTransAllChildren(sourceTrans);
+
+    stckMemnodePush(srcnode, dfsLevel, &stackBufNodePathTop, &stackBufNodePathCnt);
+    // stckMemnodeDisplay(stackBufNodePathTop, stackBufNodePathCnt);
+
+    storeUnvisitChildren(&markVisitTransHT, sourceTrans,
+            hitMapCtxt->maxBufSeqN, &stackTransTop, &stackTransCnt, dfsLevel);
+    // stackTransDisplay(stackTransTop, stackTransCnt);
+
+    while(!isStackTransEmpty(stackTransTop) ) {
+        Transition *topTrans = stackTransTop->transition;
+        TPMNode *dstNode = getTransitionDst(topTrans);
+        u32 transLvl;   // Not used
+
+        if(isTransitionVisited(markVisitTransHT, topTrans) ) {  // if the transition had been visited
+            stackTransPop(&transLvl, &stackTransTop, &stackTransCnt);
+            // stackTransDisplay(stackTransTop, stackTransCnt);
+            popBufNode(dstNode, &stackBufNodePathTop, &stackBufNodePathCnt);
+        }
+        else {
+            if(dstNode->tpmnode1.type == TPM_Type_Memory && isValidBufNode((TPMNode2 *)dstNode) ) {
+                if(dstNode->tpmnode2.hasVisit != 0) { // the buf node had been visited by other source buffer node
+                    // createHitMapRecord(stackBufNodePathTop->memnode, 0, (TPMNode2 *)dstNode, 0, hitMapCtxt); // creates a transition to the visited buf node
+                    // stackTransPop(&transLvl, &stackTransTop, &stackTransCnt);
+                    // continue;
+                }
+                else {
+                    dstNode->tpmnode2.hasVisit = 1;
+                }
+
+                // printf("----------src hitmap node:\n");
+                // printMemNodeLit(stackBufNodePathTop->memnode);
+                // printf("dst hitmap node:\n");
+                // printMemNodeLit((TPMNode2 *)dstNode);
+                createHitMapRecord(stackBufNodePathTop->memnode, 0, (TPMNode2 *)dstNode, 0, hitMapCtxt);
+                stckMemnodePush((TPMNode2 *)dstNode, dfsLevel, &stackBufNodePathTop, &stackBufNodePathCnt);
+            }
+
+            markVisitTransition(&markVisitTransHT, topTrans);
+
+            if(dstNode->tpmnode1.firstChild == NULL) { // leaf nodes
+                stackTransPop(&transLvl, &stackTransTop, &stackTransCnt);
+                // stackTransDisplay(stackTransTop, stackTransCnt);
+                popBufNode(dstNode, &stackBufNodePathTop, &stackBufNodePathCnt);
+            }
+            else {
+              storeUnvisitChildren(&markVisitTransHT, dstNode->tpmnode1.firstChild,
+                      hitMapCtxt->maxBufSeqN, &stackTransTop, &stackTransCnt, dfsLevel);
+              // stackTransDisplay(stackTransTop, stackTransCnt);
+            }
+        }
+    }
+
+    delTransitionHT(&markVisitTransHT);
+    stackTransPopAll(&stackTransTop, &stackTransCnt);
+    stckMemnodePopAll(&stackBufNodePathTop, &stackBufNodePathCnt);
+
+    return stepCount;
+}
+
 
 static void
 popBufNode(

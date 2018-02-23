@@ -137,7 +137,6 @@ detectHitMapAvalInOut(
     printTimeMicroStart();
     searchHitMapPropgtInOut(hitMapAvalSrchCtxt, hitMap);
     // printTime("after search propagation");
-    // sleep(1);
     printTimeMicroEnd(totalElapse);
 
     numOfTrans = 0;

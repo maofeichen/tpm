@@ -5,6 +5,7 @@
 #include "tpm.h"
 #include "type.h"
 #include "uthash.h"
+#include <stdbool.h>
 
 struct HitTransition;
 
@@ -117,6 +118,9 @@ createHitTransition(
         u32 minSeqN,
         u32 maxSeqN,
         HitMapNode *child);
+
+bool
+isHitTransitionExist(HitMapNode *srcNode, HitMapNode *dstNode);
 
 HitMapBufNodePtr2NodeHashTable *
 createHitMapBufNode2NodeHT(TPMNode2 *srcnode, HitMapNode *hitMapNode);

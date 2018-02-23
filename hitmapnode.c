@@ -145,8 +145,14 @@ createHitMapRecord(
 
     HMNSrc = createHitMapRecordNode(src, hitMapCtxt);
     HMNDst = createHitMapRecordNode(dst, hitMapCtxt);
-    t = createHitTransition(0, 0, HMNDst);
-    attachHitTransition(HMNSrc, t);
+
+    if(!isHitTransitionExist(HMNSrc, HMNDst) ) {
+        t = createHitTransition(0, 0, HMNDst);
+        attachHitTransition(HMNSrc, t);
+    }
+
+    // t = createHitTransition(0, 0, HMNDst);
+    // attachHitTransition(HMNSrc, t);
 
     // printf("---------------\nHitMap Node src:\n");
     // printHitMapNode(HMNSrc);
@@ -203,6 +209,23 @@ createHitTransition(
     t->child = child;
     t->next = NULL;
     return t;
+}
+
+bool
+isHitTransitionExist(HitMapNode *srcNode, HitMapNode *dstNode)
+{
+    if(srcNode == NULL || dstNode == NULL) {
+        return false;
+    }
+
+    HitTransition *child = srcNode->firstChild;
+    while(child != NULL) {
+        if(child->child == dstNode)
+            return true;
+
+        child = child->next;
+    }
+    return false;
 }
 
 
