@@ -282,7 +282,7 @@ storeAllUnvisitHitTransChildren(
 
     while(firstChild != NULL) {
         if(!isHitTransitionVisited(*hitTransitionht, firstChild)
-            && firstChild->maxSeqNo <= maxseq ) {
+            /* && firstChild->maxSeqNo <= maxseq */) {
             stackHitTransPush(firstChild, stackHitTransTop, stackHitTransCnt);
             markVisitHitTransition(hitTransitionht, firstChild);
         }
