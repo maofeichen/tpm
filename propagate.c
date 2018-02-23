@@ -860,6 +860,8 @@ dfs2HitMapNode(
     u32 dfsLevel = 0;   // Not used
     int stepCount = 0;
 
+    u32 minHitTransSeqN, maxHitTransSeqN;
+
     // printf("----------\ndfs2HitMapNode_PopWhenNoChildren source:%p\n", srcnode);
     // printMemNode(srcnode);
     // printTransAllChildren(sourceTrans);
@@ -870,6 +872,8 @@ dfs2HitMapNode(
         // printMemNode(srcnode);
         return 0;
     }
+    minHitTransSeqN = sourceTrans->seqNo;
+    maxHitTransSeqN = sourceTrans->seqNo;
 
     stckMemnodePush(srcnode, dfsLevel, &stackBufNodePathTop, &stackBufNodePathCnt);
     // stckMemnodeDisplay(stackBufNodePathTop, stackBufNodePathCnt);
@@ -892,7 +896,8 @@ dfs2HitMapNode(
                 // printMemNodeLit((TPMNode2 *)dstNode);
                 assert((TPMNode2 *)dstNode == stackBufNodePathTop->memnode);
                 if(stackBufNodePathCnt > 1)
-                        createHitMapRecord(stackBufNodePathTop->next->memnode, 0, (TPMNode2 *)dstNode, 0, hitMapCtxt);
+                    createHitMapRecord(stackBufNodePathTop->next->memnode, 0,
+                            (TPMNode2 *)dstNode, topTrans->seqNo, hitMapCtxt);
 
                 stckMemnodePop(&transLvl, &stackBufNodePathTop, &stackBufNodePathCnt);
             }
@@ -913,7 +918,8 @@ dfs2HitMapNode(
                     // printMemNodeLit((TPMNode2 *)dstNode);
                     assert((TPMNode2 *)dstNode == stackBufNodePathTop->memnode);
                     if(stackBufNodePathCnt > 1)
-                        createHitMapRecord(stackBufNodePathTop->next->memnode, 0, (TPMNode2 *)dstNode, 0, hitMapCtxt);
+                        createHitMapRecord(stackBufNodePathTop->next->memnode, 0,
+                                (TPMNode2 *)dstNode, topTrans->seqNo, hitMapCtxt);
                     stckMemnodePop(&transLvl, &stackBufNodePathTop, &stackBufNodePathCnt);
                 }
 

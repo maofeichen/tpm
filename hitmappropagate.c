@@ -255,8 +255,13 @@ dfsHitMapNodePropagate(
            && popDstHitMapNode->addr >= dstAddrStart && popDstHitMapNode->addr <= dstAddrEnd
            && popDstHitMapNode->lastUpdateTS >= dstMinSeqN && popDstHitMapNode->lastUpdateTS <= dstMaxSeqN) {
             // printHitMapNodeLit(popDstHitMapNode);
-            HitMapAddr2NodeItem *toHitMapNodeItem = createHitMapAddr2NodeItem(popDstHitMapNode->addr, popDstHitMapNode, NULL, NULL);
-            HASH_ADD(hh_hmAddr2NodeItem, hmAddr2NodeItem->subHash, node, 4, toHitMapNodeItem);
+
+            HitMapAddr2NodeItem *find;
+            HASH_FIND(hh_hmAddr2NodeItem, hmAddr2NodeItem->subHash, &popDstHitMapNode, 4, find);
+            if(find == NULL) {
+                HitMapAddr2NodeItem *toHitMapNodeItem = createHitMapAddr2NodeItem(popDstHitMapNode->addr, popDstHitMapNode, NULL, NULL);
+                HASH_ADD(hh_hmAddr2NodeItem, hmAddr2NodeItem->subHash, node, 4, toHitMapNodeItem);
+            }
         }
 
         storeAllUnvisitHitTransChildren(&markVisitHitTransHT, popDstHitMapNode->firstChild, dstMaxSeqN,

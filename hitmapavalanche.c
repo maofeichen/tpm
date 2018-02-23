@@ -38,16 +38,20 @@ detectHitMapAvalanche(HitMapContext *hitMap, TPMContext *tpm)
     numOfBuf = hitMap->numOfBuf;
     for(srcBufIdx = 0; srcBufIdx < numOfBuf-1; srcBufIdx++) {
         for(dstBufIdx = srcBufIdx + 1; dstBufIdx < numOfBuf; dstBufIdx++) {
-//            if((srcBufIdx >= 265 && srcBufIdx <= 270)
-//                || (srcBufIdx >= 925 && srcBufIdx <= 930) ) {
-//                if(dstBufIdx == srcBufIdx+1 || dstBufIdx == numOfBuf-1) {
-//                    srcTPMBuf = getTPMBuf(hitMap->tpmBuf, srcBufIdx);
-//                    dstTPMBuf = getTPMBuf(hitMap->tpmBuf, dstBufIdx);
-//                    hitMapAvalSrchCtxt = initHitMapAvalSearchCtxt(srcBufIdx, srcTPMBuf, dstBufIdx, dstTPMBuf);
-//                    detectHitMapAvalInOut(hitMapAvalSrchCtxt, hitMap);
-//                    freeHitMapAvalSearchCtxt(hitMapAvalSrchCtxt);
-//                }
-//            }
+
+            // if((srcBufIdx >= 265 && srcBufIdx <= 270)
+            //     || (srcBufIdx >= 925 && srcBufIdx <= 930) ) {
+            //     if(dstBufIdx == srcBufIdx+1 || dstBufIdx == numOfBuf-1) {
+            //         srcTPMBuf = getTPMBuf(hitMap->tpmBuf, srcBufIdx);
+            //         dstTPMBuf = getTPMBuf(hitMap->tpmBuf, dstBufIdx);
+            //         hitMapAvalSrchCtxt = initHitMapAvalSearchCtxt(srcBufIdx, srcTPMBuf, dstBufIdx, dstTPMBuf);
+            //         detectHitMapAvalInOut(hitMapAvalSrchCtxt, hitMap);
+            //         freeHitMapAvalSearchCtxt(hitMapAvalSrchCtxt);
+
+            //         searchCnt++;
+            //     }
+            // }
+
             srcTPMBuf = getTPMBuf(hitMap->tpmBuf, srcBufIdx);
             dstTPMBuf = getTPMBuf(hitMap->tpmBuf, dstBufIdx);
             hitMapAvalSrchCtxt = initHitMapAvalSearchCtxt(srcBufIdx, srcTPMBuf, dstBufIdx, dstTPMBuf);
@@ -58,8 +62,8 @@ detectHitMapAvalanche(HitMapContext *hitMap, TPMContext *tpm)
         }
         break;
     }
-    if(searchCnt > 0)
-        printf("---------------\navg build 2-level hash table time:%.1f microseconds\n", totalElapse/searchCnt);
+    // if(searchCnt > 0)
+    //     printf("---------------\navg build 2-level hash table time:%.1f microseconds\n", totalElapse/searchCnt);
 OutOfLoop:
     printf("");
 }
@@ -132,19 +136,19 @@ detectHitMapAvalInOut(
     printf("----------------------------------------\n");
     print1TPMBufHashTable("src buf: ", hitMapAvalSrchCtxt->srcTPMBuf);
     print1TPMBufHashTable("dst buf: ", hitMapAvalSrchCtxt->dstTPMBuf);
-    printf("total src buf node:%u - total dst buf node:%u\n", srcBufNodeTotal, dstBufNodeTotal);
+    // printf("total src buf node:%u - total dst buf node:%u\n", srcBufNodeTotal, dstBufNodeTotal);
     // printTime("before search propagation");
-    printTimeMicroStart();
+    // printTimeMicroStart();
     searchHitMapPropgtInOut(hitMapAvalSrchCtxt, hitMap);
     // printTime("after search propagation");
-    printTimeMicroEnd(totalElapse);
+    // printTimeMicroEnd(totalElapse);
 
-    numOfTrans = 0;
-    srcBufID = hitMapAvalSrchCtxt->srcBufID;
-    for(srcAddrIdx = 0; srcAddrIdx < hitMap->bufArray[srcBufID]->numOfAddr; srcAddrIdx++) {
-        numOfTrans += getHitMap2LAddr2NodeItemTotal(hitMapAvalSrchCtxt->hitMapAddr2NodeAry[srcAddrIdx]);
-    }
-    printf("number of transition of 2-level hash table:%u\n", numOfTrans);
+    // numOfTrans = 0;
+    // srcBufID = hitMapAvalSrchCtxt->srcBufID;
+    // for(srcAddrIdx = 0; srcAddrIdx < hitMap->bufArray[srcBufID]->numOfAddr; srcAddrIdx++) {
+    //     numOfTrans += getHitMap2LAddr2NodeItemTotal(hitMapAvalSrchCtxt->hitMapAddr2NodeAry[srcAddrIdx]);
+    // }
+    // printf("number of transition of 2-level hash table:%u\n", numOfTrans);
 }
 
 
@@ -183,9 +187,8 @@ searchHitMapPropgtInOut(HitMapAvalSearchCtxt *hitMapAvalSrchCtxt, HitMapContext 
         } while(ver != head->version);
 
         HASH_SRT(hh_hmAddr2NodeItem, hitMapAvalSrchCtxt->hitMapAddr2NodeAry[srcAddrIdx], cmpHitMapAddr2NodeItem);
-        // printHitMap2LAddr2NodeItem(hitMapAvalSrchCtxt->hitMapAddr2NodeAry[srcAddrIdx]);
+        printHitMap2LAddr2NodeItem(hitMapAvalSrchCtxt->hitMapAddr2NodeAry[srcAddrIdx]);
         // assert(head->leftNBR == NULL);
         // break;
     }
-
 }
