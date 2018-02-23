@@ -22,8 +22,11 @@ printTimeMicroStart()
 }
 
 void
-printTimeMicroEnd()
+printTimeMicroEnd(double *totalElapse)
 {
+    double elapsedTime;
     gettimeofday(&stop, NULL);
-    printf("took %lu microseconds\n", stop.tv_sec - start.tv_sec);
+    elapsedTime = (stop.tv_usec- start.tv_usec);
+    *totalElapse += elapsedTime;
+    printf("took %.1f microseconds\n", elapsedTime);
 }

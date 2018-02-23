@@ -23,6 +23,9 @@ createHitMapAddr2NodeItem(
 void
 freeHitMapAddr2NodeItem(HitMapAddr2NodeItem *hmAddr2NodeItem);
 
+u32
+getHitMap2LAddr2NodeItemTotal(HitMapAddr2NodeItem *hmAddr2NodeItem);
+
 void
 printHitMap2LAddr2NodeItem(HitMapAddr2NodeItem *hmAddr2NodeItem);
 

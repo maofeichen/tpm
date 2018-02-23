@@ -10,6 +10,6 @@ void
 printTimeMicroStart();
 
 void
-printTimeMicroEnd();
+printTimeMicroEnd(double *totalElapse);
 
 #endif

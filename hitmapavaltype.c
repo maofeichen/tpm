@@ -38,6 +38,16 @@ freeHitMapAddr2NodeItem(HitMapAddr2NodeItem *hmAddr2NodeItem)
     }
 }
 
+u32
+getHitMap2LAddr2NodeItemTotal(HitMapAddr2NodeItem *hmAddr2NodeItem)
+{
+    u32 totalItem = 0;
+    for(; hmAddr2NodeItem != NULL; hmAddr2NodeItem = hmAddr2NodeItem->hh_hmAddr2NodeItem.next) {
+        totalItem += HASH_CNT(hh_hmAddr2NodeItem, hmAddr2NodeItem->subHash);
+    }
+    return totalItem;
+}
+
 
 void
 printHitMap2LAddr2NodeItem(HitMapAddr2NodeItem *hmAddr2NodeItem)

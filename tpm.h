@@ -122,6 +122,9 @@ int
 getTPMBufTotal(TPMBufHashTable *tpmBuf);
 
 u32
+getTPMBufNodeTotal(TPMBufHashTable *tpmBuf);
+
+u32
 getTPMBufMaxSeqN(TPMBufHashTable *tpmBuf);
 
 int

@@ -3,6 +3,7 @@
 #include "misc.h"
 #include "uthash.h"
 #include <assert.h>
+#include <unistd.h>
 
 static HitMapAvalSearchCtxt *
 initHitMapAvalSearchCtxt(
@@ -15,7 +16,10 @@ static void
 freeHitMapAvalSearchCtxt(HitMapAvalSearchCtxt *hitMapAvalSrchCtxt);
 
 static void
-detectHitMapAvalInOut(HitMapAvalSearchCtxt *hitMapAvalSrchCtxt, HitMapContext *hitMap);
+detectHitMapAvalInOut(
+        HitMapAvalSearchCtxt *hitMapAvalSrchCtxt,
+        HitMapContext *hitMap,
+        double *totalElapse);
 
 static void
 searchHitMapPropgtInOut(HitMapAvalSearchCtxt *hitMapAvalSrchCtxt, HitMapContext *hitMap);
@@ -27,6 +31,9 @@ detectHitMapAvalanche(HitMapContext *hitMap, TPMContext *tpm)
     TPMBufHashTable *srcTPMBuf;
     TPMBufHashTable *dstTPMBuf;
     HitMapAvalSearchCtxt *hitMapAvalSrchCtxt;
+
+    double totalElapse = 0;
+    u32 searchCnt = 0;
 
     numOfBuf = hitMap->numOfBuf;
     for(srcBufIdx = 0; srcBufIdx < numOfBuf-1; srcBufIdx++) {
@@ -44,11 +51,15 @@ detectHitMapAvalanche(HitMapContext *hitMap, TPMContext *tpm)
             srcTPMBuf = getTPMBuf(hitMap->tpmBuf, srcBufIdx);
             dstTPMBuf = getTPMBuf(hitMap->tpmBuf, dstBufIdx);
             hitMapAvalSrchCtxt = initHitMapAvalSearchCtxt(srcBufIdx, srcTPMBuf, dstBufIdx, dstTPMBuf);
-            detectHitMapAvalInOut(hitMapAvalSrchCtxt, hitMap);
+            detectHitMapAvalInOut(hitMapAvalSrchCtxt, hitMap, &totalElapse);
             freeHitMapAvalSearchCtxt(hitMapAvalSrchCtxt);
+
+            searchCnt++;
         }
         break;
     }
+    if(searchCnt > 0)
+        printf("---------------\navg build 2-level hash table time:%.1f microseconds\n", totalElapse/searchCnt);
 OutOfLoop:
     printf("");
 }
@@ -107,16 +118,34 @@ freeHitMapAvalSearchCtxt(HitMapAvalSearchCtxt *hitMapAvalSrchCtxt)
 }
 
 static void
-detectHitMapAvalInOut(HitMapAvalSearchCtxt *hitMapAvalSrchCtxt, HitMapContext *hitMap)
+detectHitMapAvalInOut(
+        HitMapAvalSearchCtxt *hitMapAvalSrchCtxt,
+        HitMapContext *hitMap,
+        double *totalElapse)
 {
+    u32 srcBufNodeTotal, dstBufNodeTotal;
+    u32 numOfTrans, srcAddrIdx, srcBufID;
+
+    srcBufNodeTotal = getTPMBufNodeTotal(hitMapAvalSrchCtxt->srcTPMBuf);
+    dstBufNodeTotal = getTPMBufNodeTotal(hitMapAvalSrchCtxt->dstTPMBuf);
+
     printf("----------------------------------------\n");
     print1TPMBufHashTable("src buf: ", hitMapAvalSrchCtxt->srcTPMBuf);
     print1TPMBufHashTable("dst buf: ", hitMapAvalSrchCtxt->dstTPMBuf);
+    printf("total src buf node:%u - total dst buf node:%u\n", srcBufNodeTotal, dstBufNodeTotal);
     // printTime("before search propagation");
-    // printTimeMicroStart();
+    printTimeMicroStart();
     searchHitMapPropgtInOut(hitMapAvalSrchCtxt, hitMap);
     // printTime("after search propagation");
-    // printTimeMicroEnd();
+    // sleep(1);
+    printTimeMicroEnd(totalElapse);
+
+    numOfTrans = 0;
+    srcBufID = hitMapAvalSrchCtxt->srcBufID;
+    for(srcAddrIdx = 0; srcAddrIdx < hitMap->bufArray[srcBufID]->numOfAddr; srcAddrIdx++) {
+        numOfTrans += getHitMap2LAddr2NodeItemTotal(hitMapAvalSrchCtxt->hitMapAddr2NodeAry[srcAddrIdx]);
+    }
+    printf("number of transition of 2-level hash table:%u\n", numOfTrans);
 }
 
 
@@ -155,7 +184,7 @@ searchHitMapPropgtInOut(HitMapAvalSearchCtxt *hitMapAvalSrchCtxt, HitMapContext 
         } while(ver != head->version);
 
         HASH_SRT(hh_hmAddr2NodeItem, hitMapAvalSrchCtxt->hitMapAddr2NodeAry[srcAddrIdx], cmpHitMapAddr2NodeItem);
-        printHitMap2LAddr2NodeItem(hitMapAvalSrchCtxt->hitMapAddr2NodeAry[srcAddrIdx]);
+        // printHitMap2LAddr2NodeItem(hitMapAvalSrchCtxt->hitMapAddr2NodeAry[srcAddrIdx]);
         // assert(head->leftNBR == NULL);
         // break;
     }
