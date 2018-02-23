@@ -150,6 +150,9 @@ createHitMapRecord(
         t = createHitTransition(minSeqN, maxSeqN, HMNDst);
         attachHitTransition(HMNSrc, t);
     }
+    else {
+        // printf("Hit transition had been created!\n");
+    }
 
     // t = createHitTransition(0, 0, HMNDst);
     // attachHitTransition(HMNSrc, t);
@@ -285,6 +288,7 @@ createHitMapRecordNode(TPMNode2 *node, HitMapContext *hitMap)
         return HMNode;
     }
     else {
+        // printf("HitMap record node had been created\n");
         return find->toHitMapNode;
     }
 }
