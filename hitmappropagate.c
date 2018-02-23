@@ -272,7 +272,7 @@ dfsHitMapNodePropagate(
     delHitTransitionHT(&markVisitHitTransHT);
     stackHitTransPopAll(&stackHitTransTop, &stackHitTransCnt);
 
-    // HASH_SRT(hh_hmAddr2NodeItem, hmAddr2NodeItem->subHash, cmpHitMapAddr2NodeItem);
+    HASH_SRT(hh_hmAddr2NodeItem, hmAddr2NodeItem->subHash, cmpHitMapAddr2NodeItem);
     return 0;
 }
 
