@@ -127,9 +127,9 @@ sortHitMapHashTable(HitMapBufNodePtr2NodeHashTable **hitMapHT)
 void
 createHitMapRecord(
         TPMNode2 *src,
-        u32 srclvl,
+        u32 minSeqN,
         TPMNode2 *dst,
-        u32 dstLvl,
+        u32 maxSeqN,
         HitMapContext *hitMapCtxt)
 //  1. creates HitMap record source
 //  2. creates HitMap record destination
@@ -147,7 +147,7 @@ createHitMapRecord(
     HMNDst = createHitMapRecordNode(dst, hitMapCtxt);
 
     if(!isHitTransitionExist(HMNSrc, HMNDst) ) {
-        t = createHitTransition(0, 0, HMNDst);
+        t = createHitTransition(minSeqN, maxSeqN, HMNDst);
         attachHitTransition(HMNSrc, t);
     }
 

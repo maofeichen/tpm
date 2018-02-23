@@ -1121,7 +1121,7 @@ dfs2BuildHitMap_DBG(
                 // printMemNodeLit(stackBufNodePathTop->memnode);
                 // printf("dst hitmap node:\n");
                 // printMemNodeLit((TPMNode2 *)dstNode);
-                createHitMapRecord(stackBufNodePathTop->memnode, 0, (TPMNode2 *)dstNode, 0, hitMapCtxt);
+                createHitMapRecord(stackBufNodePathTop->memnode, 0, (TPMNode2 *)dstNode, topTrans->seqNo, hitMapCtxt);
                 stckMemnodePush((TPMNode2 *)dstNode, dfsLevel, &stackBufNodePathTop, &stackBufNodePathCnt);
             }
 

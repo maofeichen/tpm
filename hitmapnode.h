@@ -101,9 +101,9 @@ sortHitMapHashTable(HitMapBufNodePtr2NodeHashTable **hitMapHT);
 void
 createHitMapRecord(
         TPMNode2 *src,
-        u32 srcLvl,
+        u32 minSeqN,
         TPMNode2 *dst,
-        u32 dstLvl,
+        u32 maxSeqN,
         HitMapContext *hitMapCtxt);
 
 void
