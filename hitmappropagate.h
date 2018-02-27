@@ -23,6 +23,13 @@ typedef struct StackHitTransitionItem
 	struct StackHitTransitionItem *next;
 } StackHitTransitionItem;
 
+typedef struct HitMapNodeHash
+// used in dfs to mark nodes had been visited
+{
+    HitMapNode *toHitMapNode;
+    UT_hash_handle hh_hitMapNode;
+} HitMapNodeHash;
+
 int
 hitMapNodePropagate(
         HitMapNode *srcnode,

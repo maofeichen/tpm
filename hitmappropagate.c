@@ -1,4 +1,5 @@
 #include "hitmappropagate.h"
+#include <assert.h>
 
 /* HitMap node propagate */
 /* HitMap Transition hash table operation */
@@ -13,6 +14,23 @@ delHitTransitionHT(HitTransitionHashTable **hitTransitionht);
 
 static void
 countHitTransitionHT(HitTransitionHashTable *hitTransitionht);
+
+/* HitMap node hash */
+static void
+add2HitMapNodeHash(
+        HitMapNodeHash **hitMapNodeHash,
+        HitMapNode *hmNode);
+
+static HitMapNodeHash *
+findInHitMapNodeHash(
+        HitMapNodeHash *hitMapNodeHash,
+        HitMapNode *hmNode);
+
+static void
+delHitMapNodeHash(HitMapNodeHash **hitMapNodeHash);
+
+static void
+countHitMapNodeHash(HitMapNodeHash *hitMapNodeHash);
 
 /* HitMap Transition stack */
 static void
@@ -70,6 +88,35 @@ markVisitHitTransition(
         HitTransitionHashTable **hitTransitionht,
         HitTransition *hitTransition);
 
+/* dfs 2nd version */
+static int
+dfs2_HitMapNodePropagate(
+        HitMapNode *srcnode,
+        HitMapContext *hitMap,
+        HitMapAddr2NodeItem *hmAddr2NodeItem,
+        u32 dstAddrStart,
+        u32 dstAddrEnd,
+        int dstMinSeqN,
+        int dstMaxSeqN);
+
+static void
+storeUnvisitHitTransChildren(
+        HitMapNodeHash **hitMapNodeHash,
+        HitTransition *firstChild,
+        int maxseq,
+        StackHitTransitionItem **stackHitTransTop,
+        u32 *stackHitTransCnt);
+
+static bool
+isHitMapNodeVisited(
+        HitMapNodeHash *hitMapNodeHash,
+        HitMapNode *hmNode);
+
+static void
+markVisitHitMapNode(
+        HitMapNodeHash **hitMapNodeHash,
+        HitMapNode *hmNode);
+
 int
 hitMapNodePropagate(
         HitMapNode *srcnode,
@@ -83,7 +130,8 @@ hitMapNodePropagate(
 //  >= 0: num of hitmap nodes that the srcnode can propagate to
 //  <0: error
 {
-    return dfsHitMapNodePropagate(srcnode, hitMap, hmAddr2NodeItem, dstAddrStart, dstAddrEnd, dstMinSeqN, dstMaxSeqN);
+    // return dfsHitMapNodePropagate(srcnode, hitMap, hmAddr2NodeItem, dstAddrStart, dstAddrEnd, dstMinSeqN, dstMaxSeqN);
+    return dfs2_HitMapNodePropagate(srcnode, hitMap, hmAddr2NodeItem, dstAddrStart, dstAddrEnd, dstMinSeqN, dstMaxSeqN);
 }
 
 int
@@ -134,6 +182,44 @@ countHitTransitionHT(HitTransitionHashTable *hitTransitionht)
 {
     // TODO
 }
+
+static void
+add2HitMapNodeHash(
+        HitMapNodeHash **hitMapNodeHash,
+        HitMapNode *hmNode)
+{
+    HitMapNodeHash *hmHash;
+    hmHash = findInHitMapNodeHash(*hitMapNodeHash, hmNode);
+    if(hmHash == NULL) {
+        hmHash = calloc(1, sizeof(HitMapNodeHash) );
+        assert(hmHash != NULL);
+        hmHash->toHitMapNode = hmNode;
+        HASH_ADD(hh_hitMapNode, *hitMapNodeHash, toHitMapNode, 4, hmHash);
+    }
+}
+
+static HitMapNodeHash *
+findInHitMapNodeHash(
+        HitMapNodeHash *hitMapNodeHash,
+        HitMapNode *hmNode)
+{
+    HitMapNodeHash *hmHash = NULL;
+    HASH_FIND(hh_hitMapNode, hitMapNodeHash, hmNode, 4, hmHash);
+    return hmHash;
+}
+
+static void
+delHitMapNodeHash(HitMapNodeHash **hitMapNodeHash)
+{
+    HitMapNodeHash *curr, *tmp;
+    HASH_ITER(hh_hitMapNode, *hitMapNodeHash, curr, tmp) {
+        HASH_DELETE(hh_hitMapNode, *hitMapNodeHash, curr);
+        free(curr);
+    }
+}
+
+static void
+countHitMapNodeHash(HitMapNodeHash *hitMapNodeHash) {}
 
 static void
 stackHitTransPush(
@@ -321,5 +407,114 @@ markVisitHitTransition(
 		return;
 
 	add2HitTransitionHT(hitTransitionht, hitTransition);
+}
+
+static int
+dfs2_HitMapNodePropagate(
+        HitMapNode *srcnode,
+        HitMapContext *hitMap,
+        HitMapAddr2NodeItem *hmAddr2NodeItem,
+        u32 dstAddrStart,
+        u32 dstAddrEnd,
+        int dstMinSeqN,
+        int dstMaxSeqN)
+{
+    if(srcnode == NULL) {
+        fprintf(stderr, "dfsHitMapNodePropagate: hit map srcnode:%p\n", srcnode);
+        return -1;
+    }
+
+    // printf("---------------\nsource:");
+    // printHitMapNode(srcnode);
+    // printf("dst max seqN:%u\n", dstMaxSeqN);
+
+    HitMapNodeHash *visitNodeHash = NULL;
+
+    StackHitTransitionItem *stackHitTransTop = NULL;
+    u32 stackHitTransCnt = 0;
+
+    HitTransition *sourceHitTrans = srcnode->firstChild;
+    if(sourceHitTrans == NULL) {
+        // printf("given source node is a leaf\n");
+        // printHitMapNode(srcnode);
+        return 0;
+    }
+
+    storeUnvisitHitTransChildren(&visitNodeHash, sourceHitTrans, dstMaxSeqN, &stackHitTransTop, &stackHitTransCnt);
+    // stackHitTransDisplay(stackHitTransTop, stackHitTransCnt);
+
+    while(!isStackHitTransEmpty(stackHitTransTop) ) {
+        HitTransition *popTrans = stackHitTransPop(&stackHitTransTop, &stackHitTransCnt);
+        HitMapNode *popDstHitMapNode = popTrans->child;
+
+        if(popDstHitMapNode->bufId > 0) {
+            // printHitMapNodeLit(popDstHitMapNode);
+        }
+
+        if(popDstHitMapNode->bufId > 0
+           && popDstHitMapNode->addr >= dstAddrStart && popDstHitMapNode->addr <= dstAddrEnd
+           && popDstHitMapNode->lastUpdateTS >= dstMinSeqN && popDstHitMapNode->lastUpdateTS <= dstMaxSeqN) {
+            // printHitMapNodeLit(popDstHitMapNode);
+
+            HitMapAddr2NodeItem *find;
+            HASH_FIND(hh_hmAddr2NodeItem, hmAddr2NodeItem->subHash, &popDstHitMapNode, 4, find);
+            if(find == NULL) {
+                HitMapAddr2NodeItem *toHitMapNodeItem = createHitMapAddr2NodeItem(popDstHitMapNode->addr, popDstHitMapNode, NULL, NULL);
+                HASH_ADD(hh_hmAddr2NodeItem, hmAddr2NodeItem->subHash, node, 4, toHitMapNodeItem);
+            }
+        }
+
+        storeUnvisitHitTransChildren(&visitNodeHash, popDstHitMapNode->firstChild, dstMaxSeqN, &stackHitTransTop, &stackHitTransCnt);
+        // stackHitTransDisplay(stackHitTransTop, stackHitTransCnt);
+    }
+
+    delHitMapNodeHash(&visitNodeHash);
+    stackHitTransPopAll(&stackHitTransTop, &stackHitTransCnt);
+
+    HASH_SRT(hh_hmAddr2NodeItem, hmAddr2NodeItem->subHash, cmpHitMapAddr2NodeItem);
+    return 0;
+}
+
+static void
+storeUnvisitHitTransChildren(
+        HitMapNodeHash **hitMapNodeHash,
+        HitTransition *firstChild,
+        int maxSeq,
+        StackHitTransitionItem **stackHitTransTop,
+        u32 *stackHitTransCnt)
+{
+    while(firstChild != NULL) {
+        HitMapNode *hmNode = firstChild->child;
+        if(!isHitMapNodeVisited(*hitMapNodeHash, hmNode) && firstChild->maxSeqNo <= maxSeq) {
+            stackHitTransPush(firstChild, stackHitTransTop, stackHitTransCnt);
+            markVisitHitMapNode(hitMapNodeHash, hmNode);
+        }
+        firstChild = firstChild->next;
+    }
+}
+
+static bool
+isHitMapNodeVisited(
+        HitMapNodeHash *hitMapNodeHash,
+        HitMapNode *hmNode)
+{
+    if(hmNode == NULL)
+        return false;
+
+    HitMapNodeHash *found = NULL;
+    found = findInHitMapNodeHash(hitMapNodeHash, hmNode);
+    if(found != NULL) { return true; }
+    else { return false; }
+}
+
+static void
+markVisitHitMapNode(
+        HitMapNodeHash **hitMapNodeHash,
+        HitMapNode *hmNode)
+{
+    if(*hitMapNodeHash == NULL || hmNode == NULL)
+        return;
+
+    add2HitMapNodeHash(hitMapNodeHash, hmNode);
 }
 
