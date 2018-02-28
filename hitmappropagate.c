@@ -424,9 +424,9 @@ dfs2_HitMapNodePropagate(
         return -1;
     }
 
-    // printf("---------------\nsource:");
-    // printHitMapNode(srcnode);
-    // printf("dst max seqN:%u\n", dstMaxSeqN);
+    printf("---------------\nsource:");
+    printHitMapNode(srcnode);
+    printf("dst max seqN:%u\n", dstMaxSeqN);
 
     HitMapNodeHash *visitNodeHash = NULL;
 
@@ -448,7 +448,7 @@ dfs2_HitMapNodePropagate(
         HitMapNode *popDstHitMapNode = popTrans->child;
 
         if(popDstHitMapNode->bufId > 0) {
-            // printHitMapNodeLit(popDstHitMapNode);
+            printHitMapNodeLit(popDstHitMapNode);
         }
 
         if(popDstHitMapNode->bufId > 0
@@ -488,6 +488,9 @@ storeUnvisitHitTransChildren(
         if(!isHitMapNodeVisited(*hitMapNodeHash, hmNode) && firstChild->maxSeqNo <= maxSeq) {
             stackHitTransPush(firstChild, stackHitTransTop, stackHitTransCnt);
             markVisitHitMapNode(hitMapNodeHash, hmNode);
+        }
+        else{
+            printf("hitMapNode had been visited %p addr:%x ver:%u\n", hmNode, hmNode->addr, hmNode->version);
         }
         firstChild = firstChild->next;
     }
