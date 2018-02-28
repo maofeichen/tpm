@@ -138,12 +138,12 @@ detectHitMapAvalInOut(
     print1TPMBufHashTable("dst buf: ", hitMapAvalSrchCtxt->dstTPMBuf);
     printf("total src buf node:%u - total dst buf node:%u\n", srcBufNodeTotal, dstBufNodeTotal);
     // printTime("before search propagation");
-    // printTimeMicroStart();
+    printTimeMicroStart();
 
     searchHitMapPropgtInOut(hitMapAvalSrchCtxt, hitMap);
 
     // printTime("after search propagation");
-    // printTimeMicroEnd(totalElapse);
+    printTimeMicroEnd(totalElapse);
 
     numOfTrans = 0;
     srcBufID = hitMapAvalSrchCtxt->srcBufID;

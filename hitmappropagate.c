@@ -241,7 +241,7 @@ findInHitMapNodeHash(
         HitMapNode *hmNode)
 {
     HitMapNodeHash *hmHash = NULL;
-    HASH_FIND(hh_hitMapNode, hitMapNodeHash, hmNode, 4, hmHash);
+    HASH_FIND(hh_hitMapNode, hitMapNodeHash, &hmNode, 4, hmHash);
     return hmHash;
 }
 
@@ -610,7 +610,7 @@ markVisitHitMapNode(
         HitMapNodeHash **hitMapNodeHash,
         HitMapNode *hmNode)
 {
-    if(*hitMapNodeHash == NULL || hmNode == NULL)
+    if(/* *hitMapNodeHash == NULL || */ hmNode == NULL)
         return;
 
     add2HitMapNodeHash(hitMapNodeHash, hmNode);
@@ -669,7 +669,6 @@ dfs3_HitMapNodePropagate(
             }
         }
 
-
         storeUnvisitHitMapNodeChildren(visitNodeHash, popNode, dstMaxSeqN, &stackHMNodeTop, &stackHMNodeCnt);
     }
     delHitMapNodeHash(&visitNodeHash);
@@ -689,6 +688,11 @@ storeUnvisitHitMapNodeChildren(
     HitTransition *firstChild = farther->firstChild;
     while(firstChild != NULL) {
         HitMapNode *childNode = firstChild->child;
+
+        // if(childNode->lastUpdateTS == 1524261) {    // dbg
+        //     printHitMapNodeLit(childNode);
+        // }
+
         if(!isHitMapNodeVisited(hitMapNodeHash, childNode) && firstChild->maxSeqNo <= maxSeq) {
             stackHitMapNodePush(childNode, stackHMNodeTop, stackHMNodeCnt);
         }
