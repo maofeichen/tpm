@@ -30,6 +30,12 @@ typedef struct HitMapNodeHash
     UT_hash_handle hh_hitMapNode;
 } HitMapNodeHash;
 
+typedef struct StackHitMapNode
+{
+    HitMapNode *hmNode;
+    struct StackHitMapNode *next;
+} StackHitMapNode;
+
 int
 hitMapNodePropagate(
         HitMapNode *srcnode,

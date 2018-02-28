@@ -60,6 +60,22 @@ isStackHitTransEmpty(StackHitTransitionItem *stackTransTop);
 static void
 printHitTransitionNode(StackHitTransitionItem *transNode);
 
+/* HitMap node stack */
+static void
+stackHitMapNodePush(HitMapNode *hmNode, StackHitMapNode **stackHMNodeTop, u32 *stackHMNodeCnt);
+
+static HitMapNode *
+stackHitMapNodePop(StackHitMapNode **stackHMNodeTop, u32 *stackHMNodeCnt);
+
+static void
+stackHitMapNodeDisplay(StackHitMapNode *stackHMNodeTop, u32 stackHMNodeCnt);
+
+static void
+stackHitMapNodePopAll(StackHitMapNode **stackHMNodeTop, u32 *stackHMNodeCnt);
+
+static bool
+isStackHitMapNodeEmpty(StackHitMapNode *stackHMNodeTop);
+
 static int
 dfsHitMapNodePropagate(
         HitMapNode *srcnode,
@@ -117,6 +133,26 @@ markVisitHitMapNode(
         HitMapNodeHash **hitMapNodeHash,
         HitMapNode *hmNode);
 
+/* dfs 3rd version */
+static int
+dfs3_HitMapNodePropagate(
+        HitMapNode *srcnode,
+        HitMapContext *hitMap,
+        HitMapAddr2NodeItem *hmAddr2NodeItem,
+        u32 dstAddrStart,
+        u32 dstAddrEnd,
+        int dstMinSeqN,
+        int dstMaxSeqN);
+
+static void
+storeUnvisitHitMapNodeChildren(
+        HitMapNodeHash *hitMapNodeHash,
+        HitMapNode *farther,
+        int maxSeq,
+        StackHitMapNode **stackHMNodeTop,
+        u32 *stackHMNodeCnt);
+
+
 int
 hitMapNodePropagate(
         HitMapNode *srcnode,
@@ -131,7 +167,8 @@ hitMapNodePropagate(
 //  <0: error
 {
     // return dfsHitMapNodePropagate(srcnode, hitMap, hmAddr2NodeItem, dstAddrStart, dstAddrEnd, dstMinSeqN, dstMaxSeqN);
-    return dfs2_HitMapNodePropagate(srcnode, hitMap, hmAddr2NodeItem, dstAddrStart, dstAddrEnd, dstMinSeqN, dstMaxSeqN);
+    // return dfs2_HitMapNodePropagate(srcnode, hitMap, hmAddr2NodeItem, dstAddrStart, dstAddrEnd, dstMinSeqN, dstMaxSeqN);
+    return dfs3_HitMapNodePropagate(srcnode, hitMap, hmAddr2NodeItem, dstAddrStart, dstAddrEnd, dstMinSeqN, dstMaxSeqN);
 }
 
 int
@@ -140,7 +177,7 @@ cmpHitMapAddr2NodeItem(HitMapAddr2NodeItem *l, HitMapAddr2NodeItem *r)
     if(l->addr < r->addr) { return -1; }
     else if(l->addr == r->addr) {
         if(l->node->version < r->node->version) { return -1; }
-        else if(l->node->version < r->node->version) { return 0; }
+        // else if(l->node->version > r->node->version) { return 1; }
         else { return 1; }
     }
     else { return 1; }
@@ -292,6 +329,63 @@ printHitTransitionNode(StackHitTransitionItem *transNode)
 {
 
 }
+
+static void
+stackHitMapNodePush(HitMapNode *hmNode, StackHitMapNode **stackHMNodeTop, u32 *stackHMNodeCnt)
+{
+    StackHitMapNode *s = calloc(1, sizeof(StackHitMapNode) );
+    assert(s != NULL);
+
+    s->hmNode = hmNode;
+    s->next = *stackHMNodeTop;
+    *stackHMNodeTop = s;
+    (*stackHMNodeCnt)++;
+}
+
+static HitMapNode *
+stackHitMapNodePop(StackHitMapNode **stackHMNodeTop, u32 *stackHMNodeCnt)
+{
+    StackHitMapNode *toDel;
+    HitMapNode *hmNode = NULL;
+
+    if(*stackHMNodeTop != NULL) {
+        toDel = *stackHMNodeTop;
+        *stackHMNodeTop = toDel->next;
+        hmNode = toDel->hmNode;
+        free(toDel);
+        (*stackHMNodeCnt)--;
+    }
+    return hmNode;
+}
+
+static void
+stackHitMapNodeDisplay(StackHitMapNode *stackHMNodeTop, u32 stackHMNodeCnt)
+{
+    if(stackHMNodeCnt > 0)
+        printf("--------------------\ntotal hit map node in stack:%u\n", stackHMNodeCnt);
+
+    while(stackHMNodeTop != NULL) {
+        printHitMapNodeLit(stackHMNodeTop->hmNode);
+        stackHMNodeTop = stackHMNodeTop->next;
+    }
+}
+
+static void
+stackHitMapNodePopAll(StackHitMapNode **stackHMNodeTop, u32 *stackHMNodeCnt)
+{
+    while(*stackHMNodeTop != NULL) {
+        stackHitMapNodePop(stackHMNodeTop, stackHMNodeCnt);
+    }
+}
+
+static bool
+isStackHitMapNodeEmpty(StackHitMapNode *stackHMNodeTop)
+{
+    if(stackHMNodeTop == NULL)  { return true; }
+    else { return false; }
+}
+
+
 /* HitMap node propagate */
 
 static int
@@ -418,15 +512,16 @@ dfs2_HitMapNodePropagate(
         u32 dstAddrEnd,
         int dstMinSeqN,
         int dstMaxSeqN)
+// uses HitMap Node hash instead of Hit Transition hash as dfs
 {
     if(srcnode == NULL) {
         fprintf(stderr, "dfsHitMapNodePropagate: hit map srcnode:%p\n", srcnode);
         return -1;
     }
 
-    printf("---------------\nsource:");
-    printHitMapNode(srcnode);
-    printf("dst max seqN:%u\n", dstMaxSeqN);
+    // printf("---------------\nsource:");
+    // printHitMapNode(srcnode);
+    // printf("dst max seqN:%u\n", dstMaxSeqN);
 
     HitMapNodeHash *visitNodeHash = NULL;
 
@@ -448,7 +543,7 @@ dfs2_HitMapNodePropagate(
         HitMapNode *popDstHitMapNode = popTrans->child;
 
         if(popDstHitMapNode->bufId > 0) {
-            printHitMapNodeLit(popDstHitMapNode);
+            // printHitMapNodeLit(popDstHitMapNode);
         }
 
         if(popDstHitMapNode->bufId > 0
@@ -490,7 +585,7 @@ storeUnvisitHitTransChildren(
             markVisitHitMapNode(hitMapNodeHash, hmNode);
         }
         else{
-            printf("hitMapNode had been visited %p addr:%x ver:%u\n", hmNode, hmNode->addr, hmNode->version);
+            // printf("hitMapNode had been visited %p addr:%x ver:%u\n", hmNode, hmNode->addr, hmNode->version);
         }
         firstChild = firstChild->next;
     }
@@ -521,3 +616,85 @@ markVisitHitMapNode(
     add2HitMapNodeHash(hitMapNodeHash, hmNode);
 }
 
+
+static int
+dfs3_HitMapNodePropagate(
+        HitMapNode *srcnode,
+        HitMapContext *hitMap,
+        HitMapAddr2NodeItem *hmAddr2NodeItem,
+        u32 dstAddrStart,
+        u32 dstAddrEnd,
+        int dstMinSeqN,
+        int dstMaxSeqN)
+// uses hitMap node stack instead of Hit Transition Stack as dfs2
+{
+    if(srcnode == NULL) {
+        fprintf(stderr, "dfsHitMapNodePropagate: hit map srcnode:%p\n", srcnode);
+        return -1;
+    }
+
+    if(srcnode->firstChild == NULL) {
+        // printf("given source node is a leaf\n");
+        // printHitMapNode(srcnode);
+        return 0;
+    }
+    // printf("---------------\nsource:");
+    // printHitMapNode(srcnode);
+    // printf("dst max seqN:%u\n", dstMaxSeqN);
+
+    HitMapNodeHash *visitNodeHash = NULL;
+
+    StackHitMapNode *stackHMNodeTop = NULL;
+    u32 stackHMNodeCnt = 0;
+
+    stackHitMapNodePush(srcnode, &stackHMNodeTop, &stackHMNodeCnt);
+    while(!isStackHitMapNodeEmpty(stackHMNodeTop) ) {
+        HitMapNode *popNode = stackHitMapNodePop(&stackHMNodeTop, &stackHMNodeCnt);
+        markVisitHitMapNode(&visitNodeHash, popNode);
+
+        if(popNode->bufId > 0) {
+            // printHitMapNodeLit(popNode);
+        }
+
+        if(popNode->bufId > 0
+           && popNode->addr >= dstAddrStart && popNode->addr <= dstAddrEnd
+           && popNode->lastUpdateTS >= dstMinSeqN && popNode->lastUpdateTS <= dstMaxSeqN) {
+            // printHitMapNodeLit(popNode);
+
+            HitMapAddr2NodeItem *find;
+            HASH_FIND(hh_hmAddr2NodeItem, hmAddr2NodeItem->subHash, &popNode, 4, find);
+            if(find == NULL) {
+                HitMapAddr2NodeItem *toHitMapNodeItem = createHitMapAddr2NodeItem(popNode->addr, popNode, NULL, NULL);
+                HASH_ADD(hh_hmAddr2NodeItem, hmAddr2NodeItem->subHash, node, 4, toHitMapNodeItem);
+            }
+        }
+
+
+        storeUnvisitHitMapNodeChildren(visitNodeHash, popNode, dstMaxSeqN, &stackHMNodeTop, &stackHMNodeCnt);
+    }
+    delHitMapNodeHash(&visitNodeHash);
+
+    HASH_SRT(hh_hmAddr2NodeItem, hmAddr2NodeItem->subHash, cmpHitMapAddr2NodeItem);
+    return 0;
+}
+
+static void
+storeUnvisitHitMapNodeChildren(
+        HitMapNodeHash *hitMapNodeHash,
+        HitMapNode *farther,
+        int maxSeq,
+        StackHitMapNode **stackHMNodeTop,
+        u32 *stackHMNodeCnt)
+{
+    HitTransition *firstChild = farther->firstChild;
+    while(firstChild != NULL) {
+        HitMapNode *childNode = firstChild->child;
+        if(!isHitMapNodeVisited(hitMapNodeHash, childNode) && firstChild->maxSeqNo <= maxSeq) {
+            stackHitMapNodePush(childNode, stackHMNodeTop, stackHMNodeCnt);
+        }
+        else{
+            // printf("hitMapNode had been visited %p addr:%x ver:%u\n", childNode, childNode->addr, childNode->version);
+        }
+        firstChild = firstChild->next;
+    }
+}

@@ -138,12 +138,12 @@ detectHitMapAvalInOut(
     print1TPMBufHashTable("dst buf: ", hitMapAvalSrchCtxt->dstTPMBuf);
     printf("total src buf node:%u - total dst buf node:%u\n", srcBufNodeTotal, dstBufNodeTotal);
     // printTime("before search propagation");
-    printTimeMicroStart();
+    // printTimeMicroStart();
 
     searchHitMapPropgtInOut(hitMapAvalSrchCtxt, hitMap);
 
     // printTime("after search propagation");
-    printTimeMicroEnd(totalElapse);
+    // printTimeMicroEnd(totalElapse);
 
     numOfTrans = 0;
     srcBufID = hitMapAvalSrchCtxt->srcBufID;
@@ -182,8 +182,8 @@ searchHitMapPropgtInOut(HitMapAvalSearchCtxt *hitMapAvalSrchCtxt, HitMapContext 
             HASH_ADD(hh_hmAddr2NodeItem, hitMapAvalSrchCtxt->hitMapAddr2NodeAry[srcAddrIdx], node, 4, hmAddr2NodeItem);
 
             //Dbg
-            if(head->addr == 0xefccbd9c && head->version == 34)
-                printf("dbg\n");
+            // if(head->addr == 0xefccbd9c && head->version == 34)
+            //     printf("dbg\n");
 
             hitMapNodePropagate(head, hitMap, hmAddr2NodeItem, hitMapAvalSrchCtxt->dstAddrStart, hitMapAvalSrchCtxt->dstAddrEnd,
                     hitMapAvalSrchCtxt->dstMinSeqN, hitMapAvalSrchCtxt->dstMaxSeqN);
@@ -192,7 +192,7 @@ searchHitMapPropgtInOut(HitMapAvalSearchCtxt *hitMapAvalSrchCtxt, HitMapContext 
         } while(ver != head->version);
 
         HASH_SRT(hh_hmAddr2NodeItem, hitMapAvalSrchCtxt->hitMapAddr2NodeAry[srcAddrIdx], cmpHitMapAddr2NodeItem);
-        // printHitMap2LAddr2NodeItem(hitMapAvalSrchCtxt->hitMapAddr2NodeAry[srcAddrIdx]);
+        printHitMap2LAddr2NodeItem(hitMapAvalSrchCtxt->hitMapAddr2NodeAry[srcAddrIdx]);
         // assert(head->leftNBR == NULL);
     }
 }
