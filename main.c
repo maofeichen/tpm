@@ -46,7 +46,7 @@ int main(int argc, char const *argv[])
 			compHitMapStat(hitMap);
 
 			delTPM(tpm);
-			detectHitMapAvalanche(hitMap, tpm);
+			// detectHitMapAvalanche(hitMap, tpm);
 			// printHitMap(hitMap);
 			delAllTPMBuf(hitMap->tpmBuf);
 			delHitMap(hitMap);

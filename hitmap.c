@@ -99,25 +99,6 @@ buildHitMap(HitMapContext *hitMap, TPMContext *tpm)
     }
 }
 
-//void
-//detectHitMapAvalanche(HitMapContext *hitMap, TPMContext *tpm)
-//{
-//    u32 numOfBuf;
-//
-//    numOfBuf = hitMap->numOfBuf;
-//    for(int bufIdx = 0; bufIdx < numOfBuf; bufIdx++) {
-//        for(int addrIdx = 0; addrIdx < hitMap->bufArray[bufIdx]->numOfAddr; addrIdx++) {
-//            HitMapNode *addrHeadNode = hitMap->bufArray[bufIdx]->addrArray[addrIdx];
-//            // printHitMapNode(addrHeadNode);
-//            hitMapNodePropagate(addrHeadNode, hitMap, tpm);
-//            goto OutOfLoop;
-//        }
-//    }
-//OutOfLoop:
-//    printf("");
-//}
-
-
 void
 compHitMapStat(HitMapContext *hitMap)
 {

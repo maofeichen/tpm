@@ -16,6 +16,19 @@ delTransitionHT(TransitionHashTable **transitionht);
 static void 
 countTransitionHT(TransitionHashTable *transitionht);
 
+/* TPMNode hash operation */
+static void
+add2TPMNodeHash(TPMNodeHash **tpmnodeHash, TPMNode *tpmnode);
+
+static TPMNodeHash *
+findInTPMNodeHash(TPMNodeHash *tpmnodeHash, TPMNode *tpmnode);
+
+static void
+delTPMNodeHash(TPMNodeHash **tpmnodeHash);
+
+static void
+countTPMNodeHash(TPMNodeHash *tpmnodeHash);
+
 /* Stack of Transition node operation */
 StackTransitionNode *stackTransTop = NULL;
 u32 stackCount = 0;
@@ -76,6 +89,31 @@ stckMemnodePopAll(StckMemnode **stckMemnodeTop, u32 *stckMemnodeCnt);
 
 static bool
 isStckMemnodeEmpty(StckMemnode *stckMemnodeTop);
+
+/* TPMNode stack operation */
+static void
+stackTPMNodePush(
+    TPMNode *tpmnode,
+    StackTPMNode **stackTPMNodeTop,
+    u32 *stackTPMNodeCnt);
+
+static TPMNode *
+stackTPMNodePop(
+    StackTPMNode **stackTPMNodeTop,
+    u32 *stackTPMNodeCnt);
+
+static void
+stackTPMNodeDisplay(
+    StackTPMNode *stackTPMNodeTop,
+    u32 stackTPMNodeCnt);
+
+static void
+stackTPMNodePopAll(
+    StackTPMNode **stackTPMNodeTop,
+    u32 *stackTPMNodeCnt);
+
+static bool
+isStackTPMNodeEmpty(StackTPMNode *stackTPMNodeTop);
 
 /* mem node propagate implement */
 static int 
@@ -157,6 +195,26 @@ storeDFSBufNodeVisitPath(
         u32 lvl,
         StckMemnode **stackBufNodePathTop,
         u32 *stackBufNodePathCnt);
+
+static int
+dfs2HitMapNode_NodeStack(
+        TPMContext *tpm,
+        TPMNode2 *srcnode,
+        HitMapContext *hitMapCtxt);
+
+static void
+markVisitTPMNode(TPMNodeHash **tpmNodeHash, TPMNode *tpmnode);
+
+static bool
+isTPMNodeVisited(TPMNodeHash *tpmNodeHash, TPMNode *tpmnode);
+
+static void
+storeUnvisitTPMNodeChildren(
+    TPMNodeHash **tpmnodeHash,
+    TPMNode *father,
+    int maxSeqN,
+    StackTPMNode **stackTPMNodeTop,
+    u32 *stackTPMNodeCnt);
 
 static int
 dfs2HitMapNode_PopAtEnd(
@@ -280,7 +338,9 @@ bufnodePropgt2HitMapNode(
         TPMNode2 *srcnode,
         HitMapContext *hitMapCtxt)
 {
-    return dfs2HitMapNode(tpm, srcnode, hitMapCtxt);
+    // return dfs2HitMapNode(tpm, srcnode, hitMapCtxt);
+    return dfs2HitMapNode_NodeStack(tpm, srcnode, hitMapCtxt);
+
     // return dfs2HitMapNode_PopAtEnd(tpm, srcnode, hitMapCtxt);
     // return dfs2BuildHitMap_DBG(tpm, srcnode, hitMapCtxt);
     // return dfsBuildHitMap_intermediateNode(tpm, srcnode, hitMapCtxt);
@@ -522,6 +582,40 @@ countTransitionHT(TransitionHashTable *transitionht)
 	printf("total:%u transitions in hash table\n", num);
 }
 
+static void
+add2TPMNodeHash(TPMNodeHash **tpmnodeHash, TPMNode *tpmnode)
+{
+  TPMNodeHash *tpmHash;
+  tpmHash = findInTPMNodeHash(*tpmnodeHash, tpmnode);
+  if(tpmnode == NULL) {
+    tpmHash = calloc(1, sizeof(TPMNodeHash) );
+    assert(tpmHash != NULL);
+    tpmHash->toTPMNode = tpmnode;
+    HASH_ADD(hh_tpmnode, *tpmnodeHash, toTPMNode, 4, tpmHash);
+  }
+}
+
+static TPMNodeHash *
+findInTPMNodeHash(TPMNodeHash *tpmnodeHash, TPMNode *tpmnode)
+{
+  TPMNodeHash *tpmHash = NULL;
+  HASH_FIND(hh_tpmnode, tpmnodeHash, &tpmnode, 4, tpmHash);
+  return tpmHash;
+}
+
+static void
+delTPMNodeHash(TPMNodeHash **tpmnodeHash)
+{
+  TPMNodeHash *cur, *tmp;
+  HASH_ITER(hh_tpmnode, *tpmnodeHash, cur, tmp) {
+    HASH_DELETE(hh_tpmnode, *tpmnodeHash, cur);
+    free(cur);
+  }
+}
+
+static void
+countTPMNodeHash(TPMNodeHash *tpmnodeHash) {}
+
 static void 
 transStackPush(Transition *transition)
 {
@@ -718,6 +812,76 @@ isStckMemnodeEmpty(StckMemnode *stckMemnodeTop)
         return false;
     else
         return true;
+}
+
+static void
+stackTPMNodePush(
+    TPMNode *tpmnode,
+    StackTPMNode **stackTPMNodeTop,
+    u32 *stackTPMNodeCnt)
+{
+  StackTPMNode *s = calloc(1, sizeof(StackTPMNode) );
+  assert(s != NULL);
+  s->node = tpmnode;
+  s->next = *stackTPMNodeTop;
+  *stackTPMNodeTop = s;
+  (*stackTPMNodeCnt)++;
+}
+
+static TPMNode *
+stackTPMNodePop(
+    StackTPMNode **stackTPMNodeTop,
+    u32 *stackTPMNodeCnt)
+{
+  StackTPMNode *toPop;
+  TPMNode *tpmnode = NULL;
+
+  if(*stackTPMNodeTop != NULL) {
+    toPop = *stackTPMNodeTop;
+    *stackTPMNodeTop = toPop->next;
+    tpmnode = toPop->node;
+
+    free(toPop);
+    (*stackTPMNodeCnt)--;
+  }
+
+  return tpmnode;
+}
+
+static void
+stackTPMNodeDisplay(
+    StackTPMNode *stackTPMNodeTop,
+    u32 stackTPMNodeCnt)
+{
+  if(stackTPMNodeCnt > 0)
+    printf("-----\nnum of TPMNodes in stack:%u\n", stackTPMNodeCnt);
+
+  while(stackTPMNodeTop != NULL) {
+    TPMNode *node = stackTPMNodeTop->node;
+    if(node->tpmnode1.type == TPM_Type_Memory)
+      printMemNodeLit((TPMNode2 *)node);
+    else
+      printNonmemNode((TPMNode1 *)node);
+
+    stackTPMNodeTop = stackTPMNodeTop->next;
+  }
+}
+
+static void
+stackTPMNodePopAll(
+    StackTPMNode **stackTPMNodeTop,
+    u32 *stackTPMNodeCnt)
+{
+  while(*stackTPMNodeTop != NULL) {
+    stackTPMNodePop(stackTPMNodeTop, stackTPMNodeCnt);
+  }
+}
+
+static bool
+isStackTPMNodeEmpty(StackTPMNode *stackTPMNodeTop)
+{
+  if(stackTPMNodeTop != NULL) { return false; }
+  else { return true; }
 }
 
 static void 
@@ -989,6 +1153,134 @@ storeDFSBufNodeVisitPath(
     else {
         stckMemnodePush(node, lvl, stackBufNodePathTop, stackBufNodePathCnt);
     }
+}
+
+static int
+dfs2HitMapNode_NodeStack(
+        TPMContext *tpm,
+        TPMNode2 *srcnode,
+        HitMapContext *hitMapCtxt)
+// Uses node stack instead of transition stack
+{
+  TPMNodeHash *visitTPMNodeHash = NULL;
+
+  StackTPMNode *stackTPMNodeTop = NULL;
+  u32 stackTPMNodeCnt = 0;
+
+  StckMemnode *stackBufNodePathTop = NULL;
+  u32 stackBufNodePathCnt = 0;
+
+  u32 dfsLevel = 0;   // Not used
+  u32 minHitTransSeqN, maxHitTransSeqN;
+
+  if(tpm == NULL || srcnode == NULL || hitMapCtxt == NULL) {
+      fprintf(stderr, "dfs2HitMapNode_NodeStack: tpm:%p srcnode:%p hitMap:%p\n", tpm, srcnode, hitMapCtxt);
+      return -1;
+  }
+
+  if(isHitMapNodeExist(srcnode, hitMapCtxt) ) {
+      // printf("srcnode %p had been build HitMap\n", srcnode);
+      return 0;
+  }
+
+  printf("---------------\ndfs2HitMapNode_NodeStack source:%p\n", srcnode);
+  printMemNode(srcnode);
+
+  stckMemnodePush(srcnode, dfsLevel, &stackBufNodePathTop, &stackBufNodePathCnt);
+  stackTPMNodePush((TPMNode *)srcnode, &stackTPMNodeTop, &stackTPMNodeCnt);
+  stackTPMNodeDisplay(stackTPMNodeTop, stackTPMNodeCnt);
+
+  while(!isStackTPMNodeEmpty(stackTPMNodeTop) ) {
+    TPMNode *topNode = stackTPMNodeTop->node;
+    u32 transLvl = 0;
+
+    if(isTPMNodeVisited(visitTPMNodeHash, topNode) ) {
+      if(topNode->tpmnode1.type == TPM_Type_Memory &&
+         topNode->tpmnode2.bufid > 0) {
+        assert((TPMNode2 *)topNode == stackBufNodePathTop->memnode);
+        if(stackBufNodePathCnt > 1) {
+          createHitMapRecord(stackBufNodePathTop->next->memnode, 0, (TPMNode2 *)topNode, 0, hitMapCtxt);
+        }
+        stckMemnodePop(&transLvl, &stackBufNodePathTop, &stackBufNodePathCnt);
+      }
+      stackTPMNodePop(&stackTPMNodeTop, &stackTPMNodeCnt);
+    }
+    else {  // new TPMNode
+      markVisitTPMNode(&visitTPMNodeHash, topNode);
+
+      if(topNode->tpmnode1.type == TPM_Type_Memory) {
+        printMemNodeLit((TPMNode2 *)topNode);
+      } else {
+        printNonmemNode((TPMNode1 *)topNode);
+      }
+
+      if(topNode->tpmnode1.type == TPM_Type_Memory &&
+         topNode->tpmnode2.bufid > 0) {
+        stckMemnodePush((TPMNode2 *)topNode, transLvl, &stackBufNodePathTop, &stackBufNodePathCnt);
+      }
+
+      if(topNode->tpmnode1.firstChild == NULL) { // leaf
+        if(topNode->tpmnode1.type == TPM_Type_Memory &&
+           topNode->tpmnode2.bufid > 0) {
+          assert((TPMNode2 *)topNode == stackBufNodePathTop->memnode);
+          if(stackBufNodePathCnt > 1) {
+            createHitMapRecord(stackBufNodePathTop->next->memnode, 0, (TPMNode2 *)topNode, 0, hitMapCtxt);
+          }
+          stckMemnodePop(&transLvl, &stackBufNodePathTop, &stackBufNodePathCnt);
+        }
+        stackTPMNodePop(&stackTPMNodeTop, &stackTPMNodeCnt);
+      }
+      else {
+        storeUnvisitTPMNodeChildren(&visitTPMNodeHash, topNode, hitMapCtxt->maxBufSeqN, &stackTPMNodeTop, &stackTPMNodeCnt);
+        stackTPMNodeDisplay(stackTPMNodeTop, stackTPMNodeCnt);
+      }
+    } // end else
+  }
+
+  delTPMNodeHash(&visitTPMNodeHash);
+  stckMemnodePopAll(&stackBufNodePathTop, &stackBufNodePathCnt);
+
+  return 0;
+}
+
+static void
+markVisitTPMNode(TPMNodeHash **tpmNodeHash, TPMNode *tpmnode)
+{
+  if(tpmNodeHash == NULL || tpmnode == NULL)
+    return;
+  add2TPMNodeHash(tpmNodeHash, tpmnode);
+}
+
+static bool
+isTPMNodeVisited(TPMNodeHash *tpmNodeHash, TPMNode *tpmnode)
+{
+  if(tpmnode == NULL)
+    return false;
+
+  TPMNodeHash *found = NULL;
+  found = findInTPMNodeHash(tpmNodeHash, tpmnode);
+  if(found != NULL) { return true; }
+  else { return false; }
+}
+
+static void
+storeUnvisitTPMNodeChildren(
+    TPMNodeHash **tpmnodeHash,
+    TPMNode *farther,
+    int maxSeqN,
+    StackTPMNode **stackTPMNodeTop,
+    u32 *stackTPMNodeCnt)
+{
+  Transition *firstChild = farther->tpmnode1.firstChild;
+  while(firstChild != NULL) {
+    TPMNode *childNode = firstChild->child;
+    if(!isTPMNodeVisited(*tpmnodeHash, childNode) &&
+       firstChild->seqNo <= maxSeqN) {
+      stackTPMNodePush(childNode, stackTPMNodeTop, stackTPMNodeCnt);
+    }
+
+    firstChild = firstChild->next;
+  }
 }
 
 static int

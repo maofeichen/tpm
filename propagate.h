@@ -17,6 +17,12 @@ typedef struct TransitionHashTable
 	UT_hash_handle hh_trans;
 } TransitionHashTable;
 
+typedef struct TPMNodeHash
+{
+  TPMNode *toTPMNode;
+  UT_hash_handle hh_tpmnode;
+} TPMNodeHash;
+
 typedef struct StackTransitionNode 
 {
 	Transition *transition;
