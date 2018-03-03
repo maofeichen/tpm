@@ -408,6 +408,16 @@ printTrans1stChild(union TPMNode *head)
 }
 
 void
+print1Trans(Transition *transition)
+{
+    if(transition == NULL)
+        return;
+
+    printf("Transition: seqN%u\n", transition->seqNo);
+}
+
+
+void
 printTransAllChildren(Transition *transition)
 {
     u32 numOfTrans = 0;

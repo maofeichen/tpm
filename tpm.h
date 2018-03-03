@@ -141,6 +141,9 @@ void
 printTrans1stChild(union TPMNode *head);
 
 void 
+print1Trans(Transition *transition);
+
+void
 printTransAllChildren(Transition *transition);
 
 void 

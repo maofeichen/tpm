@@ -810,7 +810,7 @@ stckMemnodeDisplay(StckMemnode *stckMemnodeTop, u32 stckMemnodeCnt)
         printf("--------------------\ntotal memnode in stack:%u\n", stckMemnodeCnt);
 
     while(stckMemnodeTop != NULL) {
-        printf("node levle:%u\n", stckMemnodeTop->level);
+        printf("node levle:%u minSeqN:%u\n", stckMemnodeTop->level, stckMemnodeTop->minSeqN);
         // printMemNode(stckMemnodeTop->memnode);
         printMemNodeLit(stckMemnodeTop->memnode);
         stckMemnodeTop = stckMemnodeTop->next;
@@ -878,18 +878,25 @@ stackTPMNodeDisplay(
     StackTPMNode *stackTPMNodeTop,
     u32 stackTPMNodeCnt)
 {
-  if(stackTPMNodeCnt > 0)
-    printf("-----\nnum of TPMNodes in stack:%u\n", stackTPMNodeCnt);
+    if (stackTPMNodeCnt > 0)
+        printf("-----\nnum of TPMNodes in stack:%u\n", stackTPMNodeCnt);
 
-  while(stackTPMNodeTop != NULL) {
-    TPMNode *node = stackTPMNodeTop->node;
-    if(node->tpmnode1.type == TPM_Type_Memory)
-      printMemNodeLit((TPMNode2 *)node);
-    else
-      printNonmemNode((TPMNode1 *)node);
+    while (stackTPMNodeTop != NULL) {
+        TPMNode *farther = stackTPMNodeTop->farther;
+        printf("farther: ");
+        printNode(farther);
 
-    stackTPMNodeTop = stackTPMNodeTop->next;
-  }
+        TPMNode *node = stackTPMNodeTop->node;
+        printf("node: ");
+        printNode(node);
+
+        print1Trans(stackTPMNodeTop->dirctTrans);
+//        if (node->tpmnode1.type == TPM_Type_Memory)
+//            printMemNodeLit((TPMNode2 *) node);
+//        else
+//            printNonmemNode((TPMNode1 *) node);
+        stackTPMNodeTop = stackTPMNodeTop->next;
+    }
 }
 
 static void
@@ -1211,9 +1218,7 @@ dfs2HitMapNode_NodeStack(
   // printf("---------------\ndfs2HitMapNode_NodeStack source:%p\n", srcnode);
   // printMemNode(srcnode);
 
-  // stckMemnodePush(srcnode, dfsLevel, &stackBufNodePathTop, &stackBufNodePathCnt);
   stackTPMNodePush((TPMNode *)srcnode, NULL, NULL, &stackTPMNodeTop, &stackTPMNodeCnt);
-  // stackTPMNodeDisplay(stackTPMNodeTop, stackTPMNodeCnt);
 
   while(!isStackTPMNodeEmpty(stackTPMNodeTop) ) {
     TPMNode *topNode = stackTPMNodeTop->node;
@@ -1224,17 +1229,23 @@ dfs2HitMapNode_NodeStack(
          topNode->tpmnode2.bufid > 0) {
         assert((TPMNode2 *)topNode == stackBufNodePathTop->memnode);
         if(stackBufNodePathCnt > 1) {
-          createHitMapRecord(stackBufNodePathTop->next->memnode, 0, (TPMNode2 *)topNode, 0, hitMapCtxt);
+            TPMNode2 *src = stackBufNodePathTop->next->memnode;
+            TPMNode2 *dst = (TPMNode2 *)topNode;
+            minHitTransSeqN = stackBufNodePathTop->next->minSeqN;
+            maxHitTransSeqN = stackTPMNodeTop->dirctTrans->seqNo;
+            assert(minHitTransSeqN <= maxHitTransSeqN);
+            // printf("-----\nCreates HitTransition between: minSeqN:%u maxSeqN:%u\n", minHitTransSeqN, maxHitTransSeqN);
+            // printMemNodeLit(src);
+            // printMemNodeLit(dst);
+            createHitMapRecord(stackBufNodePathTop->next->memnode, minHitTransSeqN, (TPMNode2 *)topNode, maxHitTransSeqN, hitMapCtxt);
         }
         stckMemnodePop(&transLvl, &stackBufNodePathTop, &stackBufNodePathCnt);
-        // stckMemnodeDisplay(stackBufNodePathTop, stackBufNodePathCnt);
       }
       stackTPMNodePop(&stackTPMNodeTop, &stackTPMNodeCnt);
       // stackTPMNodeDisplay(stackTPMNodeTop, stackTPMNodeCnt);
     }
     else {  // new TPMNode
       markVisitTPMNode(&visitTPMNodeHash, topNode);
-      // printTPMNodeHash(visitTPMNodeHash);
 
 //      if(topNode->tpmnode1.type == TPM_Type_Memory) {
 //        printMemNodeLit((TPMNode2 *)topNode);
@@ -1245,6 +1256,16 @@ dfs2HitMapNode_NodeStack(
       if(topNode->tpmnode1.type == TPM_Type_Memory &&
          topNode->tpmnode2.bufid > 0) {
         stckMemnodePush((TPMNode2 *)topNode, transLvl, &stackBufNodePathTop, &stackBufNodePathCnt);
+        // stckMemnodeDisplay(stackBufNodePathTop, stackBufNodePathCnt);
+      }
+      else { // it's not a valid buffer node, might need to update the minSeqN of source buffer node (top of the path buf stack
+          if(stackTPMNodeTop->farther->tpmnode1.type == TPM_Type_Memory &&
+             (TPMNode2 *)stackTPMNodeTop->farther == stackBufNodePathTop->memnode) {
+              // printf("-----update minSeqN\n");
+              // set the minSeqN (should be direct transition of the source)
+              stackBufNodePathTop->minSeqN = stackTPMNodeTop->dirctTrans->seqNo;
+              // stckMemnodeDisplay(stackBufNodePathTop, stackBufNodePathCnt);
+          }
       }
 
       if(topNode->tpmnode1.firstChild == NULL) { // leaf
@@ -1252,10 +1273,17 @@ dfs2HitMapNode_NodeStack(
            topNode->tpmnode2.bufid > 0) {
           assert((TPMNode2 *)topNode == stackBufNodePathTop->memnode);
           if(stackBufNodePathCnt > 1) {
-            createHitMapRecord(stackBufNodePathTop->next->memnode, 0, (TPMNode2 *)topNode, 0, hitMapCtxt);
+              TPMNode2 *src = stackBufNodePathTop->next->memnode;
+              TPMNode2 *dst = (TPMNode2 *)topNode;
+              minHitTransSeqN = stackBufNodePathTop->next->minSeqN;
+              maxHitTransSeqN = stackTPMNodeTop->dirctTrans->seqNo;
+              assert(minHitTransSeqN <= maxHitTransSeqN);
+              // printf("-----\nCreates HitTransition between: minSeqN:%u maxSeqN:%u\n", minHitTransSeqN, maxHitTransSeqN);
+              // printMemNodeLit(src);
+              // printMemNodeLit(dst);
+              createHitMapRecord(stackBufNodePathTop->next->memnode, minHitTransSeqN, (TPMNode2 *)topNode, maxHitTransSeqN, hitMapCtxt);
           }
           stckMemnodePop(&transLvl, &stackBufNodePathTop, &stackBufNodePathCnt);
-          // stckMemnodeDisplay(stackBufNodePathTop, stackBufNodePathCnt);
         }
         stackTPMNodePop(&stackTPMNodeTop, &stackTPMNodeCnt);
         // stackTPMNodeDisplay(stackTPMNodeTop, stackTPMNodeCnt);

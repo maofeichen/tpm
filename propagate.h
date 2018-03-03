@@ -31,8 +31,11 @@ typedef struct StackTransitionNode
 } StackTransitionNode;
 
 typedef struct StckMemnode
-{   u32 level;
+{
+    u32 level;
     TPMNode2 *memnode;
+    u32 minSeqN; // records min seqN during traversing between buffer nodes
+    // u32 maxSeqN;
     struct StckMemnode *next;
 } StckMemnode;  // stores buf nodes during dfs search of building HitMap
 
