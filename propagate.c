@@ -97,6 +97,8 @@ isStckMemnodeEmpty(StckMemnode *stckMemnodeTop);
 static void
 stackTPMNodePush(
     TPMNode *tpmnode,
+    TPMNode *farther,
+    Transition *dirctTrans,
     StackTPMNode **stackTPMNodeTop,
     u32 *stackTPMNodeCnt);
 
@@ -836,12 +838,16 @@ isStckMemnodeEmpty(StckMemnode *stckMemnodeTop)
 static void
 stackTPMNodePush(
     TPMNode *tpmnode,
+    TPMNode *farther,
+    Transition *dirctTrans,
     StackTPMNode **stackTPMNodeTop,
     u32 *stackTPMNodeCnt)
 {
   StackTPMNode *s = calloc(1, sizeof(StackTPMNode) );
   assert(s != NULL);
   s->node = tpmnode;
+  s->farther = farther;
+  s->dirctTrans = dirctTrans;
   s->next = *stackTPMNodeTop;
   *stackTPMNodeTop = s;
   (*stackTPMNodeCnt)++;
@@ -1206,7 +1212,7 @@ dfs2HitMapNode_NodeStack(
   // printMemNode(srcnode);
 
   // stckMemnodePush(srcnode, dfsLevel, &stackBufNodePathTop, &stackBufNodePathCnt);
-  stackTPMNodePush((TPMNode *)srcnode, &stackTPMNodeTop, &stackTPMNodeCnt);
+  stackTPMNodePush((TPMNode *)srcnode, NULL, NULL, &stackTPMNodeTop, &stackTPMNodeCnt);
   // stackTPMNodeDisplay(stackTPMNodeTop, stackTPMNodeCnt);
 
   while(!isStackTPMNodeEmpty(stackTPMNodeTop) ) {
@@ -1300,7 +1306,7 @@ storeUnvisitTPMNodeChildren(
     TPMNode *childNode = firstChild->child;
     if(!isTPMNodeVisited(*tpmnodeHash, childNode) &&
        firstChild->seqNo <= maxSeqN) {
-      stackTPMNodePush(childNode, stackTPMNodeTop, stackTPMNodeCnt);
+      stackTPMNodePush(childNode, farther, firstChild, stackTPMNodeTop, stackTPMNodeCnt);
     }
 
     firstChild = firstChild->next;
