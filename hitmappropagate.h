@@ -33,6 +33,7 @@ typedef struct HitMapNodeHash
 typedef struct StackHitMapNode
 {
     HitMapNode *hmNode;
+    u32 currSeqN;
     struct StackHitMapNode *next;
 } StackHitMapNode;
 

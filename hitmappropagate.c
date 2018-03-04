@@ -148,6 +148,7 @@ static void
 storeUnvisitHitMapNodeChildren(
         HitMapNodeHash *hitMapNodeHash,
         HitMapNode *farther,
+        u32 currSeqN,
         int maxSeq,
         StackHitMapNode **stackHMNodeTop,
         u32 *stackHMNodeCnt);
@@ -648,12 +649,16 @@ dfs3_HitMapNodePropagate(
     u32 stackHMNodeCnt = 0;
 
     stackHitMapNodePush(srcnode, &stackHMNodeTop, &stackHMNodeCnt);
+    stackHMNodeTop->currSeqN = 0;
+
     while(!isStackHitMapNodeEmpty(stackHMNodeTop) ) {
+        u32 currSeqN = stackHMNodeTop->currSeqN;
         HitMapNode *popNode = stackHitMapNodePop(&stackHMNodeTop, &stackHMNodeCnt);
         markVisitHitMapNode(&visitNodeHash, popNode);
 
         if(popNode->bufId > 0) {
             // printHitMapNodeLit(popNode);
+            // printf("curr seqN:%u\n", currSeqN);
         }
 
         if(popNode->bufId > 0
@@ -669,7 +674,7 @@ dfs3_HitMapNodePropagate(
             }
         }
 
-        storeUnvisitHitMapNodeChildren(visitNodeHash, popNode, dstMaxSeqN, &stackHMNodeTop, &stackHMNodeCnt);
+        storeUnvisitHitMapNodeChildren(visitNodeHash, popNode, currSeqN, dstMaxSeqN, &stackHMNodeTop, &stackHMNodeCnt);
     }
     delHitMapNodeHash(&visitNodeHash);
 
@@ -681,6 +686,7 @@ static void
 storeUnvisitHitMapNodeChildren(
         HitMapNodeHash *hitMapNodeHash,
         HitMapNode *farther,
+        u32 currSeqN,
         int maxSeq,
         StackHitMapNode **stackHMNodeTop,
         u32 *stackHMNodeCnt)
@@ -689,12 +695,11 @@ storeUnvisitHitMapNodeChildren(
     while(firstChild != NULL) {
         HitMapNode *childNode = firstChild->child;
 
-        // if(childNode->lastUpdateTS == 1524261) {    // dbg
-        //     printHitMapNodeLit(childNode);
-        // }
-
-        if(!isHitMapNodeVisited(hitMapNodeHash, childNode) && firstChild->maxSeqNo <= maxSeq) {
+        if(!isHitMapNodeVisited(hitMapNodeHash, childNode) &&
+           currSeqN <= firstChild->minSeqNo && // enforce the increasing seqN policy
+           firstChild->maxSeqNo <= maxSeq) {
             stackHitMapNodePush(childNode, stackHMNodeTop, stackHMNodeCnt);
+            (*stackHMNodeTop)->currSeqN = firstChild->maxSeqNo; // should assign the maxSeqN of HitTransition
         }
         else{
             // printf("hitMapNode had been visited %p addr:%x ver:%u\n", childNode, childNode->addr, childNode->version);
