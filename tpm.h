@@ -46,6 +46,8 @@ struct Transition
     u32 seqNo;		// sequence number of corresponding XTaint record
     union TPMNode *child;
     struct Transition *next;
+    char hasVisit;  // if the transition (edge) had been visited already in building HitMap
+                    // 0: unvisit 1: visit
 };
 typedef struct Transition Transition;
 

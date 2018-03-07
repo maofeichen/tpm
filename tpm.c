@@ -413,7 +413,7 @@ print1Trans(Transition *transition)
     if(transition == NULL)
         return;
 
-    printf("Transition: seqN%u\n", transition->seqNo);
+    printf("Transition: seqN:%u hasVisit:%d\n", transition->seqNo, transition->hasVisit);
 }
 
 
@@ -992,10 +992,11 @@ create_trans_node(u32 ts, u32 s_type, union TPMNode *src, union TPMNode *dst)
 
     struct Transition *t, *tmp;
 
-    t = (struct Transition*)malloc(sizeof(struct Transition) );
+    t = (struct Transition*)calloc(1, sizeof(struct Transition) );
     t->seqNo = ts; // timestamp
     t->child = dst;
     t->next = NULL;
+    t->hasVisit = 0;
 
     if(s_type & TPM_Type_Memory) { 
         if(src->tpmnode2.firstChild == NULL) { // no trans node
