@@ -208,6 +208,14 @@ dfs2HitMapNode_NodeStack(
         HitMapContext *hitMapCtxt);
 
 static void
+add2HitMap(
+        TPMNode *topNode,
+        StckMemnode *stackBufNodePathTop,
+        u32 stackBufNodePathCnt,
+        StackTPMNode *stackTPMNodeTop,
+        HitMapContext *hitMapCtxt);
+
+static void
 markVisitTPMNode(TPMNodeHash **tpmNodeHash, TPMNode *tpmnode);
 
 static bool
@@ -1227,18 +1235,8 @@ dfs2HitMapNode_NodeStack(
     if(isTPMNodeVisited(visitTPMNodeHash, topNode) ) {
       if(topNode->tpmnode1.type == TPM_Type_Memory &&
          topNode->tpmnode2.bufid > 0) {
-        assert((TPMNode2 *)topNode == stackBufNodePathTop->memnode);
-        if(stackBufNodePathCnt > 1) {
-            TPMNode2 *src = stackBufNodePathTop->next->memnode;
-            TPMNode2 *dst = (TPMNode2 *)topNode;
-            minHitTransSeqN = stackBufNodePathTop->next->minSeqN;
-            maxHitTransSeqN = stackTPMNodeTop->dirctTrans->seqNo;
-            assert(minHitTransSeqN <= maxHitTransSeqN);
-            // printf("-----\nCreates HitTransition between: minSeqN:%u maxSeqN:%u\n", minHitTransSeqN, maxHitTransSeqN);
-            // printMemNodeLit(src);
-            // printMemNodeLit(dst);
-            createHitMapRecord(stackBufNodePathTop->next->memnode, minHitTransSeqN, (TPMNode2 *)topNode, maxHitTransSeqN, hitMapCtxt);
-        }
+
+        add2HitMap(topNode, stackBufNodePathTop, stackBufNodePathCnt, stackTPMNodeTop, hitMapCtxt);
         stckMemnodePop(&transLvl, &stackBufNodePathTop, &stackBufNodePathCnt);
       }
       stackTPMNodePop(&stackTPMNodeTop, &stackTPMNodeCnt);
@@ -1271,19 +1269,9 @@ dfs2HitMapNode_NodeStack(
       if(topNode->tpmnode1.firstChild == NULL) { // leaf
         if(topNode->tpmnode1.type == TPM_Type_Memory &&
            topNode->tpmnode2.bufid > 0) {
-          assert((TPMNode2 *)topNode == stackBufNodePathTop->memnode);
-          if(stackBufNodePathCnt > 1) {
-              TPMNode2 *src = stackBufNodePathTop->next->memnode;
-              TPMNode2 *dst = (TPMNode2 *)topNode;
-              minHitTransSeqN = stackBufNodePathTop->next->minSeqN;
-              maxHitTransSeqN = stackTPMNodeTop->dirctTrans->seqNo;
-              assert(minHitTransSeqN <= maxHitTransSeqN);
-              // printf("-----\nCreates HitTransition between: minSeqN:%u maxSeqN:%u\n", minHitTransSeqN, maxHitTransSeqN);
-              // printMemNodeLit(src);
-              // printMemNodeLit(dst);
-              createHitMapRecord(stackBufNodePathTop->next->memnode, minHitTransSeqN, (TPMNode2 *)topNode, maxHitTransSeqN, hitMapCtxt);
-          }
-          stckMemnodePop(&transLvl, &stackBufNodePathTop, &stackBufNodePathCnt);
+
+            add2HitMap(topNode, stackBufNodePathTop, stackBufNodePathCnt, stackTPMNodeTop, hitMapCtxt);
+            stckMemnodePop(&transLvl, &stackBufNodePathTop, &stackBufNodePathCnt);
         }
         stackTPMNodePop(&stackTPMNodeTop, &stackTPMNodeCnt);
         // stackTPMNodeDisplay(stackTPMNodeTop, stackTPMNodeCnt);
@@ -1299,6 +1287,28 @@ dfs2HitMapNode_NodeStack(
   stckMemnodePopAll(&stackBufNodePathTop, &stackBufNodePathCnt);
 
   return 0;
+}
+
+static void
+add2HitMap(
+        TPMNode *topNode,
+        StckMemnode *stackBufNodePathTop,
+        u32 stackBufNodePathCnt,
+        StackTPMNode *stackTPMNodeTop,
+        HitMapContext *hitMapCtxt)
+{
+    assert((TPMNode2 *)topNode == stackBufNodePathTop->memnode);
+    if(stackBufNodePathCnt > 1) {
+      TPMNode2 *src = stackBufNodePathTop->next->memnode;
+      TPMNode2 *dst = (TPMNode2 *)topNode;
+      u32 minHitTransSeqN = stackBufNodePathTop->next->minSeqN;
+      u32 maxHitTransSeqN = stackTPMNodeTop->dirctTrans->seqNo;
+      assert(minHitTransSeqN <= maxHitTransSeqN);
+      // printf("-----\nCreates HitTransition between: minSeqN:%u maxSeqN:%u\n", minHitTransSeqN, maxHitTransSeqN);
+      // printMemNodeLit(src);
+      // printMemNodeLit(dst);
+      createHitMapRecord(stackBufNodePathTop->next->memnode, minHitTransSeqN, (TPMNode2 *)topNode, maxHitTransSeqN, hitMapCtxt);
+    }
 }
 
 static void
