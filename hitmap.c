@@ -108,7 +108,7 @@ compHitMapStat(HitMapContext *hitMap)
     sortHitMapHashTable(&(hitMap->hitMapNodeHT) );
 
     numOfNode = getHitMapTotalNode(hitMap);
-    printf("total number of node in HitMap:%u\n", numOfNode);
+    printf("----------\ntotal number of node in HitMap:%u\n", numOfNode);
 
     totalTrans = getHitMapTotalTransaction(hitMap);
     printf("total transitions: %u\n", totalTrans);
@@ -143,8 +143,11 @@ getHitMapNodeTransactionNumber(HitMapNode *hmNode)
 {
     u32 numOfTrans = 0;
     HitTransition *firstChild = hmNode->firstChild;
+    // printf("-----farther\n");
+    // printHitMapNodeLit(hmNode);
     while(firstChild != NULL) {
         numOfTrans++;
+        // printHitMapTransition(firstChild);
         firstChild = firstChild->next;
     }
     return numOfTrans;
@@ -299,6 +302,7 @@ buildHitMapAddr(
 
     do {
         bufnodePropgt2HitMapNode(tpm, headNode, hitMap);
+        // compHitMapStat(hitMap); // Dbg
         headNode = headNode->nextVersion;
     } while (currVersion != headNode->version);
 }

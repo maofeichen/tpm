@@ -580,9 +580,9 @@ printHitMapTransition(HitTransition *hTrans)
 {
     if(hTrans == NULL)
         return;
-    printf("HitMap Transition:%p minSeqN:%u maxSeqN:%u child:%p next:%p",
-            hTrans, hTrans->minSeqNo, hTrans->maxSeqNo, hTrans->child, hTrans->next);
+    printf("HitMap Transition: minSeqN:%u maxSeqN:%u\n",
+            hTrans->minSeqNo, hTrans->maxSeqNo);
     if(hTrans->child != NULL) {
-        printHitMapNode(hTrans->child);
+        printHitMapNodeLit(hTrans->child);
     }
 }

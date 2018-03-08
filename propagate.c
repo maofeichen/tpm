@@ -1339,16 +1339,25 @@ storeUnvisitTPMNodeChildren(
     StackTPMNode **stackTPMNodeTop,
     u32 *stackTPMNodeCnt)
 {
-  Transition *firstChild = farther->tpmnode1.firstChild;
-  while(firstChild != NULL) {
-    TPMNode *childNode = firstChild->child;
-    if(!isTPMNodeVisited(*tpmnodeHash, childNode) &&
-       firstChild->seqNo <= maxSeqN) {
-      stackTPMNodePush(childNode, farther, firstChild, stackTPMNodeTop, stackTPMNodeCnt);
-    }
+    Transition *firstChild = farther->tpmnode1.firstChild;
+    while(firstChild != NULL) {
+        TPMNode *childNode = firstChild->child;
 
-    firstChild = firstChild->next;
-  }
+        if(!isTPMNodeVisited(*tpmnodeHash, childNode) &&
+           // firstChild->hasVisit == 0 && // The transition had not been visited before
+           firstChild->seqNo <= maxSeqN ) {
+            stackTPMNodePush(childNode, farther, firstChild, stackTPMNodeTop, stackTPMNodeCnt);
+            firstChild->hasVisit += 1;
+            // print1Trans(firstChild);
+        }
+        else {
+           // printf("-----skip: \n");
+           // printNode(farther);
+           // print1Trans(firstChild);
+           // printNode(childNode);
+        }
+        firstChild = firstChild->next;
+    }
 }
 
 static int
