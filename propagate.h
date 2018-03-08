@@ -45,6 +45,7 @@ typedef struct StackTPMNode
     char flagCreateHM;    // indicates if the TPMNode should create a hitmap node
     TPMNode *farther;
     Transition *dirctTrans; // The transition between farther and itself
+    u32 currSeqN;
     struct StackTPMNode *next;
 } StackTPMNode;
 

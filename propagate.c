@@ -1201,6 +1201,8 @@ dfs2HitMapNode_NodeStack(
         TPMNode2 *srcnode,
         HitMapContext *hitMapCtxt)
 // Uses node stack instead of transition stack
+// Enforces the monotonic increasing seqN policy: only search further if child's transition's
+// seqN larger than curr seqN
 {
   TPMNodeHash *visitTPMNodeHash = NULL;
 
@@ -1210,8 +1212,8 @@ dfs2HitMapNode_NodeStack(
   StckMemnode *stackBufNodePathTop = NULL;
   u32 stackBufNodePathCnt = 0;
 
-  u32 dfsLevel = 0;   // Not used
-  u32 minHitTransSeqN, maxHitTransSeqN;
+  u32 dfsLevel = 0; // Not used
+  u32 currSeqN = 0; // Init source seqN to 0
 
   if(tpm == NULL || srcnode == NULL || hitMapCtxt == NULL) {
       fprintf(stderr, "dfs2HitMapNode_NodeStack: tpm:%p srcnode:%p hitMap:%p\n", tpm, srcnode, hitMapCtxt);
@@ -1227,6 +1229,7 @@ dfs2HitMapNode_NodeStack(
   // printMemNode(srcnode);
 
   stackTPMNodePush((TPMNode *)srcnode, NULL, NULL, &stackTPMNodeTop, &stackTPMNodeCnt);
+  stackTPMNodeTop->currSeqN = currSeqN;
 
   while(!isStackTPMNodeEmpty(stackTPMNodeTop) ) {
     TPMNode *topNode = stackTPMNodeTop->node;
@@ -1245,18 +1248,13 @@ dfs2HitMapNode_NodeStack(
     else {  // new TPMNode
       markVisitTPMNode(&visitTPMNodeHash, topNode);
 
-//      if(topNode->tpmnode1.type == TPM_Type_Memory) {
-//        printMemNodeLit((TPMNode2 *)topNode);
-//      } else {
-//        printNonmemNode((TPMNode1 *)topNode);
-//      }
-
       if(topNode->tpmnode1.type == TPM_Type_Memory &&
          topNode->tpmnode2.bufid > 0) {
         stckMemnodePush((TPMNode2 *)topNode, transLvl, &stackBufNodePathTop, &stackBufNodePathCnt);
         // stckMemnodeDisplay(stackBufNodePathTop, stackBufNodePathCnt);
       }
-      else { // it's not a valid buffer node, might need to update the minSeqN of source buffer node (top of the path buf stack
+      else { // it's not a valid buffer node, might need to update the minSeqN of
+             // source buffer node (top of the path buf stack
           if(stackTPMNodeTop->farther->tpmnode1.type == TPM_Type_Memory &&
              (TPMNode2 *)stackTPMNodeTop->farther == stackBufNodePathTop->memnode) {
               // printf("-----update minSeqN\n");
@@ -1280,7 +1278,7 @@ dfs2HitMapNode_NodeStack(
         storeUnvisitTPMNodeChildren(&visitTPMNodeHash, topNode, hitMapCtxt->maxBufSeqN, &stackTPMNodeTop, &stackTPMNodeCnt);
         // stackTPMNodeDisplay(stackTPMNodeTop, stackTPMNodeCnt);
       }
-    } // end else
+    } // end else new TPMNode
   }
 
   delTPMNodeHash(&visitTPMNodeHash);
@@ -1345,8 +1343,11 @@ storeUnvisitTPMNodeChildren(
 
         if(!isTPMNodeVisited(*tpmnodeHash, childNode) &&
            // firstChild->hasVisit == 0 && // The transition had not been visited before
+           (*stackTPMNodeTop)->currSeqN <= firstChild->seqNo && // enforces the increasing seqN policy
            firstChild->seqNo <= maxSeqN ) {
             stackTPMNodePush(childNode, farther, firstChild, stackTPMNodeTop, stackTPMNodeCnt);
+            (*stackTPMNodeTop)->currSeqN = firstChild->seqNo;
+
             firstChild->hasVisit += 1;
             // print1Trans(firstChild);
         }

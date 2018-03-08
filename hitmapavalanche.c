@@ -45,7 +45,7 @@ detectHitMapAvalanche(HitMapContext *hitMap, TPMContext *tpm)
             //         srcTPMBuf = getTPMBuf(hitMap->tpmBuf, srcBufIdx);
             //         dstTPMBuf = getTPMBuf(hitMap->tpmBuf, dstBufIdx);
             //         hitMapAvalSrchCtxt = initHitMapAvalSearchCtxt(srcBufIdx, srcTPMBuf, dstBufIdx, dstTPMBuf);
-            //         detectHitMapAvalInOut(hitMapAvalSrchCtxt, hitMap);
+            //         detectHitMapAvalInOut(hitMapAvalSrchCtxt, hitMap, &totalElapse);
             //         freeHitMapAvalSearchCtxt(hitMapAvalSrchCtxt);
 
             //         searchCnt++;
@@ -181,10 +181,6 @@ searchHitMapPropgtInOut(HitMapAvalSearchCtxt *hitMapAvalSrchCtxt, HitMapContext 
             HitMapAddr2NodeItem *hmAddr2NodeItem = createHitMapAddr2NodeItem(head->addr, head, NULL, NULL);
             HASH_ADD(hh_hmAddr2NodeItem, hitMapAvalSrchCtxt->hitMapAddr2NodeAry[srcAddrIdx], node, 4, hmAddr2NodeItem);
 
-            //Dbg
-            // if(head->addr == 0xefccbd9c && head->version == 34)
-            //     printf("dbg\n");
-
             hitMapNodePropagate(head, hitMap, hmAddr2NodeItem, hitMapAvalSrchCtxt->dstAddrStart, hitMapAvalSrchCtxt->dstAddrEnd,
                     hitMapAvalSrchCtxt->dstMinSeqN, hitMapAvalSrchCtxt->dstMaxSeqN);
             // printHitMapAddr2NodeItemSubhash(hmAddr2NodeItem);
@@ -192,7 +188,7 @@ searchHitMapPropgtInOut(HitMapAvalSearchCtxt *hitMapAvalSrchCtxt, HitMapContext 
         } while(ver != head->version);
 
         HASH_SRT(hh_hmAddr2NodeItem, hitMapAvalSrchCtxt->hitMapAddr2NodeAry[srcAddrIdx], cmpHitMapAddr2NodeItem);
-        // printHitMap2LAddr2NodeItem(hitMapAvalSrchCtxt->hitMapAddr2NodeAry[srcAddrIdx]);
+        printHitMap2LAddr2NodeItem(hitMapAvalSrchCtxt->hitMapAddr2NodeAry[srcAddrIdx]);
         // assert(head->leftNBR == NULL);
     }
 }
