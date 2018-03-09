@@ -1305,7 +1305,9 @@ add2HitMap(
       // printf("-----\nCreates HitTransition between: minSeqN:%u maxSeqN:%u\n", minHitTransSeqN, maxHitTransSeqN);
       // printMemNodeLit(src);
       // printMemNodeLit(dst);
-      createHitMapRecord(stackBufNodePathTop->next->memnode, minHitTransSeqN, (TPMNode2 *)topNode, maxHitTransSeqN, hitMapCtxt);
+
+      // createHitMapRecord(stackBufNodePathTop->next->memnode, minHitTransSeqN, (TPMNode2 *)topNode, maxHitTransSeqN, hitMapCtxt);
+      createHitMapRecordReverse(stackBufNodePathTop->next->memnode, minHitTransSeqN, (TPMNode2 *)topNode, maxHitTransSeqN, hitMapCtxt);
     }
 }
 

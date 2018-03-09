@@ -33,7 +33,13 @@ static u32
 getHitMapTotalTransaction(HitMapContext *hitMap);
 
 static u32
+getHitMapReverseTotalTrans(HitMapContext *hitMap);
+
+static u32
 getHitMapNodeTransactionNumber(HitMapNode *hmNode);
+
+static u32
+getHitMapNodeReverseTransNum(HitMapNode *hmNode);
 
 static u32
 getHitMapTotalIntermediateNode(HitMapContext *hitMapCtxt);
@@ -120,6 +126,22 @@ compHitMapStat(HitMapContext *hitMap)
     printf("total intermediate transitions:%u\n", totalIntermediateTrans);
 }
 
+void
+compReverseHitMapStat(HitMapContext *hitMap)
+{
+    u32 numOfNode, numOfIntermediateNode;
+    u32 totalTrans, totalIntermediateTrans;
+
+    sortHitMapHashTable(&(hitMap->hitMapNodeHT) );
+
+    numOfNode = getHitMapTotalNode(hitMap);
+    printf("----------\ntotal number of node in HitMap:%u\n", numOfNode);
+
+    totalTrans = getHitMapReverseTotalTrans(hitMap);
+    printf("total transitions: %u\n", totalTrans);
+}
+
+
 static u32
 getHitMapTotalNode(HitMapContext *hitMap)
 {
@@ -139,6 +161,17 @@ getHitMapTotalTransaction(HitMapContext *hitMap)
 }
 
 static u32
+getHitMapReverseTotalTrans(HitMapContext *hitMap)
+{
+    u32 totalTrans = 0;
+    HitMapBufNodePtr2NodeHashTable *item, *temp;
+    HASH_ITER(hh_hitMapBufNode2NodeHT, hitMap->hitMapNodeHT, item, temp ) {
+        totalTrans += getHitMapNodeReverseTransNum(item->toHitMapNode);
+    }
+    return totalTrans;
+}
+
+static u32
 getHitMapNodeTransactionNumber(HitMapNode *hmNode)
 {
     u32 numOfTrans = 0;
@@ -149,6 +182,18 @@ getHitMapNodeTransactionNumber(HitMapNode *hmNode)
         numOfTrans++;
         // printHitMapTransition(firstChild);
         firstChild = firstChild->next;
+    }
+    return numOfTrans;
+}
+
+static u32
+getHitMapNodeReverseTransNum(HitMapNode *hmNode)
+{
+    u32 numOfTrans = 0;
+    HitTransition *taintedBy = hmNode->taintedBy;
+    while(taintedBy != NULL) {
+        numOfTrans++;
+        taintedBy = taintedBy->next;
     }
     return numOfTrans;
 }
@@ -302,7 +347,6 @@ buildHitMapAddr(
 
     do {
         bufnodePropgt2HitMapNode(tpm, headNode, hitMap);
-        // compHitMapStat(hitMap); // Dbg
         headNode = headNode->nextVersion;
     } while (currVersion != headNode->version);
 }

@@ -57,6 +57,9 @@ getEarliestVersion(HitMapNode **hmNode);
 static void
 attachHitTransition(HitMapNode *srcHMN, HitTransition *t);
 
+static void
+attachReverseHitTransition(HitMapNode *dstHitMapNode, HitTransition *htrans);
+
 HitMapNode *
 createHitMapNode(
         u32 bufId,
@@ -76,6 +79,7 @@ createHitMapNode(
     h->bytesz = bytesz;
     h->lastUpdateTS = lastUpdateTS;
     h->firstChild = NULL;
+    h->taintedBy = NULL;
     h->leftNBR = NULL;
     h->rightNBR = NULL;
     h->nextVersion = h; // points to itsefl
@@ -166,6 +170,32 @@ createHitMapRecord(
 }
 
 void
+createHitMapRecordReverse(
+        TPMNode2 *src,
+        u32 minSeqN,
+        TPMNode2 *dst,
+        u32 maxSeqN,
+        HitMapContext *hitMapCtxt)
+// Instead creating Hit Transition from src to dst, creating a Hit Transition from
+// dst to src
+//  1. creates HitMap record source
+//  2. creates HitMap record destination
+//  3. creates transition node from dst to src
+{
+    HitMapNode *srcHitMapNode, *dstHitMapNode;
+    HitTransition *t;
+
+    srcHitMapNode = createHitMapRecordNode(src, hitMapCtxt);
+    dstHitMapNode = createHitMapRecordNode(dst, hitMapCtxt);
+
+    if(!isReverseHitTransitionExist(srcHitMapNode, dstHitMapNode) ) {
+        t = createHitTransition(minSeqN, maxSeqN, srcHitMapNode); // reversed
+        // printHitMapTransition(t);
+        attachReverseHitTransition(dstHitMapNode, t);
+    }
+}
+
+void
 createHitMapRecord_IntrmdtNode(
         TPMNode *src,
         TPMNode *dst,
@@ -207,6 +237,8 @@ createHitTransition(
 {
     HitTransition *t;
     t = calloc(1, sizeof(HitTransition));
+    assert(t != NULL);
+
     t->minSeqNo = minSeqN;
     t->maxSeqNo = maxSeqN;
     t->child = child;
@@ -231,6 +263,28 @@ isHitTransitionExist(HitMapNode *srcNode, HitMapNode *dstNode)
     return false;
 }
 
+bool
+isReverseHitTransitionExist(HitMapNode *srcNode, HitMapNode *dstNode)
+{
+    if(srcNode == NULL || dstNode == NULL) {
+        return false;
+    }
+
+    // printf("-----\n");
+    // printHitMapNodeLit(srcNode);
+    // printHitMapNodeLit(dstNode);
+
+    HitTransition *taintedBy = dstNode->taintedBy;
+    while(taintedBy != NULL) {
+        // printHitMapTransition(taintedBy);
+
+        if(taintedBy->child == srcNode)
+            return true;
+
+        taintedBy = taintedBy->next;
+    }
+    return false;
+}
 
 HitMapBufNodePtr2NodeHashTable *
 createHitMapBufNode2NodeHT(TPMNode2 *srcnode, HitMapNode *hitMapNode)
@@ -537,6 +591,25 @@ attachHitTransition(HitMapNode *srcHMN, HitTransition *t)
         firstChild->next = t;
     }
 }
+
+static void
+attachReverseHitTransition(HitMapNode *dstHitMapNode, HitTransition *htrans)
+{
+    assert(dstHitMapNode != NULL);
+    assert(htrans != NULL);
+
+    if(dstHitMapNode->taintedBy == NULL) {
+        dstHitMapNode->taintedBy = htrans;
+    }
+    else {
+        HitTransition *taintedBy = dstHitMapNode->taintedBy;
+        while(taintedBy->next != NULL) {
+            taintedBy = taintedBy->next;
+        }
+        taintedBy->next = htrans;
+    }
+}
+
 
 void
 printHitMapNode(HitMapNode *node)

@@ -19,6 +19,9 @@ void
 compHitMapStat(HitMapContext *hitMap);
 
 void
+compReverseHitMapStat(HitMapContext *hitMap);
+
+void
 delHitMap(HitMapContext *hitmap);
 
 void

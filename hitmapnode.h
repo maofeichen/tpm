@@ -17,6 +17,8 @@ struct HitMapNode {
     u32 bytesz;
     int lastUpdateTS; // the TS (seq#) of last update of the node. Copy from TPMNode2
     struct HitTransition *firstChild; // points to structure that points to the first child
+    struct HitTransition *taintedBy;  // points to hit transition to father (reversed of child)
+
     struct HitMapNode *leftNBR;       // point to node of adjacent, smaller memory address
     struct HitMapNode *rightNBR;      // point to node of adjacent, bigger memory address
     struct HitMapNode *nextVersion;   // point to node of the same addr buf of different version or age. Forms circular link
@@ -107,6 +109,14 @@ createHitMapRecord(
         HitMapContext *hitMapCtxt);
 
 void
+createHitMapRecordReverse(
+        TPMNode2 *src,
+        u32 minSeqN,
+        TPMNode2 *dst,
+        u32 maxSeqN,
+        HitMapContext *hitMapCtxt);
+
+void
 createHitMapRecord_IntrmdtNode(
         TPMNode *src,
         TPMNode *dst,
@@ -121,6 +131,9 @@ createHitTransition(
 
 bool
 isHitTransitionExist(HitMapNode *srcNode, HitMapNode *dstNode);
+
+bool
+isReverseHitTransitionExist(HitMapNode *srcNode, HitMapNode *dstNode);
 
 HitMapBufNodePtr2NodeHashTable *
 createHitMapBufNode2NodeHT(TPMNode2 *srcnode, HitMapNode *hitMapNode);
