@@ -22,7 +22,14 @@ detectHitMapAvalInOut(
         double *totalElapse);
 
 static void
-searchHitMapPropgtInOut(HitMapAvalSearchCtxt *hitMapAvalSrchCtxt, HitMapContext *hitMap);
+searchHitMapPropgtInOut(
+        HitMapAvalSearchCtxt *hitMapAvalSrchCtxt,
+        HitMapContext *hitMap);
+
+static void
+srchHitMapPropgtInOutReverse(
+        HitMapAvalSearchCtxt *hitMapAvalSrchCtxt,
+        HitMapContext *hitMap);
 
 void
 detectHitMapAvalanche(HitMapContext *hitMap, TPMContext *tpm)
@@ -140,7 +147,8 @@ detectHitMapAvalInOut(
     // printTime("before search propagation");
     printTimeMicroStart();
 
-    searchHitMapPropgtInOut(hitMapAvalSrchCtxt, hitMap);
+    // searchHitMapPropgtInOut(hitMapAvalSrchCtxt, hitMap);
+    srchHitMapPropgtInOutReverse(hitMapAvalSrchCtxt, hitMap);
 
     // printTime("after search propagation");
     printTimeMicroEnd(totalElapse);
@@ -190,5 +198,40 @@ searchHitMapPropgtInOut(HitMapAvalSearchCtxt *hitMapAvalSrchCtxt, HitMapContext 
         HASH_SRT(hh_hmAddr2NodeItem, hitMapAvalSrchCtxt->hitMapAddr2NodeAry[srcAddrIdx], cmpHitMapAddr2NodeItem);
         // printHitMap2LAddr2NodeItem(hitMapAvalSrchCtxt->hitMapAddr2NodeAry[srcAddrIdx]);
         // assert(head->leftNBR == NULL);
+    }
+}
+
+static void
+srchHitMapPropgtInOutReverse(
+        HitMapAvalSearchCtxt *hitMapAvalSrchCtxt,
+        HitMapContext *hitMap)
+// Instead of searching from src to dst, searching from dst to src via taintedBy
+// Hit Transition. But result still store as <src dst> in 2Level hash
+{
+    u32 srcBufId, dstBufId;
+    u32 srcAddrIdx, dstAddrIdx;
+
+    srcBufId = hitMapAvalSrchCtxt->srcBufID;
+    dstBufId = hitMapAvalSrchCtxt->dstBufID;
+
+    if(srcBufId >= hitMap->numOfBuf ||
+       dstBufId >= hitMap->numOfBuf) {
+        fprintf(stderr, "searchHitMapPropgtInOutReverse error: invalid src/dst buf ID\n");
+        return;
+    }
+
+    // Adds all nodes of src buf in 1stLevel hash
+    for(srcAddrIdx = 0; srcAddrIdx < hitMap->bufArray[srcBufId]->numOfAddr; srcAddrIdx++) {
+        HitMapNode *head = hitMap->bufArray[srcBufId]->addrArray[srcAddrIdx];
+        if(head == NULL)
+            continue;   // TODO: Debug
+
+        u32 ver = head->version;
+        do {
+            HitMapAddr2NodeItem *hmAddr2NodeItem = createHitMapAddr2NodeItem(head->addr, head, NULL, NULL);
+            HASH_ADD(hh_hmAddr2NodeItem, hitMapAvalSrchCtxt->hitMapAddr2NodeAry[srcAddrIdx], node, 4, hmAddr2NodeItem);
+
+            head = head->nextVersion;
+        } while(ver != head->version);
     }
 }
