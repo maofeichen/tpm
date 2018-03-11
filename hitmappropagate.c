@@ -839,7 +839,7 @@ storeUnvisitHMNodeChildrenReverse(
         // printHitMapTransition(firstChild);
         if(!isHitMapNodeVisited(hitMapNodeHash, childNode)
            && (int)(firstChild->minSeqNo) >= minSeqN
-           /* && currSeqN >= firstChild->maxSeqNo */) {
+           && currSeqN >= firstChild->maxSeqNo ) {
             stackHitMapNodePush(childNode, stackHMNodeTop, stackHMNodeCnt);
             (*stackHMNodeTop)->currSeqN = firstChild->minSeqNo;
         }
