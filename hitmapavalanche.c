@@ -234,4 +234,30 @@ srchHitMapPropgtInOutReverse(
             head = head->nextVersion;
         } while(ver != head->version);
     }
+
+    // Search reverse taint propagation and build 2Level hash
+    for(dstAddrIdx = 0; dstAddrIdx < hitMap->bufArray[dstBufId]->numOfAddr; dstAddrIdx++) {
+        HitMapNode *head = hitMap->bufArray[dstBufId]->addrArray[dstAddrIdx];
+        if(head == NULL)
+            continue;
+        u32 ver = head->version;
+
+        do {
+            hitMapNodePropagateReverse(head, hitMap, hitMapAvalSrchCtxt->hitMapAddr2NodeAry,
+                                       hitMapAvalSrchCtxt->srcAddrStart, hitMapAvalSrchCtxt->srcAddrEnd,
+                                       hitMapAvalSrchCtxt->srcMinSeqN, hitMapAvalSrchCtxt->srcMaxSeqN);
+            head = head->nextVersion;
+        } while (ver != head->version);
+    }
+
+    for(srcAddrIdx = 0; srcAddrIdx < hitMap->bufArray[srcBufId]->numOfAddr; srcAddrIdx++) {
+        HASH_SRT(hh_hmAddr2NodeItem, hitMapAvalSrchCtxt->hitMapAddr2NodeAry[srcAddrIdx], cmpHitMapAddr2NodeItem);
+
+        HitMapAddr2NodeItem *hmAddr2NodeItem = hitMapAvalSrchCtxt->hitMapAddr2NodeAry[srcAddrIdx];
+        for(; hmAddr2NodeItem != NULL; hmAddr2NodeItem = hmAddr2NodeItem->hh_hmAddr2NodeItem.next) {
+            HASH_SRT(hh_hmAddr2NodeItem, hmAddr2NodeItem->subHash, cmpHitMapAddr2NodeItem);
+        }
+
+        printHitMap2LAddr2NodeItem(hitMapAvalSrchCtxt->hitMapAddr2NodeAry[srcAddrIdx]);
+    }
 }

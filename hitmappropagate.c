@@ -153,6 +153,28 @@ storeUnvisitHitMapNodeChildren(
         StackHitMapNode **stackHMNodeTop,
         u32 *stackHMNodeCnt);
 
+/* dfs search reverse */
+static int
+dfs_HitMapNodePropgtReverse(
+        HitMapNode *srcnode,
+        HitMapContext *hitMap,
+        HitMapAddr2NodeItem **hitMapAddr2NodeAry,
+        u32 srcAddrStart,
+        u32 srcAddrEnd,
+        int srcMinSeqN,
+        int srcMaxSeqN);
+
+static u32
+getMaxHitTransSeqN(HitMapNode *srcNode);
+
+static void
+storeUnvisitHMNodeChildrenReverse(
+        HitMapNodeHash *hitMapNodeHash,
+        HitMapNode *farther,
+        u32 currSeqN,
+        int minSeqN,
+        StackHitMapNode **stackHMNodeTop,
+        u32 *stackHMNodeCnt);
 
 int
 hitMapNodePropagate(
@@ -170,6 +192,20 @@ hitMapNodePropagate(
     // return dfsHitMapNodePropagate(srcnode, hitMap, hmAddr2NodeItem, dstAddrStart, dstAddrEnd, dstMinSeqN, dstMaxSeqN);
     // return dfs2_HitMapNodePropagate(srcnode, hitMap, hmAddr2NodeItem, dstAddrStart, dstAddrEnd, dstMinSeqN, dstMaxSeqN);
     return dfs3_HitMapNodePropagate(srcnode, hitMap, hmAddr2NodeItem, dstAddrStart, dstAddrEnd, dstMinSeqN, dstMaxSeqN);
+}
+
+int
+hitMapNodePropagateReverse(
+        HitMapNode *srcnode,
+        HitMapContext *hitMap,
+        HitMapAddr2NodeItem **hitMapAddr2NodeAry,
+        u32 srcAddrStart,
+        u32 srcAddrEnd,
+        int srcMinSeqN,
+        int srcMaxSeqN)
+{
+    return dfs_HitMapNodePropgtReverse(srcnode, hitMap, hitMapAddr2NodeAry,
+                                       srcAddrStart, srcAddrEnd, srcMinSeqN, srcMaxSeqN);
 }
 
 int
@@ -704,6 +740,110 @@ storeUnvisitHitMapNodeChildren(
         else{
             // printf("hitMapNode had been visited %p addr:%x ver:%u\n", childNode, childNode->addr, childNode->version);
         }
+        firstChild = firstChild->next;
+    }
+}
+
+static int
+dfs_HitMapNodePropgtReverse(
+        HitMapNode *srcnode,
+        HitMapContext *hitMap,
+        HitMapAddr2NodeItem **hitMapAddr2NodeAry,
+        u32 srcAddrStart,
+        u32 srcAddrEnd,
+        int srcMinSeqN,
+        int srcMaxSeqN)
+{
+    if(srcnode == NULL || hitMap == NULL || hitMapAddr2NodeAry == NULL) {
+        fprintf(stderr, "dfs_HitMapNodePropgtReverse: invalid argument\n");
+        return -1;
+    }
+
+    if(srcnode->taintedBy == NULL) { return 0; }
+
+    // printf("---------------\nsource:");
+    // printHitMapNode(srcnode);
+    // printf("src min seqN:%d\n", srcMinSeqN);
+
+    HitMapNodeHash *visitNodeHash = NULL;
+
+    StackHitMapNode *stackHMNodeTop = NULL;
+    u32 stackHMNodeCnt = 0;
+
+    stackHitMapNodePush(srcnode, &stackHMNodeTop, &stackHMNodeCnt);
+    stackHMNodeTop->currSeqN = getMaxHitTransSeqN(srcnode);
+
+    while(!isStackHitMapNodeEmpty(stackHMNodeTop) ) {
+        u32 currSeqN = stackHMNodeTop->currSeqN;
+        HitMapNode *popNode = stackHitMapNodePop(&stackHMNodeTop, &stackHMNodeCnt);
+        markVisitHitMapNode(&visitNodeHash, popNode);
+
+        if(popNode->bufId > 0 &&
+           popNode->addr >= srcAddrStart && popNode->addr <= srcAddrEnd &&
+           popNode->lastUpdateTS >= srcMinSeqN && popNode->lastUpdateTS <= srcMaxSeqN) {
+            u32 srcAddrIdx = getTPMBufAddrIdx(popNode->bufId, popNode->addr, hitMap->tpmBuf);
+            // printf("src addr idx:%u\n", srcAddrIdx);
+            // printHitMapNodeLit(popNode);
+
+            HitMapAddr2NodeItem *findSrc, *findDst;
+            HASH_FIND(hh_hmAddr2NodeItem, hitMapAddr2NodeAry[srcAddrIdx], &popNode, 4, findSrc);
+            assert(findSrc != NULL);
+
+            HASH_FIND(hh_hmAddr2NodeItem, findSrc->subHash, &srcnode, 4, findDst);
+            if(findDst == NULL) {
+                HitMapAddr2NodeItem *toHitMapNodeItem = createHitMapAddr2NodeItem(srcnode->addr, srcnode, NULL, NULL);
+                HASH_ADD(hh_hmAddr2NodeItem, findSrc->subHash, node, 4, toHitMapNodeItem);
+            }
+        }
+
+        storeUnvisitHMNodeChildrenReverse(visitNodeHash, popNode, currSeqN, srcMinSeqN, &stackHMNodeTop, &stackHMNodeCnt);
+    }
+
+    delHitMapNodeHash(&visitNodeHash);
+
+    return 0;
+}
+
+static u32
+getMaxHitTransSeqN(HitMapNode *srcNode)
+// Returns
+//  max seqN of all Hit Transitions of a given node
+{
+    u32 maxSeqN;
+    HitTransition *child;
+
+    assert(srcNode != NULL);
+    child = srcNode->taintedBy;
+    maxSeqN = child->maxSeqNo;
+    while(child != NULL) {
+        if(maxSeqN < child->maxSeqNo)
+            maxSeqN = child->maxSeqNo;
+        child = child->next;
+    }
+    return maxSeqN;
+}
+
+static void
+storeUnvisitHMNodeChildrenReverse(
+        HitMapNodeHash *hitMapNodeHash,
+        HitMapNode *farther,
+        u32 currSeqN,
+        int minSeqN,
+        StackHitMapNode **stackHMNodeTop,
+        u32 *stackHMNodeCnt)
+{
+    HitTransition *firstChild = farther->taintedBy;
+    while(firstChild != NULL) {
+        HitMapNode *childNode = firstChild->child;
+        // printHitMapNodeLit(childNode);
+        // printHitMapTransition(firstChild);
+        if(!isHitMapNodeVisited(hitMapNodeHash, childNode)
+           && (int)(firstChild->minSeqNo) >= minSeqN
+           /* && currSeqN >= firstChild->maxSeqNo */) {
+            stackHitMapNodePush(childNode, stackHMNodeTop, stackHMNodeCnt);
+            (*stackHMNodeTop)->currSeqN = firstChild->minSeqNo;
+        }
+
         firstChild = firstChild->next;
     }
 }

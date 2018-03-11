@@ -51,6 +51,16 @@ hitMapNodePropagate(
 //  <0: error
 
 int
+hitMapNodePropagateReverse(
+        HitMapNode *srcnode,
+        HitMapContext *hitMap,
+        HitMapAddr2NodeItem **hitMapAddr2NodeAry,
+        u32 srcAddrStart,
+        u32 srcAddrEnd,
+        int srcMinSeqN,
+        int srcMaxSeqN);
+
+int
 cmpHitMapAddr2NodeItem(HitMapAddr2NodeItem *l, HitMapAddr2NodeItem *r);
 
 #endif
