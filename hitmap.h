@@ -12,8 +12,8 @@ initHitMap(TPMContext *tpm);
 void
 buildHitMap(HitMapContext *hitMap, TPMContext *tpm);
 
-//void
-//detectHitMapAvalanche(HitMapContext *hitMap, TPMContext *tpm);
+void
+updateHitMapBuftHitCnt(HitMapContext *hitMap);
 
 void
 compHitMapStat(HitMapContext *hitMap);
@@ -32,5 +32,8 @@ printHitMapLit(HitMapContext *hitmap);
 
 void
 printHitMapBuf(BufContext *hitMapBuf);
+
+void
+printHitMapBufHitCnt(BufHitcntCtxt *bufHitcntCtxt);
 
 #endif

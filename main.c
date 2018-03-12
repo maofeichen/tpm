@@ -40,9 +40,14 @@ int main(int argc, char const *argv[])
 			// benchTPMDFS(tpm);
 
 			hitMap = initHitMap(tpm);
+			printHitMap(hitMap);
 			printTime("Finish init HitMap");
 			buildHitMap(hitMap, tpm);
 			printTime("Finish building HitMap");
+
+			updateHitMapBuftHitCnt(hitMap);
+			printHitMap(hitMap);
+
 			// compHitMapStat(hitMap);
 			compReverseHitMapStat(hitMap);
 

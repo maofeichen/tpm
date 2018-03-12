@@ -646,6 +646,9 @@ printHitMapNodeLit(HitMapNode *node)
 void
 printHitMapNodeAllVersion(HitMapNode *node)
 {
+    if(node == NULL)
+        return;
+
     u32 currVersion = node->version;
     do {
         printHitMapNode(node);
