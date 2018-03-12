@@ -83,7 +83,9 @@ createHitMapNode(
     h->leftNBR = NULL;
     h->rightNBR = NULL;
     h->nextVersion = h; // points to itsefl
-    h->hitcnt = 0;
+    // h->hitcnt = 0;
+    h->hitcntIn = 0;
+    h->hitcntOut = 0;
     h->type = type;
     return h;
 }
@@ -193,6 +195,10 @@ createHitMapRecordReverse(
         // printHitMapTransition(t);
         attachReverseHitTransition(dstHitMapNode, t);
     }
+
+    // updates hitcnt in, out
+    srcHitMapNode->hitcntOut += dstHitMapNode->bytesz;
+    dstHitMapNode->hitcntIn += srcHitMapNode->bytesz;
 }
 
 void
@@ -618,10 +624,10 @@ printHitMapNode(HitMapNode *node)
         return;
     printf("HitMapNode:%p bufID:%u addr:0x%-8x val:%-8x sz:%u lastUpdateTS:%-16d"
             " firstChild:%-8p leftNBR:%-10p rightNBR:%-10p nextVersion:%-8p"
-            " version:%-9u hitcnt:%-8u\n",
+            " version:%-9u hitcntIn:%u hitcntOut:%u\n",
             node, node->bufId, node->addr, node->val, node->bytesz, node->lastUpdateTS,
             node->firstChild, node->leftNBR, node->rightNBR, node->nextVersion,
-            node->version, node->hitcnt);
+            node->version, node->hitcntIn, node->hitcntOut);
 }
 
 void

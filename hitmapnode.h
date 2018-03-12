@@ -22,10 +22,12 @@ struct HitMapNode {
     struct HitMapNode *leftNBR;       // point to node of adjacent, smaller memory address
     struct HitMapNode *rightNBR;      // point to node of adjacent, bigger memory address
     struct HitMapNode *nextVersion;   // point to node of the same addr buf of different version or age. Forms circular link
-    u32 hitcnt; /* only used when checking avalanche effect between given source buffer & destination buffer.
+    /* u32 hitcnt; only used when checking avalanche effect between given source buffer & destination buffer.
      need to be initialized to be 0 for each pair of source & destination buffers checking.
      as source, the number of HitMapNode in the destination buffer this node hits; or
      as destination, the number of HitMapNode in the source buffer that hits this node    */
+    u32 hitcntIn;  // number of bytes that other nodes can propagate to this node
+    u32 hitcntOut; // number of bytes that this node can propagate to
     u32 type;   // used to distinguish buffer node or non-buffer node (reg/temp)
 };
 typedef struct HitMapNode HitMapNode;

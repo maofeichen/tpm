@@ -163,11 +163,14 @@ getHitMapTotalTransaction(HitMapContext *hitMap)
 static u32
 getHitMapReverseTotalTrans(HitMapContext *hitMap)
 {
-    u32 totalTrans = 0;
+    u32 totalTrans = 0, totalNode = 0;
     HitMapBufNodePtr2NodeHashTable *item, *temp;
     HASH_ITER(hh_hitMapBufNode2NodeHT, hitMap->hitMapNodeHT, item, temp ) {
+        // printHitMapNode(item->toHitMapNode);
         totalTrans += getHitMapNodeReverseTransNum(item->toHitMapNode);
+        totalNode++;
     }
+    // printf("total nodes:%u\n", totalNode);
     return totalTrans;
 }
 

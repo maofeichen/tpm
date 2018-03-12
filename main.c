@@ -43,12 +43,11 @@ int main(int argc, char const *argv[])
 			printTime("Finish init HitMap");
 			buildHitMap(hitMap, tpm);
 			printTime("Finish building HitMap");
-			compHitMapStat(hitMap);
+			// compHitMapStat(hitMap);
 			compReverseHitMapStat(hitMap);
 
 			delTPM(tpm);
-			detectHitMapAvalanche(hitMap, tpm);
-			// printHitMap(hitMap);
+			// detectHitMapAvalanche(hitMap, tpm);
 			delAllTPMBuf(hitMap->tpmBuf);
 			delHitMap(hitMap);
 
