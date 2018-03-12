@@ -770,6 +770,8 @@ dfs_HitMapNodePropgtReverse(
     StackHitMapNode *stackHMNodeTop = NULL;
     u32 stackHMNodeCnt = 0;
 
+    u32 traverseStep = 0;
+
     stackHitMapNodePush(srcnode, &stackHMNodeTop, &stackHMNodeCnt);
     stackHMNodeTop->currSeqN = getMaxHitTransSeqN(srcnode);
 
@@ -787,21 +789,23 @@ dfs_HitMapNodePropgtReverse(
 
             HitMapAddr2NodeItem *findSrc, *findDst;
             HASH_FIND(hh_hmAddr2NodeItem, hitMapAddr2NodeAry[srcAddrIdx], &popNode, 4, findSrc);
-            assert(findSrc != NULL);
-
-            HASH_FIND(hh_hmAddr2NodeItem, findSrc->subHash, &srcnode, 4, findDst);
-            if(findDst == NULL) {
-                HitMapAddr2NodeItem *toHitMapNodeItem = createHitMapAddr2NodeItem(srcnode->addr, srcnode, NULL, NULL);
-                HASH_ADD(hh_hmAddr2NodeItem, findSrc->subHash, node, 4, toHitMapNodeItem);
+            // assert(findSrc != NULL);
+            if(findSrc != NULL) {
+                HASH_FIND(hh_hmAddr2NodeItem, findSrc->subHash, &srcnode, 4, findDst);
+                if(findDst == NULL) {
+                    HitMapAddr2NodeItem *toHitMapNodeItem = createHitMapAddr2NodeItem(srcnode->addr, srcnode, NULL, NULL);
+                    HASH_ADD(hh_hmAddr2NodeItem, findSrc->subHash, node, 4, toHitMapNodeItem);
+                }
             }
         }
 
         storeUnvisitHMNodeChildrenReverse(visitNodeHash, popNode, currSeqN, srcMinSeqN, &stackHMNodeTop, &stackHMNodeCnt);
+        traverseStep++;
     }
 
     delHitMapNodeHash(&visitNodeHash);
-
-    return 0;
+    // printf("traverse step:%u\n", traverseStep);
+    return traverseStep;
 }
 
 static u32

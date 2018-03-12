@@ -26,7 +26,7 @@ searchHitMapPropgtInOut(
         HitMapAvalSearchCtxt *hitMapAvalSrchCtxt,
         HitMapContext *hitMap);
 
-static void
+static u32
 srchHitMapPropgtInOutReverse(
         HitMapAvalSearchCtxt *hitMapAvalSrchCtxt,
         HitMapContext *hitMap);
@@ -69,8 +69,9 @@ detectHitMapAvalanche(HitMapContext *hitMap, TPMContext *tpm)
         }
         break;
     }
-    if(searchCnt > 0)
+    if(searchCnt > 0) {
         printf("---------------\navg build 2-level hash table time:%.1f microseconds\n", totalElapse/searchCnt);
+    }
 OutOfLoop:
     printf("");
 }
@@ -136,6 +137,7 @@ detectHitMapAvalInOut(
 {
     u32 srcBufNodeTotal, dstBufNodeTotal;
     u32 numOfTrans, srcAddrIdx, srcBufID;
+    u32 totalTraverse = 0;
 
     srcBufNodeTotal = getTPMBufNodeTotal(hitMapAvalSrchCtxt->srcTPMBuf);
     dstBufNodeTotal = getTPMBufNodeTotal(hitMapAvalSrchCtxt->dstTPMBuf);
@@ -148,7 +150,7 @@ detectHitMapAvalInOut(
     printTimeMicroStart();
 
     // searchHitMapPropgtInOut(hitMapAvalSrchCtxt, hitMap);
-    srchHitMapPropgtInOutReverse(hitMapAvalSrchCtxt, hitMap);
+    totalTraverse = srchHitMapPropgtInOutReverse(hitMapAvalSrchCtxt, hitMap);
 
     // printTime("after search propagation");
     printTimeMicroEnd(totalElapse);
@@ -159,6 +161,7 @@ detectHitMapAvalInOut(
         numOfTrans += getHitMap2LAddr2NodeItemTotal(hitMapAvalSrchCtxt->hitMapAddr2NodeAry[srcAddrIdx]);
     }
     printf("number of transition of 2-level hash table:%u\n", numOfTrans);
+    printf("total number of traverse steps:%u\n", totalTraverse);
 }
 
 static void
@@ -201,7 +204,7 @@ searchHitMapPropgtInOut(HitMapAvalSearchCtxt *hitMapAvalSrchCtxt, HitMapContext 
     }
 }
 
-static void
+static u32
 srchHitMapPropgtInOutReverse(
         HitMapAvalSearchCtxt *hitMapAvalSrchCtxt,
         HitMapContext *hitMap)
@@ -210,6 +213,7 @@ srchHitMapPropgtInOutReverse(
 {
     u32 srcBufId, dstBufId;
     u32 srcAddrIdx, dstAddrIdx;
+    u32 totalTraverse = 0;
 
     srcBufId = hitMapAvalSrchCtxt->srcBufID;
     dstBufId = hitMapAvalSrchCtxt->dstBufID;
@@ -217,7 +221,7 @@ srchHitMapPropgtInOutReverse(
     if(srcBufId >= hitMap->numOfBuf ||
        dstBufId >= hitMap->numOfBuf) {
         fprintf(stderr, "searchHitMapPropgtInOutReverse error: invalid src/dst buf ID\n");
-        return;
+        return 0;
     }
 
     // Adds all nodes of src buf in 1stLevel hash
@@ -241,11 +245,12 @@ srchHitMapPropgtInOutReverse(
         if(head == NULL)
             continue;
         u32 ver = head->version;
-
+        u32 traverse = 0;
         do {
-            hitMapNodePropagateReverse(head, hitMap, hitMapAvalSrchCtxt->hitMapAddr2NodeAry,
+            traverse = hitMapNodePropagateReverse(head, hitMap, hitMapAvalSrchCtxt->hitMapAddr2NodeAry,
                                        hitMapAvalSrchCtxt->srcAddrStart, hitMapAvalSrchCtxt->srcAddrEnd,
                                        hitMapAvalSrchCtxt->srcMinSeqN, hitMapAvalSrchCtxt->srcMaxSeqN);
+            totalTraverse += traverse;
             head = head->nextVersion;
         } while (ver != head->version);
     }
@@ -259,4 +264,5 @@ srchHitMapPropgtInOutReverse(
         }
         // printHitMap2LAddr2NodeItem(hitMapAvalSrchCtxt->hitMapAddr2NodeAry[srcAddrIdx]);
     }
+    return totalTraverse;
 }
