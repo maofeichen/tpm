@@ -29,7 +29,7 @@ int main(int argc, char const *argv[])
 		if((tpm = calloc(1, sizeof(struct TPMContext) ) ) != NULL) { 
 			printf("alloc TPMContext: %zu MB\n", sizeof(struct TPMContext) / (1024*1024) );
 			printTime("Before build TPM");
-			if( (numOfNode = buildTPM(log, tpm) ) >= 0) {
+			if((numOfNode = buildTPM(log, tpm) ) >= 0) {
 				printf("build TPM successful, total number nodes:%d\n", numOfNode);
 				printTime("Finish building TPM");
 			}
@@ -40,19 +40,19 @@ int main(int argc, char const *argv[])
 			// benchTPMDFS(tpm);
 
 			hitMap = initHitMap(tpm);
-			printHitMap(hitMap);
+			// printHitMap(hitMap);
 			printTime("Finish init HitMap");
-			buildHitMap(hitMap, tpm);
+			buildHitMap(hitMap, tpm);   // TODO: flag forward or reverse build
 			printTime("Finish building HitMap");
 
 			updateHitMapBuftHitCnt(hitMap);
-			printHitMap(hitMap);
+			// printHitMap(hitMap);
 
-			// compHitMapStat(hitMap);
-			compReverseHitMapStat(hitMap);
+			compHitMapStat(hitMap);
+			// compReverseHitMapStat(hitMap);
 
 			delTPM(tpm);
-			// detectHitMapAvalanche(hitMap, tpm);
+			// detectHitMapAvalanche(hitMap, tpm);  // TODO: flag forward or reverse build
 			delAllTPMBuf(hitMap->tpmBuf);
 			delHitMap(hitMap);
 
