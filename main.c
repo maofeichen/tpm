@@ -18,6 +18,7 @@ int main(int argc, char const *argv[])
 	struct TPMContext* tpm;
 	HitMapContext *hitMap;
 	int numOfNode;
+	u32 **bufHitCntArray;
 
 	if(argc <= 1){
 		usage();
@@ -50,6 +51,10 @@ int main(int argc, char const *argv[])
 
 			compHitMapStat(hitMap);
 			// compReverseHitMapStat(hitMap);
+
+			bufHitCntArray = buildBufHitCntArray(hitMap);
+			// printBufHitCntArray(bufHitCntArray, hitMap->numOfBuf);
+			delBufHitCntArray(bufHitCntArray, hitMap->numOfBuf);
 
 			delTPM(tpm);
 			// detectHitMapAvalanche(hitMap, tpm);  // TODO: flag forward or reverse build

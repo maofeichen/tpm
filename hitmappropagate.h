@@ -61,6 +61,12 @@ hitMapNodePropagateReverse(
         int srcMaxSeqN);
 
 int
+hitMapNodePropgtOfBuildBufHitCntAry(
+        u32 **bufHitCntAry,
+        u32 numOfBuf,
+        HitMapNode *addrHead);
+
+int
 cmpHitMapAddr2NodeItem(HitMapAddr2NodeItem *l, HitMapAddr2NodeItem *r);
 
 #endif

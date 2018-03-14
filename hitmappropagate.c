@@ -176,6 +176,12 @@ storeUnvisitHMNodeChildrenReverse(
         StackHitMapNode **stackHMNodeTop,
         u32 *stackHMNodeCnt);
 
+/* dfs search HitMap to build buffer hit count array*/
+dfsHitMapNodePropgtOfBuildBufHitCntAry(
+        u32 **bufHitCntAry,
+        u32 numOfBuf,
+        HitMapNode *srcNode);
+
 int
 hitMapNodePropagate(
         HitMapNode *srcnode,
@@ -207,6 +213,16 @@ hitMapNodePropagateReverse(
     return dfs_HitMapNodePropgtReverse(srcnode, hitMap, hitMapAddr2NodeAry,
                                        srcAddrStart, srcAddrEnd, srcMinSeqN, srcMaxSeqN);
 }
+
+int
+hitMapNodePropgtOfBuildBufHitCntAry(
+        u32 **bufHitCntAry,
+        u32 numOfBuf,
+        HitMapNode *addrHead)
+{
+    return dfsHitMapNodePropgtOfBuildBufHitCntAry(bufHitCntAry, numOfBuf, addrHead);
+}
+
 
 int
 cmpHitMapAddr2NodeItem(HitMapAddr2NodeItem *l, HitMapAddr2NodeItem *r)
@@ -850,4 +866,12 @@ storeUnvisitHMNodeChildrenReverse(
 
         firstChild = firstChild->next;
     }
+}
+
+dfsHitMapNodePropgtOfBuildBufHitCntAry(
+        u32 **bufHitCntAry,
+        u32 numOfBuf,
+        HitMapNode *srcNode)
+{
+
 }
