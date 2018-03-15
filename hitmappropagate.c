@@ -254,14 +254,15 @@ cmpHitMapAddr2NodeItem(HitMapAddr2NodeItem *l, HitMapAddr2NodeItem *r)
 static void
 add2HitTransitionHT(HitTransitionHashTable **hitTransitionht, HitTransition *toTrans)
 {
-    HitTransitionHashTable *t;
+    HitTransitionHashTable *t = NULL;
     t = findInHitTransitionHT(*hitTransitionht, toTrans);
     if(t == NULL) {
-        t = calloc(1, sizeof(HitTransitionHashTable));
+        t = calloc(1, sizeof(HitTransitionHashTable) );
+        assert(t != NULL);
+
         t->toTrans = toTrans;
         HASH_ADD(hh_hitTrans, *hitTransitionht, toTrans, 4, t);
     }
-    else {}
 }
 
 static HitTransitionHashTable*
