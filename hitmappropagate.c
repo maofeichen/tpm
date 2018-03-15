@@ -408,6 +408,7 @@ stackHitMapNodePush(HitMapNode *hmNode, StackHitMapNode **stackHMNodeTop, u32 *s
     assert(s != NULL);
 
     s->hmNode = hmNode;
+    s->taintBy = NULL;
     s->next = *stackHMNodeTop;
     *stackHMNodeTop = s;
     (*stackHMNodeCnt)++;
@@ -906,8 +907,8 @@ dfsHitMapNodePropgtOfBuildBufHitCntAry(
     }
     if(srcNode->firstChild == NULL) { return 0; }
 
-    printf("-----dfsHitMapNodePropgtOfBuildBufHitCntAry\n");
-    printHitMapNodeLit(srcNode);
+    // printf("-----dfsHitMapNodePropgtOfBuildBufHitCntAry\n");
+    // printHitMapNodeLit(srcNode);
 
     stackHitMapNodePush(srcNode, &stackHMNodeTop, &stackHMNodeCnt);
     storeHitTransChildren(visitHitTransHash, srcNode, 0, &stackHitTransTop, &stackHitTransCnt);
@@ -921,19 +922,26 @@ dfsHitMapNodePropgtOfBuildBufHitCntAry(
         if(isHitTransitionVisited(visitHitTransHash, topHitTrans) ) {
             assert(topDstNode == stackHMNodeTop->hmNode);
             stackHitMapNodePop(&stackHMNodeTop, &stackHMNodeCnt);
+
+            topHitTrans->hasUpdateBufHitCnt = 1;
             stackHitTransPop(&stackHitTransTop, &stackHitTransCnt);
         }
         else { // new hit transition
             markVisitHitTransition(&visitHitTransHash, topHitTrans);
+
             stackHitMapNodePush(topDstNode, &stackHMNodeTop, &stackHMNodeCnt);
-            stackHitMapNodeDisplay(stackHMNodeTop, stackHMNodeCnt);
-            updateBufHitCntArray(bufHitCntAry, numOfBuf, stackHMNodeTop);
+            stackHMNodeTop->taintBy = topHitTrans;
+            // stackHitMapNodeDisplay(stackHMNodeTop, stackHMNodeCnt);
             // printf("hit map node stack sz:%u\n", stackHMNodeCnt);
+
+            updateBufHitCntArray(bufHitCntAry, numOfBuf, stackHMNodeTop);
             // printHitMapNodeLit(topDstNode);
 
             if(topDstNode->firstChild == NULL) { // leaf node
                 assert(topDstNode == stackHMNodeTop->hmNode);
                 stackHitMapNodePop(&stackHMNodeTop, &stackHMNodeCnt);
+
+                topHitTrans->hasUpdateBufHitCnt = 1;
                 stackHitTransPop(&stackHitTransTop, &stackHitTransCnt);
             }
             else {
@@ -941,7 +949,7 @@ dfsHitMapNodePropgtOfBuildBufHitCntAry(
             }
         }
     }
-
+    stackHitMapNodePopAll(&stackHMNodeTop, &stackHMNodeCnt);
     delHitTransitionHT(&visitHitTransHash);
     return 0;
 }
@@ -975,8 +983,7 @@ updateBufHitCntArray(
         StackHitMapNode *stackHMNodeTop)
 {
     u32 srcBufID, dstBufID;
-    u32 oldBufID = 0, newBufID;
-    u32 srcBufIdx, dstBufIdx;
+    u32 oldBufID, newBufID;
     StackHitMapNode *secondTop;
     HitMapNode *dstNode;
 
@@ -989,15 +996,27 @@ updateBufHitCntArray(
         return; // No need to update within same buffer
     }
 
+    oldBufID = 0;
     dstNode = stackHMNodeTop->hmNode;
     dstBufID = stackHMNodeTop->hmNode->bufId;
     stackHMNodeTop = stackHMNodeTop->next;
+
     while(stackHMNodeTop != NULL) {
         srcBufID = stackHMNodeTop->hmNode->bufId;
         newBufID = srcBufID;
         if(srcBufID != dstBufID
            && srcBufID != oldBufID) {
-            printf("src buf ID:%u --> dst buf ID:%u size:%u\n", srcBufID, dstBufID, dstNode->bytesz);
+            if(stackHMNodeTop->taintBy != NULL
+               && stackHMNodeTop->taintBy->hasUpdateBufHitCnt == 0) {
+                // printf("src buf ID:%u --> dst buf ID:%u size:%u\n", srcBufID, dstBufID, dstNode->bytesz);
+                u32 srcBufIdx = srcBufID-1, dstBufIdx = dstBufID -1;
+                // assert(srcBufIdx <= numOfBuf);
+                // assert(dstBufIdx <= numOfBuf);
+                if(srcBufIdx <= numOfBuf && dstBufIdx <= numOfBuf) {
+                    bufHitCntAry[srcBufIdx][dstBufIdx] += dstNode->bytesz;
+                }
+            }
+            // printf("src buf ID:%u --> dst buf ID:%u size:%u\n", srcBufID, dstBufID, dstNode->bytesz);
         }
 
         oldBufID = newBufID;

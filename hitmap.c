@@ -55,12 +55,6 @@ getHitMapTotalIntermediateNode(HitMapContext *hitMapCtxt);
 static u32
 getHitMapIntermediateTotalTrans(HitMapContext *hitMap);
 
-//static HitMapNode *
-//createHitMapRecordNode(TPMNode2 *node, HitMapContext *hitMap);
-//
-//static void
-//attachHitTransition(HitMapNode *srcHMN, HitTransition *t);
-
 HitMapContext *
 initHitMap(TPMContext *tpm)
 {

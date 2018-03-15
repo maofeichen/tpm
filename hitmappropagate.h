@@ -34,6 +34,7 @@ typedef struct StackHitMapNode
 {
     HitMapNode *hmNode;
     u32 currSeqN;
+    HitTransition *taintBy;
     struct StackHitMapNode *next;
 } StackHitMapNode;
 

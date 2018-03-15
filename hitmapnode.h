@@ -41,7 +41,9 @@ struct HitTransition // aggregate (potentially) multiple taint propagation steps
      * If current hit transition's maxSeqNo > destination buffer's maxSeqNo, we stop going any further
      * and try another branch of hit transition.
      */
-    struct HitMapNode *child;    // the HitMapNode current node hits
+    struct HitMapNode *child;   // the HitMapNode current node hits
+    char hasUpdateBufHitCnt;    // indicates during build buffer hit count array, if the transition had been
+                                // visited and updates realted buffer hit count
     struct HitTransition *next;
 };
 typedef struct HitTransition HitTransition;

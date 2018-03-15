@@ -248,6 +248,7 @@ createHitTransition(
     t->minSeqNo = minSeqN;
     t->maxSeqNo = maxSeqN;
     t->child = child;
+    t->hasUpdateBufHitCnt = 0;
     t->next = NULL;
     return t;
 }

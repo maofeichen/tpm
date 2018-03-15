@@ -451,13 +451,13 @@ printTPMBufHashTable(TPMBufHashTable *tpmBufHT)
     bufcnt = HASH_CNT(hh_tpmBufHT, tpmBufHT);
     printf("total buf:%d - min buf sz:%u\n",bufcnt, MIN_BUF_SZ);
 
-    HASH_ITER(hh_tpmBufHT, tpmBufHT, buf, temp) {
-        printf("begin addr:0x%-8x end addr:0x%-8x sz:%-3u numofaddr:%-3u minseq:%-6d maxseq:%-6d diffseq:%-6d bufID:%u\n",
-            buf->baddr, buf->eaddr, buf->eaddr - buf->baddr,
-            buf->numOfAddr, buf->minseq, buf->maxseq, (buf->maxseq - buf->minseq), buf->headNode->bufid);
-        // printMemNode(buf->headNode);
-        // printBufNode(buf->headNode);
-    }
+    // HASH_ITER(hh_tpmBufHT, tpmBufHT, buf, temp) {
+    //     printf("begin addr:0x%-8x end addr:0x%-8x sz:%-3u numofaddr:%-3u minseq:%-6d maxseq:%-6d diffseq:%-6d bufID:%u\n",
+    //         buf->baddr, buf->eaddr, buf->eaddr - buf->baddr,
+    //         buf->numOfAddr, buf->minseq, buf->maxseq, (buf->maxseq - buf->minseq), buf->headNode->bufid);
+    //     // printMemNode(buf->headNode);
+    //     // printBufNode(buf->headNode);
+    // }
 }
 
 
