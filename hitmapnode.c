@@ -662,8 +662,8 @@ printHitMapTransition(HitTransition *hTrans)
 {
     if(hTrans == NULL)
         return;
-    printf("HitMap Transition: minSeqN:%u maxSeqN:%u\n",
-            hTrans->minSeqNo, hTrans->maxSeqNo);
+    printf("HitMap Transition: %p minSeqN:%u maxSeqN:%u\n",
+            hTrans, hTrans->minSeqNo, hTrans->maxSeqNo);
     if(hTrans->child != NULL) {
         printHitMapNodeLit(hTrans->child);
     }
