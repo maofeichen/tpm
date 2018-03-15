@@ -187,6 +187,7 @@ static void
 storeHitTransChildren(
         HitTransitionHashTable *visitHitTransHash,
         HitMapNode *farther,
+        u32 currSeqN,
         StackHitTransitionItem **stackHitTransTop,
         u32 *stackHitTransCnt);
 
@@ -329,6 +330,7 @@ stackHitTransPush(
 {
     StackHitTransitionItem *i = calloc(1, sizeof(StackHitTransitionItem));
     i->transition = hitTrans;
+    i->currSeqN = 0;
 
     i->next = *stackHitTransTop;
     *stackHitTransTop = i;
@@ -898,11 +900,12 @@ dfsHitMapNodePropgtOfBuildBufHitCntAry(
     printf("-----dfsHitMapNodePropgtOfBuildBufHitCntAry\n");
     printHitMapNodeLit(srcNode);
 
-    storeHitTransChildren(visitHitTransHash, srcNode, &stackHitTransTop, &stackHitTransCnt);
+    storeHitTransChildren(visitHitTransHash, srcNode, 0, &stackHitTransTop, &stackHitTransCnt);
     while(!isStackHitTransEmpty(stackHitTransTop) ) {
         HitTransition *topHitTrans = stackHitTransTop->transition;
         HitMapNode *topDstNode = topHitTrans->child;
-        printHitMapTransition(topHitTrans);
+        u32 currSeqN = stackHitTransTop->currSeqN;
+        // printHitMapTransition(topHitTrans);
 
         if(isHitTransitionVisited(visitHitTransHash, topHitTrans) ) {
             stackHitTransPop(&stackHitTransTop, &stackHitTransCnt);
@@ -915,7 +918,7 @@ dfsHitMapNodePropgtOfBuildBufHitCntAry(
                 stackHitTransPop(&stackHitTransTop, &stackHitTransCnt);
             }
             else {
-                storeHitTransChildren(visitHitTransHash, topDstNode, &stackHitTransTop, &stackHitTransCnt);
+                storeHitTransChildren(visitHitTransHash, topDstNode, currSeqN, &stackHitTransTop, &stackHitTransCnt);
             }
         }
     }
@@ -928,6 +931,7 @@ static void
 storeHitTransChildren(
         HitTransitionHashTable *visitHitTransHash,
         HitMapNode *farther,
+        u32 currSeqN,
         StackHitTransitionItem **stackHitTransTop,
         u32 *stackHitTransCnt)
 {
@@ -936,8 +940,10 @@ storeHitTransChildren(
 
     HitTransition *firstChild = farther->firstChild;
     while(firstChild != NULL) {
-        if(!isHitTransitionVisited(visitHitTransHash, firstChild) ) {
+        if(!isHitTransitionVisited(visitHitTransHash, firstChild)
+           && currSeqN <= firstChild->minSeqNo) { // enforces the increasing SeqN policy
             stackHitTransPush(firstChild, stackHitTransTop, stackHitTransCnt);
+            (*stackHitTransTop)->currSeqN = firstChild->maxSeqNo;
         }
         firstChild = firstChild->next;
     }

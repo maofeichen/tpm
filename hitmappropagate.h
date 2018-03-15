@@ -19,7 +19,7 @@ typedef struct HitTransitionHashTable
 typedef struct StackHitTransitionItem
 {
 	HitTransition *transition;
-	// u32 level;
+	u32 currSeqN;
 	struct StackHitTransitionItem *next;
 } StackHitTransitionItem;
 
