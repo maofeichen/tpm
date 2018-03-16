@@ -63,7 +63,7 @@ hitMapNodePropagateReverse(
 
 int
 hitMapNodePropgtOfBuildBufHitCntAry(
-        u32 **bufHitCntAry,
+        u32 *bufHitCntAry,
         u32 numOfBuf,
         HitMapNode *addrHead);
 

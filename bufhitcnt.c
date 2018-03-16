@@ -2,26 +2,26 @@
 #include "hitmappropagate.h"
 #include <assert.h>
 
-static u32 **
+static u32 *
 initBufHitCntArray(u32 numOfBuf);
 
 static void
 buildBufHitCntAryOfBuf(
-        u32 **bufHitCntAry,
+        u32 *bufHitCntAry,
         u32 numOfBuf,
         BufContext *hitMapBuf);
 
 static void
 buildBufHitCntAryOfAddr(
-        u32 **bufHitCntAry,
+        u32 *bufHitCntAry,
         u32 numOfBuf,
         HitMapNode *addrHead);
 
-u32 **
+u32 *
 buildBufHitCntArray(HitMapContext *hitMap)
 {
     TPMBufHashTable *tpm_buf;
-    u32 **bufHitCntAry = NULL;
+    u32 *bufHitCntAry = NULL;
     u32 numOfBuf, bufIdx;
 
     if(hitMap == NULL) { return NULL; }
@@ -43,15 +43,15 @@ buildBufHitCntArray(HitMapContext *hitMap)
 }
 
 void
-delBufHitCntArray(u32 **bufHitCntArray, u32 numOfBuf)
+delBufHitCntArray(u32 *bufHitCntArray, u32 numOfBuf)
 {
     if(bufHitCntArray != NULL) {
-        for(int i = 0; i < numOfBuf; i++) {
-            if(bufHitCntArray[i] != NULL) {
-                free(bufHitCntArray[i]);
-                bufHitCntArray[i] = NULL;
-            }
-        }
+//        for(int i = 0; i < numOfBuf; i++) {
+//            if(bufHitCntArray[i] != NULL) {
+//                free(bufHitCntArray[i]);
+//                bufHitCntArray[i] = NULL;
+//            }
+//        }
 
         free(bufHitCntArray);
         bufHitCntArray = NULL;
@@ -61,15 +61,19 @@ delBufHitCntArray(u32 **bufHitCntArray, u32 numOfBuf)
 
 void
 compBufHitCntArrayStat(
-        u32 **bufHitCntArray,
+        u32 *bufHitCntArray,
         u32 numOfBuf,
         u32 byteThreashold)
 {
     u32 hitThreash = 0;
     for(int r = 0; r < numOfBuf; r++) {
         for (int c = 0; c < numOfBuf; c++) {
-            if(bufHitCntArray[r][c] >= byteThreashold)
+            u32 val  = *(bufHitCntArray + r * numOfBuf + c);
+            if(val >= byteThreashold)
                 hitThreash++;
+
+//            if(bufHitCntArray[r][c] >= byteThreashold)
+//                hitThreash++;
         }
     }
     printf("----------\nnum of buf pair hitcnt > %u bytes:%u - total buf pair:%u - ratio:%u%%\n",
@@ -78,28 +82,33 @@ compBufHitCntArrayStat(
 
 
 void
-printBufHitCntArray(u32 **bufHitCntArray, u32 numOfBuf)
+printBufHitCntArray(u32 *bufHitCntArray, u32 numOfBuf)
 {
     for(int r = 0; r < numOfBuf; r++) {
         for (int c = 0; c < numOfBuf; c++) {
-            printf("buffer hit count array[%d][%d]:%u\n", r, c, bufHitCntArray[r][c]);
+            // printf("buffer hit count array[%d][%d]:%u\n", r, c, bufHitCntArray[r][c]);
+            u32 val = *(bufHitCntArray + r * numOfBuf + c);
+            printf("buffer hit count array[%d][%d]:%u\n", r, c, val);
         }
     }
 }
 
 
-static u32 **
+static u32 *
 initBufHitCntArray(u32 numOfBuf)
 {
-    u32 **bufHitCntAry = NULL;
+    u32 *bufHitCntAry = NULL;
 
-    if((bufHitCntAry = calloc(1, sizeof(u32 *) * numOfBuf) ) != NULL ) {
-        for(int i = 0; i < numOfBuf; i++) {
-            bufHitCntAry[i] = calloc(1, sizeof(u32) * numOfBuf);
-            assert(bufHitCntAry[i] != NULL);
-        }
-    }
-    else { fprintf(stderr, "fails allocating 2D buffer hit count array\n"); }
+    bufHitCntAry = calloc(1, sizeof(u32) * numOfBuf * numOfBuf);
+    assert(bufHitCntAry != NULL);
+
+//    if((bufHitCntAry = calloc(1, sizeof(u32) * numOfBuf * numOfBuf) ) != NULL ) {
+//        for(int i = 0; i < numOfBuf; i++) {
+//            bufHitCntAry[i] = calloc(1, sizeof(u32) * numOfBuf);
+//            assert(bufHitCntAry[i] != NULL);
+//        }
+//    }
+//    else { fprintf(stderr, "fails allocating 2D buffer hit count array\n"); }
     // printf("num of tpm buffers:%u\n", numOfBuf);
 
     return bufHitCntAry;
@@ -107,7 +116,7 @@ initBufHitCntArray(u32 numOfBuf)
 
 static void
 buildBufHitCntAryOfBuf(
-        u32 **bufHitCntAry,
+        u32 *bufHitCntAry,
         u32 numOfBuf,
         BufContext *hitMapBuf)
 {
@@ -125,7 +134,7 @@ buildBufHitCntAryOfBuf(
 
 static void
 buildBufHitCntAryOfAddr(
-        u32 **bufHitCntAry,
+        u32 *bufHitCntAry,
         u32 numOfBuf,
         HitMapNode *addrHead)
 {

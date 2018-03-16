@@ -18,7 +18,7 @@ int main(int argc, char const *argv[])
 	struct TPMContext* tpm;
 	HitMapContext *hitMap;
 	int numOfNode;
-	u32 **bufHitCntArray;
+	u32 *bufHitCntArray;
 
 	if(argc <= 1){
 		usage();
