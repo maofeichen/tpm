@@ -93,7 +93,7 @@ initBufHitCntArray(u32 numOfBuf)
 {
     u32 **bufHitCntAry = NULL;
 
-    if((bufHitCntAry = calloc(1, sizeof(u32) * numOfBuf) ) != NULL ) {
+    if((bufHitCntAry = calloc(1, sizeof(u32 *) * numOfBuf) ) != NULL ) {
         for(int i = 0; i < numOfBuf; i++) {
             bufHitCntAry[i] = calloc(1, sizeof(u32) * numOfBuf);
             assert(bufHitCntAry[i] != NULL);
