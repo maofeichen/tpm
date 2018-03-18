@@ -55,6 +55,33 @@ getHitMapTotalIntermediateNode(HitMapContext *hitMapCtxt);
 static u32
 getHitMapIntermediateTotalTrans(HitMapContext *hitMap);
 
+static void
+compHitMapBufStat(
+        HitMapNode *hmNode,
+        u32 *baddr,
+        u32 *eaddr,
+        int *minseq,
+        int *maxseq,
+        u32 *numOfAddr,
+        HitMapNode **firstnode,
+        u32 *totalNode);
+
+static void
+getFirstVerNode(HitMapNode **first);
+
+static HitMapBufHash *
+initHitMapBufHTNode(
+        u32 baddr,
+        u32 eaddr,
+        int minseq,
+        int maxseq,
+        u32 numOfAddr,
+        HitMapNode *firstnode,
+        u32 totalNode);
+
+static int
+cmpHitMapBufHashNode(HitMapBufHash *l, HitMapBufHash *r);
+
 HitMapContext *
 initHitMap(TPMContext *tpm)
 {
@@ -157,8 +184,11 @@ compHitMapStat(HitMapContext *hitMap)
 {
     u32 numOfNode, numOfIntermediateNode;
     u32 totalTrans, totalIntermediateTrans;
+    HitMapBufHash *hitMapBufHash = NULL;
 
     sortHitMapHashTable(&(hitMap->hitMapNodeHT) );
+    hitMapBufHash = analyzeHitMapBuf(hitMap);
+    printHitMapBufHash(hitMapBufHash);
 
     numOfNode = getHitMapTotalNode(hitMap);
     printf("----------\ntotal number of node in HitMap:%u\n", numOfNode);
@@ -188,6 +218,33 @@ compReverseHitMapStat(HitMapContext *hitMap)
     printf("total transitions: %u\n", totalTrans);
 }
 
+HitMapBufHash *
+analyzeHitMapBuf(HitMapContext *hitMap)
+{
+    HitMapBufNodePtr2NodeHashTable *hmBufNodeHash;
+    HitMapBufHash *hitMapBufHash = NULL, *bufHash, *bufFound;
+
+    HitMapNode *hitMapNode, *hitMapHeadNode;
+    u32 baddr, eaddr, numOfAddr, totalNode = 0;
+    int minseq, maxseq;
+
+    hmBufNodeHash = hitMap->hitMapNodeHT;
+    for(; hmBufNodeHash != NULL; hmBufNodeHash = hmBufNodeHash->hh_hitMapBufNode2NodeHT.next) {
+        hitMapNode = hmBufNodeHash->toHitMapNode;
+        compHitMapBufStat(hitMapNode, &baddr, &eaddr, &minseq, &maxseq,
+                          &numOfAddr, &hitMapHeadNode, &totalNode);
+        if(eaddr - baddr >= 8) { // TODO: add 8 to hitMap context
+            bufHash = initHitMapBufHTNode(baddr, eaddr, minseq, maxseq,
+                                          numOfAddr, hitMapHeadNode, totalNode);
+            HASH_FIND(hh_hmBufHash, hitMapBufHash, &baddr, 4, bufFound);
+            if(bufFound == NULL) {
+                HASH_ADD(hh_hmBufHash, hitMapBufHash, baddr, 4, bufHash);
+            } else { free(bufHash); bufHash = NULL; }
+        }
+    }
+    HASH_SRT(hh_hmBufHash, hitMapBufHash, cmpHitMapBufHashNode);
+    return hitMapBufHash;
+}
 
 static u32
 getHitMapTotalNode(HitMapContext *hitMap)
@@ -265,6 +322,101 @@ getHitMapIntermediateTotalTrans(HitMapContext *hitMap)
     return totalIntermediateTrans;
 }
 
+static void
+compHitMapBufStat(
+        HitMapNode *hmNode,
+        u32 *baddr,
+        u32 *eaddr,
+        int *minseq,
+        int *maxseq,
+        u32 *numOfAddr,
+        HitMapNode **firstnode,
+        u32 *totalNode)
+{
+    HitMapNode *b, *e, *lastend;
+
+    assert(hmNode != NULL);
+
+    *totalNode = 0;
+    *numOfAddr = 0;
+    b = e = hmNode;
+
+    while(b->leftNBR != NULL) { b = b->leftNBR; }; // traverse to left most
+    *baddr = b->addr;
+    *firstnode = b;
+    getFirstVerNode(firstnode);
+
+    *minseq = (*firstnode)->lastUpdateTS;
+    *maxseq = (*firstnode)->lastUpdateTS;
+
+    e = *firstnode;
+    while(e != NULL) {
+        u32 ver = e->version;
+        int seqN = 0;
+        do {
+            seqN = e->lastUpdateTS;
+            if(*minseq > seqN)
+                *minseq = seqN;
+
+            if(*maxseq < seqN)
+                *maxseq = seqN;
+
+            *totalNode += 1;
+            e = e->nextVersion;
+        } while (ver != e->version);
+
+        lastend = e;
+        e = e->rightNBR;
+        (*numOfAddr)++;
+    }
+    *eaddr = lastend->addr + lastend->bytesz;
+}
+
+static void
+getFirstVerNode(HitMapNode **first)
+{
+    assert(*first != NULL);
+    HitMapNode *node = *first;
+
+    u32 ver = (*first)->version;
+    do {
+        if((*first)->version > node->version)
+            *first = node;
+        node = node->nextVersion;
+    } while(ver != node->version);
+}
+
+static HitMapBufHash *
+initHitMapBufHTNode(
+        u32 baddr,
+        u32 eaddr,
+        int minseq,
+        int maxseq,
+        u32 numOfAddr,
+        HitMapNode *firstnode,
+        u32 totalNode)
+{
+    HitMapBufHash *node = calloc(1, sizeof(HitMapBufHash) );
+    assert(node != NULL);
+
+    node->baddr = baddr;
+    node->eaddr = eaddr;
+    node->minseq = minseq;
+    node->maxseq = maxseq;
+    node->numOfAddr = numOfAddr;
+    node->headNode = firstnode;
+    node->totalNode = totalNode;
+    return node;
+}
+
+static int
+cmpHitMapBufHashNode(HitMapBufHash *l, HitMapBufHash *r)
+{
+    if(l->minseq < r->minseq) { return -1; }
+    else if(l->minseq == r->minseq) { return 0; }
+    else { return 1; }
+}
+
 void
 delHitMap(HitMapContext *hitmap)
 {
@@ -335,6 +487,23 @@ printHitMapBufHitCnt(BufHitcntCtxt *bufHitcntCtxt)
     printf("HitMap Buf Hitcnt: num of addr:%u\n", bufHitcntCtxt->numOfAddr);
     for(int i = 0; i < bufHitcntCtxt->numOfAddr; i++) {
         printf("addr Hitcnt:%u\n", bufHitcntCtxt->addrHitcntArray[i]);
+    }
+}
+
+void
+printHitMapBufHash(HitMapBufHash *hitMapBufHash)
+{
+    HitMapBufHash *buf, *tmp;
+    int bufCnt = 0;
+
+    bufCnt = HASH_CNT(hh_hmBufHash, hitMapBufHash);
+    printf("totoal hit map buffer:%d - minimum buffer size:%u\n", bufCnt, 8);
+
+    HASH_ITER(hh_hmBufHash, hitMapBufHash, buf, tmp) {
+         printf("begin:0x%-8x end:0x%-8x sz:%-3u numofaddr:%-3u minseq:%-6d maxseq:%-6d diffseq:%-6d bufID:%u total nodes:%u\n",
+            buf->baddr, buf->eaddr, buf->eaddr - buf->baddr,
+            buf->numOfAddr, buf->minseq, buf->maxseq, (buf->maxseq - buf->minseq),
+            buf->headNode->bufId, buf->totalNode);
     }
 }
 

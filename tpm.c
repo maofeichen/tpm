@@ -240,7 +240,7 @@ analyzeTPMBuf(TPMContext *tpm)
         }
     }
     HASH_SRT(hh_tpmBufHT, tpmBufHT, cmpTPMBufHTNode);
-    // printTPMBufHT(tpmBufHT);
+    // printTPMBufHashTable(tpmBufHT);
     return tpmBufHT;
 }
 
@@ -1307,6 +1307,7 @@ compBufStat(
 
     *numOfAddr = 0;
     b = e = memNode;
+    *totalNode = 0;
 
     while(b->leftNBR != NULL) { b = b->leftNBR; }; // traverse to left most
     *baddr = b->addr;
@@ -1354,6 +1355,8 @@ initTPMBufHTNode(
         u32 totalNode)
 {
    TPMBufHashTable *node = calloc(1, sizeof(TPMBufHashTable));
+   assert(node != NULL);
+
    node->baddr = baddr;
    node->eaddr = eaddr;
    node->minseq = minseq;

@@ -6,6 +6,18 @@
 #include "type.h"
 #include "uthash.h"
 
+typedef struct HitMapBufHash
+{
+    u32 baddr;      // start addr
+    u32 eaddr;      // end addr
+    int minseq;     // minimum seqNo
+    int maxseq;     // maximum seqNo
+    u32 numOfAddr;  // num of diff addr in the buf
+    u32 totalNode;  // num of total nodes in buffer
+    HitMapNode *headNode;
+    UT_hash_handle hh_hmBufHash;
+} HitMapBufHash;
+
 HitMapContext *
 initHitMap(TPMContext *tpm);
 
@@ -20,6 +32,9 @@ compHitMapStat(HitMapContext *hitMap);
 
 void
 compReverseHitMapStat(HitMapContext *hitMap);
+
+HitMapBufHash *
+analyzeHitMapBuf(HitMapContext *hitMap);
 
 void
 delHitMap(HitMapContext *hitmap);
@@ -36,4 +51,6 @@ printHitMapBuf(BufContext *hitMapBuf);
 void
 printHitMapBufHitCnt(BufHitcntCtxt *bufHitcntCtxt);
 
+void
+printHitMapBufHash(HitMapBufHash *hitMapBufHash);
 #endif
