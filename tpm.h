@@ -83,6 +83,7 @@ struct TPMBufHashTable
     int minseq;     // minimum seqNo
     int maxseq;     // maximum seqNo
     u32 numOfAddr;  // num of diff addr in the buf
+    u32 totalNode;  // num of total nodes in buffer
     TPMNode2 *headNode;
     UT_hash_handle hh_tpmBufHT;   
 };
