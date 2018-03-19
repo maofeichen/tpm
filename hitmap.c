@@ -507,16 +507,30 @@ printHitMapBufHash(HitMapBufHash *hitMapBufHash)
 {
     HitMapBufHash *buf, *tmp;
     int bufCnt = 0;
+    u32 avg_node, minNode, maxNode, totalNode;
 
     bufCnt = HASH_CNT(hh_hmBufHash, hitMapBufHash);
-    printf("totoal hit map buffer:%d - minimum buffer size:%u\n", bufCnt, 8);
+    printf("---------------------\ntotal hit map buffer:%d - minimum buffer size:%u\n", bufCnt, 8);
+
+    totalNode = 0;
+    minNode = hitMapBufHash->totalNode;
+    maxNode = hitMapBufHash->totalNode;
 
     HASH_ITER(hh_hmBufHash, hitMapBufHash, buf, tmp) {
-         printf("begin:0x%-8x end:0x%-8x sz:%-3u numofaddr:%-3u minseq:%-6d maxseq:%-6d diffseq:%-6d bufID:%u total nodes:%u\n",
+        printf("begin:0x%-8x end:0x%-8x sz:%-3u numofaddr:%-4u minseq:%-6d maxseq:%-6d diffseq:%-6d bufID:%u total nodes:%u\n",
             buf->baddr, buf->eaddr, buf->eaddr - buf->baddr,
             buf->numOfAddr, buf->minseq, buf->maxseq, (buf->maxseq - buf->minseq),
             buf->headNode->bufId, buf->totalNode);
+
+        if(buf->totalNode < minNode)
+            minNode = buf->totalNode;
+        if(buf->totalNode > maxNode)
+            maxNode = buf->totalNode;
+        totalNode += buf->totalNode;
     }
+    printf("minimum num of node:%u - maximum num of node:%u - total num of node:%u "
+            "- total buf:%u - avg num of node:%u\n",
+            minNode, maxNode, totalNode, bufCnt, totalNode / bufCnt);
 }
 
 static BufContext *

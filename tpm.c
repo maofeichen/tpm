@@ -464,18 +464,30 @@ printTPMBufHashTable(TPMBufHashTable *tpmBufHT)
 {
     TPMBufHashTable *buf, *temp;
     int bufcnt;
+    u32 avg_node, minNode, maxNode, totalNode;
 
     bufcnt = HASH_CNT(hh_tpmBufHT, tpmBufHT);
-    printf("total buf:%d - min buf sz:%u\n",bufcnt, MIN_BUF_SZ);
+    printf("---------------------\ntotal buf:%d - min buf sz:%u\n",bufcnt, MIN_BUF_SZ);
+
+    totalNode = 0;
+    minNode = tpmBufHT->totalNode;
+    maxNode = tpmBufHT->totalNode;
 
     HASH_ITER(hh_tpmBufHT, tpmBufHT, buf, temp) {
-        printf("begin:0x%-8x end:0x%-8x sz:%-3u numofaddr:%-3u minseq:%-6d maxseq:%-6d diffseq:%-6d bufID:%u total nodes:%u\n",
+        printf("begin:0x%-8x end:0x%-8x sz:%-3u numofaddr:%-4u minseq:%-6d maxseq:%-6d diffseq:%-6d bufID:%u total nodes:%u\n",
             buf->baddr, buf->eaddr, buf->eaddr - buf->baddr,
             buf->numOfAddr, buf->minseq, buf->maxseq, (buf->maxseq - buf->minseq), 
             buf->headNode->bufid, buf->totalNode);
-        // printMemNode(buf->headNode);
-        // printBufNode(buf->headNode);
+
+        if(buf->totalNode < minNode)
+            minNode = buf->totalNode;
+        if(buf->totalNode > maxNode)
+            maxNode = buf->totalNode;
+        totalNode += buf->totalNode;
     }
+    printf("minimum num of node:%u - maximum num of node:%u - total num of node:%u "
+            "- total buf:%u - avg num of node:%u\n",
+            minNode, maxNode, totalNode, bufcnt, totalNode / bufcnt);
 }
 
 static void 
