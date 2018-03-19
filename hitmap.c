@@ -231,6 +231,14 @@ analyzeHitMapBuf(HitMapContext *hitMap)
     hmBufNodeHash = hitMap->hitMapNodeHT;
     for(; hmBufNodeHash != NULL; hmBufNodeHash = hmBufNodeHash->hh_hitMapBufNode2NodeHT.next) {
         hitMapNode = hmBufNodeHash->toHitMapNode;
+
+        HitMapNode *leftMost = hitMapNode;
+        while(leftMost->leftNBR != NULL) { leftMost = leftMost->leftNBR; }
+        baddr = leftMost->addr;
+        HASH_FIND(hh_hmBufHash, hitMapBufHash, &baddr, 4, bufFound);
+        if(bufFound != NULL)
+            continue;
+
         compHitMapBufStat(hitMapNode, &baddr, &eaddr, &minseq, &maxseq,
                           &numOfAddr, &hitMapHeadNode, &totalNode);
         if(eaddr - baddr >= 8) { // TODO: add 8 to hitMap context
@@ -412,8 +420,12 @@ initHitMapBufHTNode(
 static int
 cmpHitMapBufHashNode(HitMapBufHash *l, HitMapBufHash *r)
 {
-    if(l->minseq < r->minseq) { return -1; }
-    else if(l->minseq == r->minseq) { return 0; }
+//    if(l->minseq < r->minseq) { return -1; }
+//    else if(l->minseq == r->minseq) { return 0; }
+//    else { return 1; }
+
+    if(l->headNode->bufId < r->headNode->bufId) { return -1; }
+    else if(l->headNode->bufId == r->headNode->bufId) { return 0; }
     else { return 1; }
 }
 
