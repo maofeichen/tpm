@@ -232,18 +232,19 @@ analyzeTPMBuf(TPMContext *tpm)
         compBufStat(memNode, &baddr, &eaddr, &minseq, &maxseq,
                     &numOfAddr, &firstMemNode, &totalNode);
         if(eaddr - baddr >= tpm->minBufferSz){ // only consider bufs with sz satisfies the min requirement
-            // printf("baddr:%x eaddr:%x minSeqN:%d maxSeqN:%d numOfAddr:%u firstMemNode:%p\n",
+            // printf("-----\nbaddr:%x eaddr:%x minSeqN:%d maxSeqN:%d numOfAddr:%u firstMemNode:%p\n",
             //         baddr, eaddr, minseq, maxseq, numOfAddr, firstMemNode);
             // printMemNode(firstMemNode);
+
             assert(firstMemNode->version == 0);
             assert(firstMemNode->leftNBR == NULL);
 
             tpmBufNode = initTPMBufHTNode(baddr, eaddr, minseq, maxseq,
                                           numOfAddr, firstMemNode, totalNode);
 
-            HASH_FIND(hh_tpmBufHT, tpmBufHT, &baddr, 4, tpmBufFound);
+            HASH_FIND(hh_tpmBufHT, tpmBufHT, &firstMemNode, 4, tpmBufFound);
             if(tpmBufFound == NULL) {
-                HASH_ADD(hh_tpmBufHT, tpmBufHT, baddr, 4, tpmBufNode);
+                HASH_ADD(hh_tpmBufHT, tpmBufHT, headNode, 4, tpmBufNode);
             }
             else { free(tpmBufNode); }
         }
@@ -487,6 +488,7 @@ printTPMBufHashTable(TPMBufHashTable *tpmBufHT)
             buf->baddr, buf->eaddr, buf->eaddr - buf->baddr,
             buf->numOfAddr, buf->minseq, buf->maxseq, (buf->maxseq - buf->minseq), 
             buf->headNode->bufid, buf->totalNode);
+        // printBufNode(buf->headNode);
 
         if(buf->totalNode < minNode)
             minNode = buf->totalNode;
@@ -1342,6 +1344,7 @@ compBufStat(
     e = *firstnode;
     while(e != NULL) { // traverse to right most
         u32 currVersion = e->version;
+        TPMNode2 *rightNBR = NULL;
         do{
             int seqNo = e->lastUpdateTS;
             if(/* seqNo > 0 && */ *minseq > seqNo)
@@ -1350,12 +1353,17 @@ compBufStat(
             if(*maxseq < seqNo)
                 *maxseq = seqNo;
 
+            if(rightNBR == NULL && e->rightNBR != NULL)
+                rightNBR = e->rightNBR;
             *totalNode += 1;
             e = e->nextVersion;
         } while(e->version != currVersion); // go through each version
 
         lastend = e;
-        e = e->rightNBR;
+        if(e->rightNBR == NULL && rightNBR != NULL)
+            e = rightNBR;
+        else
+            e = e->rightNBR;
         (*numOfAddr)++;
     }
     *eaddr = lastend->addr + lastend->bytesz;
@@ -1376,6 +1384,7 @@ getLeftMost(TPMNode2 *node)
             leftMost = leftMost->nextVersion;
         }
     }
+    // printMemNodeAllVersion(leftMost);
     return leftMost;
 }
 
