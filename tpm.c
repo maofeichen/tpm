@@ -117,6 +117,12 @@ compBufStat(
         TPMNode2 **firstnode,
         u32 *totalNode);
 
+static TPMNode2 *
+getLeftMost(TPMNode2 *node);
+
+static bool
+isAllVersionNodeLeftMost(TPMNode2 *node);
+
 static TPMBufHashTable *
 initTPMBufHTNode(
         u32 baddr,
@@ -228,6 +234,9 @@ analyzeTPMBuf(TPMContext *tpm)
         if(eaddr - baddr >= tpm->minBufferSz){ // only consider bufs with sz satisfies the min requirement
             // printf("baddr:%x eaddr:%x minSeqN:%d maxSeqN:%d numOfAddr:%u firstMemNode:%p\n",
             //         baddr, eaddr, minseq, maxseq, numOfAddr, firstMemNode);
+            // printMemNode(firstMemNode);
+            assert(firstMemNode->version == 0);
+            assert(firstMemNode->leftNBR == NULL);
 
             tpmBufNode = initTPMBufHTNode(baddr, eaddr, minseq, maxseq,
                                           numOfAddr, firstMemNode, totalNode);
@@ -474,7 +483,7 @@ printTPMBufHashTable(TPMBufHashTable *tpmBufHT)
     maxNode = tpmBufHT->totalNode;
 
     HASH_ITER(hh_tpmBufHT, tpmBufHT, buf, temp) {
-        printf("begin:0x%-8x end:0x%-8x sz:%-3u numofaddr:%-4u minseq:%-6d maxseq:%-6d diffseq:%-6d bufID:%u total nodes:%u\n",
+        printf("begin:0x%-8x end:0x%-8x sz:%-4u numofaddr:%-4u minseq:%-7d maxseq:%-7d diffseq:%-7d bufID:%u total nodes:%u\n",
             buf->baddr, buf->eaddr, buf->eaddr - buf->baddr,
             buf->numOfAddr, buf->minseq, buf->maxseq, (buf->maxseq - buf->minseq), 
             buf->headNode->bufid, buf->totalNode);
@@ -1321,7 +1330,8 @@ compBufStat(
     b = e = memNode;
     *totalNode = 0;
 
-    while(b->leftNBR != NULL) { b = b->leftNBR; }; // traverse to left most
+    // while(b->leftNBR != NULL) { b = b->leftNBR; }; // traverse to left most
+    b = getLeftMost(memNode);
     *baddr = b->addr;
     *firstnode = b;
     getMemNode1stVersion(firstnode);
@@ -1349,11 +1359,39 @@ compBufStat(
         (*numOfAddr)++;
     }
     *eaddr = lastend->addr + lastend->bytesz;
-    // printMemNode(lastend);
-    // printf("eaddr:%x\n", *eaddr);
-    // if((*eaddr - *baddr) >= 8)
-    //     printf("begin:0x%-8x end:0x%-8x minseq:%d maxseq:%d numofaddr:%u\n", 
-    //         *baddr, *eaddr, *minseq, *maxseq, *numOfAddr);       
+}
+
+static TPMNode2 *
+getLeftMost(TPMNode2 *node)
+{
+    TPMNode2 *leftMost = node;
+
+    while (true) {
+        if (isAllVersionNodeLeftMost(leftMost))
+            break;
+
+        if (leftMost->leftNBR != NULL) {
+            leftMost = leftMost->leftNBR;
+        } else {
+            leftMost = leftMost->nextVersion;
+        }
+    }
+    return leftMost;
+}
+
+static bool
+isAllVersionNodeLeftMost(TPMNode2 *node)
+{
+    u32 ver = node->version;
+    do {
+        if(node->leftNBR != NULL) {
+            return false;
+        }
+        else {
+            node = node->nextVersion;
+        }
+    } while(ver != node->version);
+    return true;
 }
 
 static TPMBufHashTable *

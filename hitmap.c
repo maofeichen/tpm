@@ -517,7 +517,7 @@ printHitMapBufHash(HitMapBufHash *hitMapBufHash)
     maxNode = hitMapBufHash->totalNode;
 
     HASH_ITER(hh_hmBufHash, hitMapBufHash, buf, tmp) {
-        printf("begin:0x%-8x end:0x%-8x sz:%-3u numofaddr:%-4u minseq:%-6d maxseq:%-6d diffseq:%-6d bufID:%u total nodes:%u\n",
+        printf("begin:0x%-8x end:0x%-8x sz:%-4u numofaddr:%-4u minseq:%-7d maxseq:%-7d diffseq:%-7d bufID:%u total nodes:%u\n",
             buf->baddr, buf->eaddr, buf->eaddr - buf->baddr,
             buf->numOfAddr, buf->minseq, buf->maxseq, (buf->maxseq - buf->minseq),
             buf->headNode->bufId, buf->totalNode);
