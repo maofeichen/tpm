@@ -2,6 +2,12 @@
 #include "propagate.h"
 #include <assert.h>
 
+#if __x86_64__
+#define Env64
+#else
+#define Env32
+#endif
+
 /* build HitMap of each buffer in TPM*/
 static BufContext *
 initBufContext(
@@ -65,6 +71,12 @@ compHitMapBufStat(
         u32 *numOfAddr,
         HitMapNode **firstnode,
         u32 *totalNode);
+
+static HitMapNode *
+getLeftMost(HitMapNode *node);
+
+static bool
+isAllVersionNodeLeftMost(HitMapNode *node);
 
 static void
 getFirstVerNode(HitMapNode **first);
@@ -232,8 +244,8 @@ analyzeHitMapBuf(HitMapContext *hitMap)
     for(; hmBufNodeHash != NULL; hmBufNodeHash = hmBufNodeHash->hh_hitMapBufNode2NodeHT.next) {
         hitMapNode = hmBufNodeHash->toHitMapNode;
 
-        HitMapNode *leftMost = hitMapNode;
-        while(leftMost->leftNBR != NULL) { leftMost = leftMost->leftNBR; }
+        HitMapNode *leftMost = getLeftMost(hitMapNode);
+        // while(leftMost->leftNBR != NULL) { leftMost = leftMost->leftNBR; }
         baddr = leftMost->addr;
         HASH_FIND(hh_hmBufHash, hitMapBufHash, &baddr, 4, bufFound);
         if(bufFound != NULL)
@@ -349,7 +361,8 @@ compHitMapBufStat(
     *numOfAddr = 0;
     b = e = hmNode;
 
-    while(b->leftNBR != NULL) { b = b->leftNBR; }; // traverse to left most
+    // while(b->leftNBR != NULL) { b = b->leftNBR; }; // traverse to left most
+    b = getLeftMost(hmNode);
     *baddr = b->addr;
     *firstnode = b;
     getFirstVerNode(firstnode);
@@ -379,6 +392,40 @@ compHitMapBufStat(
     }
     *eaddr = lastend->addr + lastend->bytesz;
 }
+
+static HitMapNode *
+getLeftMost(HitMapNode *node)
+{
+    HitMapNode *leftMost = node;
+
+    while (true) {
+        if (isAllVersionNodeLeftMost(leftMost))
+            break;
+
+        if (leftMost->leftNBR != NULL) {
+            leftMost = leftMost->leftNBR;
+        } else {
+            leftMost = leftMost->nextVersion;
+        }
+    }
+    return leftMost;
+}
+
+static bool
+isAllVersionNodeLeftMost(HitMapNode *node)
+{
+    u32 ver = node->version;
+    do {
+        if(node->leftNBR != NULL) {
+            return false;
+        }
+        else {
+            node = node->nextVersion;
+        }
+    } while(ver != node->version);
+    return true;
+}
+
 
 static void
 getFirstVerNode(HitMapNode **first)
@@ -566,7 +613,13 @@ initBufHitCntCtxt(TPMBufHashTable *buf)
     numOfAddr = buf->numOfAddr;
     bufHitCntCtxt->numOfAddr = numOfAddr;
 
+#if defined Env32
+    // printf("init buf hit count context 32 bit\n");
     bufHitCntCtxt->addrHitcntArray = calloc(1, sizeof(u32) * numOfAddr);
+#elif defined Env64
+    // printf("init buf hit count context 64 bit\n");
+    bufHitCntCtxt->addrHitcntArray = calloc(1, sizeof(u64) * numOfAddr);
+#endif
     assert(bufHitCntCtxt->addrHitcntArray != NULL);
 
     for(int i = 0; i < numOfAddr; i++) {

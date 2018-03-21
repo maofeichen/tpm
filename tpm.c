@@ -235,10 +235,8 @@ analyzeTPMBuf(TPMContext *tpm)
             // printf("-----\nbaddr:%x eaddr:%x minSeqN:%d maxSeqN:%d numOfAddr:%u firstMemNode:%p\n",
             //         baddr, eaddr, minseq, maxseq, numOfAddr, firstMemNode);
             // printMemNode(firstMemNode);
-
             assert(firstMemNode->version == 0);
             assert(firstMemNode->leftNBR == NULL);
-
             tpmBufNode = initTPMBufHTNode(baddr, eaddr, minseq, maxseq,
                                           numOfAddr, firstMemNode, totalNode);
 
@@ -484,7 +482,7 @@ printTPMBufHashTable(TPMBufHashTable *tpmBufHT)
     maxNode = tpmBufHT->totalNode;
 
     HASH_ITER(hh_tpmBufHT, tpmBufHT, buf, temp) {
-        printf("begin:0x%-8x end:0x%-8x sz:%-4u numofaddr:%-4u minseq:%-7d maxseq:%-7d diffseq:%-7d bufID:%u total nodes:%u\n",
+        printf("begin:0x%-8x end:0x%-8x sz:%-4u numofaddr:%-4u minseq:%-7d maxseq:%-7d diffseq:%-7d bufID:%-4u total nodes:%u\n",
             buf->baddr, buf->eaddr, buf->eaddr - buf->baddr,
             buf->numOfAddr, buf->minseq, buf->maxseq, (buf->maxseq - buf->minseq), 
             buf->headNode->bufid, buf->totalNode);
