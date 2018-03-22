@@ -1,4 +1,5 @@
 #include "bufhitcnt.h"
+#include "env.h"
 #include "hitmappropagate.h"
 #include <assert.h>
 
@@ -99,7 +100,13 @@ initBufHitCntArray(u32 numOfBuf)
 {
     u32 *bufHitCntAry = NULL;
 
+#if defined ENV32
+    // printf("init buf hit count context 32 bit\n");
     bufHitCntAry = calloc(1, sizeof(u32) * numOfBuf * numOfBuf);
+ #elif defined ENV64
+    // printf("init buf hit count context 64 bit\n");
+    bufHitCntAry = calloc(1, sizeof(u64) * numOfBuf * numOfBuf);
+#endif
     assert(bufHitCntAry != NULL);
 
 //    if((bufHitCntAry = calloc(1, sizeof(u32) * numOfBuf * numOfBuf) ) != NULL ) {

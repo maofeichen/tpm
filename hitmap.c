@@ -1,12 +1,7 @@
+#include "env.h"
 #include "hitmap.h"
 #include "propagate.h"
 #include <assert.h>
-
-#if __x86_64__
-#define Env64
-#else
-#define Env32
-#endif
 
 /* build HitMap of each buffer in TPM*/
 static BufContext *
@@ -613,10 +608,10 @@ initBufHitCntCtxt(TPMBufHashTable *buf)
     numOfAddr = buf->numOfAddr;
     bufHitCntCtxt->numOfAddr = numOfAddr;
 
-#if defined Env32
+#if defined ENV32
     // printf("init buf hit count context 32 bit\n");
     bufHitCntCtxt->addrHitcntArray = calloc(1, sizeof(u32) * numOfAddr);
-#elif defined Env64
+#elif defined ENV64
     // printf("init buf hit count context 64 bit\n");
     bufHitCntCtxt->addrHitcntArray = calloc(1, sizeof(u64) * numOfAddr);
 #endif

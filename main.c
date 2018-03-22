@@ -52,12 +52,12 @@ int main(int argc, char const *argv[])
 			compHitMapStat(hitMap);
 			// compReverseHitMapStat(hitMap);
 
-			// printTime("Before build buffer hit count array");
-			// bufHitCntArray = buildBufHitCntArray(hitMap);
-			// printTime("After build buffer hit count array");
-			// // printBufHitCntArray(bufHitCntArray, hitMap->numOfBuf);
-			// compBufHitCntArrayStat(bufHitCntArray, hitMap->numOfBuf, 64);
-			// delBufHitCntArray(bufHitCntArray, hitMap->numOfBuf);
+			printTime("Before build buffer hit count array");
+			bufHitCntArray = buildBufHitCntArray(hitMap);
+			printTime("After build buffer hit count array");
+			// printBufHitCntArray(bufHitCntArray, hitMap->numOfBuf);
+			compBufHitCntArrayStat(bufHitCntArray, hitMap->numOfBuf, 64);
+			delBufHitCntArray(bufHitCntArray, hitMap->numOfBuf);
 
 			delTPM(tpm);
 			// detectHitMapAvalanche(hitMap, tpm);  // TODO: flag forward or reverse build
