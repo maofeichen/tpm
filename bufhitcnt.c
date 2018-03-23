@@ -13,13 +13,21 @@ initBufHitCntArray(u32 numOfBuf);
 
 static void
 buildBufHitCntAryOfBuf(
+#ifdef ENV64
+        u64 *bufHitCntAry,
+#else
         u32 *bufHitCntAry,
+#endif
         u32 numOfBuf,
         BufContext *hitMapBuf);
 
 static void
 buildBufHitCntAryOfAddr(
+#ifdef ENV64
+        u64 *bufHitCntAry,
+#else
         u32 *bufHitCntAry,
+#endif
         u32 numOfBuf,
         HitMapNode *addrHead);
 
@@ -142,7 +150,11 @@ initBufHitCntArray(u32 numOfBuf)
 
 static void
 buildBufHitCntAryOfBuf(
+#ifdef ENV64
+        u64 *bufHitCntAry,
+#else
         u32 *bufHitCntAry,
+#endif
         u32 numOfBuf,
         BufContext *hitMapBuf)
 {
@@ -160,7 +172,11 @@ buildBufHitCntAryOfBuf(
 
 static void
 buildBufHitCntAryOfAddr(
+#ifdef ENV64
+        u64 *bufHitCntAry,
+#else
         u32 *bufHitCntAry,
+#endif
         u32 numOfBuf,
         HitMapNode *addrHead)
 {
