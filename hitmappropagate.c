@@ -1015,7 +1015,8 @@ updateBufHitCntArray(
                 // assert(dstBufIdx <= numOfBuf);
                 if(srcBufIdx <= numOfBuf && dstBufIdx <= numOfBuf) {
                     // bufHitCntAry[srcBufIdx][dstBufIdx] += dstNode->bytesz;
-                    *(bufHitCntAry + srcBufIdx * numOfBuf + dstBufIdx) += dstNode->bytesz;
+                    // *(bufHitCntAry + srcBufIdx * numOfBuf + dstBufIdx) += dstNode->bytesz;
+                    bufHitCntAry[srcBufIdx * numOfBuf + dstBufIdx] += dstNode->bytesz;
                 }
             }
             // printf("src buf ID:%u --> dst buf ID:%u size:%u\n", srcBufID, dstBufID, dstNode->bytesz);

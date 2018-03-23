@@ -90,27 +90,24 @@ static int
 cmpHitMapBufHashNode(HitMapBufHash *l, HitMapBufHash *r);
 
 HitMapContext *
-initHitMap(TPMContext *tpm)
+initHitMap(TPMContext *tpm, TPMBufHashTable *tpmBufHash)
 {
     HitMapContext *hitMap;
-    TPMBufHashTable *tpmBuf, *currBuf;
+    TPMBufHashTable *currBuf;
     int numOfBuf, i;
     u32 maxBufSeqN;
-
-    tpmBuf = analyzeTPMBuf(tpm);
-    assignTPMBufID(tpmBuf);
-    numOfBuf= HASH_CNT(hh_tpmBufHT, tpmBuf);
-    printTPMBufHashTable(tpmBuf);
 
     hitMap = calloc(1, sizeof(HitMapContext) );
     assert(hitMap != NULL);
 
     hitMap->hitMapNodeHT = NULL;
     hitMap->intrtmdt2HitMapNodeHT = NULL;
-    hitMap->maxBufSeqN = getTPMBufMaxSeqN(tpmBuf);
+    hitMap->maxBufSeqN = getTPMBufMaxSeqN(tpmBufHash);
     // printf("maxBufSeqN:%u\n", hitMap->maxBufSeqN);
+    numOfBuf = HASH_CNT(hh_tpmBufHT, tpmBufHash);
     hitMap->numOfBuf = numOfBuf;
-    hitMap->tpmBuf = tpmBuf;
+    hitMap->minBufSz = tpm->minBufferSz;
+    hitMap->tpmBuf = tpmBufHash;
 
     hitMap->bufArray = calloc(1, sizeof(BufContext *) * numOfBuf);
     hitMap->bufHitcntInArray = calloc(1, sizeof(BufHitcntCtxt *) * numOfBuf);
@@ -120,14 +117,13 @@ initHitMap(TPMContext *tpm)
     assert(hitMap->bufHitcntOutArray != NULL);
 
     i = 0;
-    for(currBuf = tpmBuf; currBuf != NULL; currBuf = currBuf->hh_tpmBufHT.next) {
+    for(currBuf = tpmBufHash; currBuf != NULL; currBuf = currBuf->hh_tpmBufHT.next) {
         hitMap->bufArray[i] = initBufContext(tpm, hitMap, currBuf);
-        hitMap->bufHitcntInArray[i] = initBufHitCntCtxt(currBuf);
-        hitMap->bufHitcntOutArray[i] = initBufHitCntCtxt(currBuf);
+        // hitMap->bufHitcntInArray[i] = initBufHitCntCtxt(currBuf); currently not used
+        // hitMap->bufHitcntOutArray[i] = initBufHitCntCtxt(currBuf);
         i++;
     }
-    // printHitMap(hitMap);
-    // printHitMapLit(hitMap);
+    printTime("Finish init HitMap");
     return hitMap;
 }
 
@@ -145,6 +141,7 @@ buildHitMap(HitMapContext *hitMap, TPMContext *tpm)
         buildBufContext(tpm, hitMap, currBuf);
         i++;
     }
+	printTime("Finish building HitMap");
 }
 
 void
@@ -191,11 +188,8 @@ compHitMapStat(HitMapContext *hitMap)
 {
     u32 numOfNode, numOfIntermediateNode;
     u32 totalTrans, totalIntermediateTrans;
-    HitMapBufHash *hitMapBufHash = NULL;
 
     sortHitMapHashTable(&(hitMap->hitMapNodeHT) );
-    hitMapBufHash = analyzeHitMapBuf(hitMap);
-    printHitMapBufHash(hitMapBufHash);
 
     numOfNode = getHitMapTotalNode(hitMap);
     printf("----------\ntotal number of node in HitMap:%u\n", numOfNode);

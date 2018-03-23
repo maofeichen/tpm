@@ -1,10 +1,15 @@
 #include "bufhitcnt.h"
-#include "env.h"
 #include "hitmappropagate.h"
+#include "misc.h"
 #include <assert.h>
 
+#ifdef ENV64
+static u64 *
+initBufHitCntArray(u32 numOfBuf);
+#else
 static u32 *
 initBufHitCntArray(u32 numOfBuf);
+#endif
 
 static void
 buildBufHitCntAryOfBuf(
@@ -18,14 +23,25 @@ buildBufHitCntAryOfAddr(
         u32 numOfBuf,
         HitMapNode *addrHead);
 
+#ifdef ENV64
+u64 *
+buildBufHitCntArray(HitMapContext *hitMap)
+#else
 u32 *
 buildBufHitCntArray(HitMapContext *hitMap)
+#endif
 {
     TPMBufHashTable *tpm_buf;
-    u32 *bufHitCntAry = NULL;
+#if defined ENV64
+	u64 *bufHitCntAry = NULL;
+#else
+	u32 *bufHitCntAry = NULL;
+#endif
     u32 numOfBuf, bufIdx;
 
     if(hitMap == NULL) { return NULL; }
+
+    printTime("Before build buffer hit count array");
 
     numOfBuf = hitMap->numOfBuf;
     bufHitCntAry = initBufHitCntArray(numOfBuf);
@@ -39,42 +55,46 @@ buildBufHitCntArray(HitMapContext *hitMap)
         buildBufHitCntAryOfBuf(bufHitCntAry, numOfBuf, hitMap->bufArray[bufIdx]);
         bufIdx++;
     }
-
+	printTime("After build buffer hit count array");
     return bufHitCntAry;
 }
 
+#ifdef ENV64
+void
+delBufHitCntArray(u64 *bufHitCntArray, u32 numOfBuf)
+#else
 void
 delBufHitCntArray(u32 *bufHitCntArray, u32 numOfBuf)
+#endif
 {
     if(bufHitCntArray != NULL) {
-//        for(int i = 0; i < numOfBuf; i++) {
-//            if(bufHitCntArray[i] != NULL) {
-//                free(bufHitCntArray[i]);
-//                bufHitCntArray[i] = NULL;
-//            }
-//        }
-
         free(bufHitCntArray);
         bufHitCntArray = NULL;
         printf("del buffer hit count array\n");
     }
 }
 
+#ifdef ENV64
+void
+compBufHitCntArrayStat(
+        u64 *bufHitCntArray,
+        u32 numOfBuf,
+        u32 byteThreashold)
+#else
 void
 compBufHitCntArrayStat(
         u32 *bufHitCntArray,
         u32 numOfBuf,
         u32 byteThreashold)
+#endif
 {
     u32 hitThreash = 0;
     for(int r = 0; r < numOfBuf; r++) {
         for (int c = 0; c < numOfBuf; c++) {
-            u32 val  = *(bufHitCntArray + r * numOfBuf + c);
+            // u32 val  = *(bufHitCntArray + r * numOfBuf + c);
+            u32 val = bufHitCntArray[r * numOfBuf + c];
             if(val >= byteThreashold)
                 hitThreash++;
-
-//            if(bufHitCntArray[r][c] >= byteThreashold)
-//                hitThreash++;
         }
     }
     printf("----------\nnum of buf pair hitcnt > %u bytes:%u - total buf pair:%u - ratio:%u%%\n",
@@ -94,11 +114,19 @@ printBufHitCntArray(u32 *bufHitCntArray, u32 numOfBuf)
     }
 }
 
-
+#ifdef ENV64
+static u64 *
+initBufHitCntArray(u32 numOfBuf)
+#else
 static u32 *
 initBufHitCntArray(u32 numOfBuf)
+#endif
 {
+#ifdef ENV64
+    u64 *bufHitCntAry = NULL;
+#else
     u32 *bufHitCntAry = NULL;
+#endif
 
 #if defined ENV32
     // printf("init buf hit count context 32 bit\n");
@@ -108,15 +136,6 @@ initBufHitCntArray(u32 numOfBuf)
     bufHitCntAry = calloc(1, sizeof(u64) * numOfBuf * numOfBuf);
 #endif
     assert(bufHitCntAry != NULL);
-
-//    if((bufHitCntAry = calloc(1, sizeof(u32) * numOfBuf * numOfBuf) ) != NULL ) {
-//        for(int i = 0; i < numOfBuf; i++) {
-//            bufHitCntAry[i] = calloc(1, sizeof(u32) * numOfBuf);
-//            assert(bufHitCntAry[i] != NULL);
-//        }
-//    }
-//    else { fprintf(stderr, "fails allocating 2D buffer hit count array\n"); }
-    // printf("num of tpm buffers:%u\n", numOfBuf);
 
     return bufHitCntAry;
 }

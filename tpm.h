@@ -37,7 +37,7 @@
 
 /* the following 2 constants need to be adjuested based on statistics of the XTaint log */
 #define mem2NodeHashSize	90000
-#define seqNo2NodeHashSize	50000000
+#define seqNo2NodeHashSize	120000000
 
 struct Mem2NodeHT;
 

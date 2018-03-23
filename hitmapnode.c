@@ -72,6 +72,7 @@ createHitMapNode(
 {
     HitMapNode *h = calloc(1, sizeof(HitMapNode));
     assert(h != NULL);
+
     h->bufId = bufId;
     h->addr = addr;
     h->version = version;

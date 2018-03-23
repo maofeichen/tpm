@@ -83,6 +83,7 @@ typedef struct HitMapContext
     IntrtmdtNode2HitMapNodeHashTalbe *intrtmdt2HitMapNodeHT; // hash table intermediate head
     u32 maxBufSeqN;         // max seqN of all buffers in TPM
     u32 numOfBuf;           // num of buffers in TPM
+    u32 minBufSz;           // minimum buffer size
     BufContext **bufArray;  // buf array, each points to a buffer context
     BufHitcntCtxt **bufHitcntInArray;   // buf hitcnt in array, each item points aggregate in hitcnt for a buffer
     BufHitcntCtxt **bufHitcntOutArray;  // buf hitcnt out array, each item points aggregate out hitcnt for a buffer

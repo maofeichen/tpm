@@ -19,7 +19,7 @@ typedef struct HitMapBufHash
 } HitMapBufHash;
 
 HitMapContext *
-initHitMap(TPMContext *tpm);
+initHitMap(TPMContext *tpm, TPMBufHashTable *tpmBufHash);
 
 void
 buildHitMap(HitMapContext *hitMap, TPMContext *tpm);

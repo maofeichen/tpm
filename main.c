@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include "avalanche.h"
+#include "env.h"
 #include "hitmap.h"
 #include "hitmapavalanche.h"
 #include "misc.h"
@@ -18,9 +19,16 @@ int main(int argc, char const *argv[])
 	struct TPMContext* tpm;
 	HitMapContext *hitMap;
 	int numOfNode;
+	TPMBufHashTable *tpmBufHash;
+	u32 numOfTPMBuf;
+#if defined ENV64
+	u64 *bufHitCntArray;
+#else
 	u32 *bufHitCntArray;
+#endif
+    HitMapBufHash *hitMapBufHash = NULL;
 
-	if(argc <= 1){
+    if(argc <= 1){
 		usage();
 		exit(1);
 	}
@@ -30,39 +38,43 @@ int main(int argc, char const *argv[])
 		if((tpm = calloc(1, sizeof(struct TPMContext) ) ) != NULL) { 
 			printf("alloc TPMContext: %zu MB\n", sizeof(struct TPMContext) / (1024*1024) );
 			printTime("Before build TPM");
+
 			if((numOfNode = buildTPM(log, tpm) ) >= 0) {
 				printf("build TPM successful, total number nodes:%d\n", numOfNode);
 				printTime("Finish building TPM");
+			} else {
+			    fprintf(stderr, "error build TPM\n");
 			}
-			else { fprintf(stderr, "error build TPM\n"); }
 #ifdef STAT
 			stat(tpm);
-#endif
 			// benchTPMDFS(tpm);
+#endif
+			tpmBufHash = analyzeTPMBuf(tpm);
+			assignTPMBufID(tpmBufHash);
+			printTPMBufHashTable(tpmBufHash);
 
-			hitMap = initHitMap(tpm);
-			// printHitMap(hitMap);
-			printTime("Finish init HitMap");
+			hitMap = initHitMap(tpm, tpmBufHash);
 			buildHitMap(hitMap, tpm);   // TODO: flag forward or reverse build
-			printTime("Finish building HitMap");
-
-			updateHitMapBuftHitCnt(hitMap);
-			// printHitMap(hitMap);
-
 			compHitMapStat(hitMap);
 			// compReverseHitMapStat(hitMap);
 
-			printTime("Before build buffer hit count array");
+			delTPM(tpm);
+			hitMapBufHash = analyzeHitMapBuf(hitMap);
+			printHitMapBufHash(hitMapBufHash);
+
+			// updateHitMapBuftHitCnt(hitMap); // Currently not used
+			// printHitMap(hitMap);
+
 			bufHitCntArray = buildBufHitCntArray(hitMap);
-			printTime("After build buffer hit count array");
 			// printBufHitCntArray(bufHitCntArray, hitMap->numOfBuf);
 			compBufHitCntArrayStat(bufHitCntArray, hitMap->numOfBuf, 64);
 			delBufHitCntArray(bufHitCntArray, hitMap->numOfBuf);
 
-			delTPM(tpm);
 			// detectHitMapAvalanche(hitMap, tpm);  // TODO: flag forward or reverse build
-			delAllTPMBuf(hitMap->tpmBuf);
+
+			delAllTPMBuf(tpmBufHash);
 			delHitMap(hitMap);
+			// delTPM(tpm);
 
 			// searchAllAvalancheInTPM(tpm);
 			// searchTPMAvalancheFast(tpm);
