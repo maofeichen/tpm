@@ -179,7 +179,11 @@ storeUnvisitHMNodeChildrenReverse(
 /* dfs search HitMap to build buffer hit count array*/
 static int
 dfsHitMapNodePropgtOfBuildBufHitCntAry(
+#ifdef ENV64
+        u64 *bufHitCntAry,
+#else
         u32 *bufHitCntAry,
+#endif
         u32 numOfBuf,
         HitMapNode *srcNode);
 
@@ -193,7 +197,11 @@ storeHitTransChildren(
 
 static void
 updateBufHitCntArray(
+#ifdef ENV64
+        u64 *bufHitCntAry,
+#else
         u32 *bufHitCntAry,
+#endif
         u32 numOfBuf,
         StackHitMapNode *stackHMNodeTop);
 
@@ -231,7 +239,11 @@ hitMapNodePropagateReverse(
 
 int
 hitMapNodePropgtOfBuildBufHitCntAry(
+#ifdef ENV64
+        u64 *bufHitCntAry,
+#else
         u32 *bufHitCntAry,
+#endif
         u32 numOfBuf,
         HitMapNode *addrHead)
 {
@@ -890,7 +902,11 @@ storeUnvisitHMNodeChildrenReverse(
 
 static int
 dfsHitMapNodePropgtOfBuildBufHitCntAry(
+#ifdef ENV64
+        u64 *bufHitCntAry,
+#else
         u32 *bufHitCntAry,
+#endif
         u32 numOfBuf,
         HitMapNode *srcNode)
 {
@@ -979,7 +995,11 @@ storeHitTransChildren(
 
 static void
 updateBufHitCntArray(
+#ifdef ENV64
+        u64 *bufHitCntAry,
+#else
         u32 *bufHitCntAry,
+#endif
         u32 numOfBuf,
         StackHitMapNode *stackHMNodeTop)
 {
@@ -1015,8 +1035,8 @@ updateBufHitCntArray(
                 // assert(dstBufIdx <= numOfBuf);
                 if(srcBufIdx <= numOfBuf && dstBufIdx <= numOfBuf) {
                     // bufHitCntAry[srcBufIdx][dstBufIdx] += dstNode->bytesz;
-                    // *(bufHitCntAry + srcBufIdx * numOfBuf + dstBufIdx) += dstNode->bytesz;
-                    bufHitCntAry[srcBufIdx * numOfBuf + dstBufIdx] += dstNode->bytesz;
+                    *(bufHitCntAry + srcBufIdx * numOfBuf + dstBufIdx) += dstNode->bytesz;
+                    // bufHitCntAry[srcBufIdx * numOfBuf + dstBufIdx] += dstNode->bytesz;
                 }
             }
             // printf("src buf ID:%u --> dst buf ID:%u size:%u\n", srcBufID, dstBufID, dstNode->bytesz);

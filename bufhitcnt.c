@@ -99,8 +99,8 @@ compBufHitCntArrayStat(
     u32 hitThreash = 0;
     for(int r = 0; r < numOfBuf; r++) {
         for (int c = 0; c < numOfBuf; c++) {
-            // u32 val  = *(bufHitCntArray + r * numOfBuf + c);
-            u32 val = bufHitCntArray[r * numOfBuf + c];
+            u32 val  = *(bufHitCntArray + r * numOfBuf + c);
+            // u32 val = bufHitCntArray[r * numOfBuf + c];
             if(val >= byteThreashold)
                 hitThreash++;
         }

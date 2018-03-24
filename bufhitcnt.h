@@ -5,6 +5,18 @@
 #include "hitmap.h"
 #include "type.h"
 
+typedef struct BufHitCntCtxt
+{
+    HitMapContext *hitMap;
+    HitMapBufHash *hitMapBufHash;
+    u32 numOfBuf;
+#ifdef ENV64
+    u64 *bufHitCntAry;
+#else
+    u32 *bufHitCntAry;
+#endif
+} BufHitCntCtxt;
+
 #ifdef ENV64
 u64 *
 buildBufHitCntArray(HitMapContext *hitMap);
