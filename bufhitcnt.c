@@ -50,6 +50,7 @@ buildBufHitCntArray(HitMapContext *hitMap)
     if(hitMap == NULL) { return NULL; }
 
     printTime("Before build buffer hit count array");
+    printf("num of TPM buffers:%u\n", hitMap->numOfBuf);
 
     numOfBuf = hitMap->numOfBuf;
     bufHitCntAry = initBufHitCntArray(numOfBuf);
@@ -97,10 +98,10 @@ compBufHitCntArrayStat(
 #endif
 {
     u32 hitThreash = 0;
-    for(int r = 0; r < numOfBuf; r++) {
-        for (int c = 0; c < numOfBuf; c++) {
-            u32 val  = *(bufHitCntArray + r * numOfBuf + c);
-            // u32 val = bufHitCntArray[r * numOfBuf + c];
+    for(size_t r = 0; r < numOfBuf; r++) {
+        for (size_t c = 0; c < numOfBuf; c++) {
+            // u32 val  = *(bufHitCntArray + r * numOfBuf + c);
+            u64 val = bufHitCntArray[r * numOfBuf + c];
             if(val >= byteThreashold)
                 hitThreash++;
         }
@@ -136,14 +137,21 @@ initBufHitCntArray(u32 numOfBuf)
     u32 *bufHitCntAry = NULL;
 #endif
 
-#if defined ENV32
-    // printf("init buf hit count context 32 bit\n");
-    bufHitCntAry = calloc(1, sizeof(u32) * numOfBuf * numOfBuf);
- #elif defined ENV64
+#ifdef ENV64
     // printf("init buf hit count context 64 bit\n");
     bufHitCntAry = calloc(1, sizeof(u64) * numOfBuf * numOfBuf);
+#else
+    bufHitCntAry = calloc(1, sizeof(u64) * numOfBuf * numOfBuf);
+    // printf("init buf hit count context 32 bit\n");
+    bufHitCntAry = calloc(1, sizeof(u32) * numOfBuf * numOfBuf);
 #endif
     assert(bufHitCntAry != NULL);
+
+    for(size_t r = 0; r < numOfBuf; r++) {
+        for(size_t c = 0; c < numOfBuf; c++) {
+            bufHitCntAry[r*numOfBuf + c] = 0;
+        }
+    }
 
     return bufHitCntAry;
 }

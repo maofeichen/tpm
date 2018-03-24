@@ -1031,12 +1031,11 @@ updateBufHitCntArray(
                && stackHMNodeTop->taintBy->hasUpdateBufHitCnt == 0) {
                 // printf("src buf ID:%u --> dst buf ID:%u size:%u\n", srcBufID, dstBufID, dstNode->bytesz);
                 u32 srcBufIdx = srcBufID-1, dstBufIdx = dstBufID -1;
-                // assert(srcBufIdx <= numOfBuf);
-                // assert(dstBufIdx <= numOfBuf);
-                if(srcBufIdx <= numOfBuf && dstBufIdx <= numOfBuf) {
-                    // bufHitCntAry[srcBufIdx][dstBufIdx] += dstNode->bytesz;
-                    *(bufHitCntAry + srcBufIdx * numOfBuf + dstBufIdx) += dstNode->bytesz;
-                    // bufHitCntAry[srcBufIdx * numOfBuf + dstBufIdx] += dstNode->bytesz;
+                assert(srcBufIdx < numOfBuf);
+                assert(dstBufIdx < numOfBuf);
+                if(srcBufIdx < numOfBuf && dstBufIdx < numOfBuf) {
+                    // *(bufHitCntAry + srcBufIdx * numOfBuf + dstBufIdx) += dstNode->bytesz;
+                    bufHitCntAry[srcBufIdx * numOfBuf + dstBufIdx] += dstNode->bytesz;
                 }
             }
             // printf("src buf ID:%u --> dst buf ID:%u size:%u\n", srcBufID, dstBufID, dstNode->bytesz);
