@@ -3,6 +3,6 @@
 #include <stdint.h>
 
 #define u32 	unsigned int
-#define u64     uint64_t
+#define u64     unsigned long
 #define uchar 	unsigned char
 #endif

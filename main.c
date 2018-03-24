@@ -66,7 +66,7 @@ int main(int argc, char const *argv[])
 			// printHitMap(hitMap);
 
 			bufHitCntArray = buildBufHitCntArray(hitMap);
-			// printBufHitCntArray(bufHitCntArray, hitMap->numOfBuf);
+			printBufHitCntArray(bufHitCntArray, hitMap->numOfBuf);
 			compBufHitCntArrayStat(bufHitCntArray, hitMap->numOfBuf, 64);
 			delBufHitCntArray(bufHitCntArray, hitMap->numOfBuf);
 

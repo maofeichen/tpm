@@ -101,7 +101,7 @@ compBufHitCntArrayStat(
     for(size_t r = 0; r < numOfBuf; r++) {
         for (size_t c = 0; c < numOfBuf; c++) {
             // u32 val  = *(bufHitCntArray + r * numOfBuf + c);
-            u64 val = bufHitCntArray[r * numOfBuf + c];
+            u32 val = bufHitCntArray[r * numOfBuf + c];
             if(val >= byteThreashold)
                 hitThreash++;
         }
@@ -139,9 +139,8 @@ initBufHitCntArray(u32 numOfBuf)
 
 #ifdef ENV64
     // printf("init buf hit count context 64 bit\n");
-    bufHitCntAry = calloc(1, sizeof(u64) * numOfBuf * numOfBuf);
+    bufHitCntAry = calloc(1, sizeof(u32) * numOfBuf * numOfBuf);
 #else
-    bufHitCntAry = calloc(1, sizeof(u64) * numOfBuf * numOfBuf);
     // printf("init buf hit count context 32 bit\n");
     bufHitCntAry = calloc(1, sizeof(u32) * numOfBuf * numOfBuf);
 #endif
