@@ -247,6 +247,7 @@ hitMapNodePropgtOfBuildBufHitCntAry(
         u32 numOfBuf,
         HitMapNode *addrHead)
 {
+    printf("hitMapNodePropgtOfBuildBufHitCntAry: bufHitCntAry:%p\n", bufHitCntAry);
     return dfsHitMapNodePropgtOfBuildBufHitCntAry(bufHitCntAry, numOfBuf, addrHead);
 }
 
@@ -926,6 +927,7 @@ dfsHitMapNodePropgtOfBuildBufHitCntAry(
 
     // printf("-----dfsHitMapNodePropgtOfBuildBufHitCntAry\n");
     // printHitMapNodeLit(srcNode);
+    printf("dfsHitMapNodePropgtOfBuildBufHitCntAry: bufHitCntAry:%p\n", bufHitCntAry);
 
     stackHitMapNodePush(srcNode, &stackHMNodeTop, &stackHMNodeCnt);
     storeHitTransChildren(visitHitTransHash, srcNode, 0, &stackHitTransTop, &stackHitTransCnt);
@@ -1011,6 +1013,7 @@ updateBufHitCntArray(
     if(bufHitCntAry == NULL || stackHMNodeTop == NULL)
         return;
 
+    printf("updateBufHitCntArray: bufHitCntAry:%p\n", bufHitCntAry);
     secondTop = stackHMNodeTop->next;
     if(secondTop != NULL
        && stackHMNodeTop->hmNode->bufId == secondTop->hmNode->bufId) {

@@ -27,28 +27,31 @@ buildBufHitCntArray(HitMapContext *hitMap);
 // builds a 2D unsigned int array (N*N), N is num of buffers in HitMap. And computes
 // the hit counts from a buffer to any other buffers.
 
+void
+delBufHitCntArray(
 #ifdef ENV64
-void
-delBufHitCntArray(u64 *bufHitCntArray, u32 numOfBuf);
-#else
-void
-delBufHitCntArray(u32 *bufHitCntArray, u32 numOfBuf);
-#endif
-
-#ifdef ENV64
-void
-compBufHitCntArrayStat(
         u64 *bufHitCntArray,
-        u32 numOfBuf,
-        u32 byteThreashold);
 #else
-void
-compBufHitCntArrayStat(
         u32 *bufHitCntArray,
-        u32 numOfBuf,
-        u32 byteThreashold);
 #endif
+        u32 numOfBuf);
 
 void
-printBufHitCntArray(u32 *bufHitCntArray, u32 numOfBuf);
+compBufHitCntArrayStat(
+#ifdef ENV64
+        u64 *bufHitCntArray,
+#else
+        u32 *bufHitCntArray,
+#endif
+        u32 numOfBuf,
+        u32 byteThreashold);
+
+void
+printBufHitCntArray(
+#ifdef ENV64
+        u64 *bufHitCntArray,
+#else
+        u32 *bufHitCntArray,
+#endif
+        u32 numOfBuf);
 #endif /* BUFHITCNT_H_ */
