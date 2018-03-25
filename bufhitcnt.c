@@ -50,7 +50,7 @@ buildBufHitCntArray(HitMapContext *hitMap)
     if(hitMap == NULL) { return NULL; }
 
     printTime("Before build buffer hit count array");
-    printf("num of TPM buffers:%u\n", hitMap->numOfBuf);
+    // printf("num of TPM buffers:%u\n", hitMap->numOfBuf);
 
     numOfBuf = hitMap->numOfBuf;
     bufHitCntAry = initBufHitCntArray(numOfBuf);
