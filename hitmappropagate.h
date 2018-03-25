@@ -4,6 +4,7 @@
 #include "uthash.h"
 #include "hitmapnode.h"
 #include "hitmapavaltype.h"
+#include "env.h"
 #include "type.h"
 
 /* HitMap node */

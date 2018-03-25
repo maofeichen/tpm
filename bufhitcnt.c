@@ -54,7 +54,7 @@ buildBufHitCntArray(HitMapContext *hitMap)
 
     numOfBuf = hitMap->numOfBuf;
     bufHitCntAry = initBufHitCntArray(numOfBuf);
-    printf("buildBufHitCntArray: bufHitCntAry:%p\n", bufHitCntAry);
+    // printf("buildBufHitCntArray: bufHitCntAry:%p\n", bufHitCntAry);
 
     bufIdx = 0;
     tpm_buf = hitMap->tpmBuf;
@@ -78,7 +78,7 @@ delBufHitCntArray(
 #endif
         u32 numOfBuf)
 {
-    printf("updateBufHitCntArray: bufHitCntAry:%p\n", bufHitCntArray);
+    // printf("updateBufHitCntArray: bufHitCntAry:%p\n", bufHitCntArray);
     if(bufHitCntArray != NULL) {
         free(bufHitCntArray);
         bufHitCntArray = NULL;
@@ -96,7 +96,7 @@ compBufHitCntArrayStat(
         u32 numOfBuf,
         u32 byteThreashold)
 {
-    printf("compBufHitCntArrayStat: bufHitCntAry:%p\n", bufHitCntArray);
+    // printf("compBufHitCntArrayStat: bufHitCntAry:%p\n", bufHitCntArray);
 
     u32 hitThreash = 0;
     for(size_t r = 0; r < numOfBuf; r++) {
@@ -186,7 +186,7 @@ buildBufHitCntAryOfBuf(
 
     if(bufHitCntAry == NULL || hitMapBuf == NULL) { return; }
 
-    printf("buildBufHitCntAryOfBuf: bufHitCntAry:%p\n", bufHitCntAry);
+    // printf("buildBufHitCntAryOfBuf: bufHitCntAry:%p\n", bufHitCntAry);
     for(addrIdx = 0; addrIdx < hitMapBuf->numOfAddr; addrIdx++) {
         if((addrHead = hitMapBuf->addrArray[addrIdx]) != NULL) {
             buildBufHitCntAryOfAddr(bufHitCntAry, numOfBuf, addrHead);
@@ -206,7 +206,7 @@ buildBufHitCntAryOfAddr(
 {
     if(bufHitCntAry == NULL || addrHead == NULL) { return; }
 
-    printf("buildBufHitCntAryOfAddr: bufHitCntAry:%p\n", bufHitCntAry);
+    // printf("buildBufHitCntAryOfAddr: bufHitCntAry:%p\n", bufHitCntAry);
     u32 ver = addrHead->version;
     do {
         if(addrHead->lastUpdateTS < 0) {
