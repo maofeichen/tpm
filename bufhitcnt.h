@@ -17,41 +17,46 @@ typedef struct BufHitCntCtxt
 #endif
 } BufHitCntCtxt;
 
-#ifdef ENV64
-u64 *
+// #ifdef ENV64
+// u64 *
+// buildBufHitCntArray(HitMapContext *hitMap);
+// #else
+// u32 *
+// buildBufHitCntArray(HitMapContext *hitMap);
+// #endif
+u8 *
 buildBufHitCntArray(HitMapContext *hitMap);
-#else
-u32 *
-buildBufHitCntArray(HitMapContext *hitMap);
-#endif
 // builds a 2D unsigned int array (N*N), N is num of buffers in HitMap. And computes
 // the hit counts from a buffer to any other buffers.
 
 void
 delBufHitCntArray(
-#ifdef ENV64
-        u64 *bufHitCntArray,
-#else
-        u32 *bufHitCntArray,
-#endif
+// #ifdef ENV64
+//         u64 *bufHitCntArray,
+// #else
+//         u32 *bufHitCntArray,
+// #endif
+        u8 *bufHitCntArray,       
         u32 numOfBuf);
 
 void
 compBufHitCntArrayStat(
-#ifdef ENV64
-        u64 *bufHitCntArray,
-#else
-        u32 *bufHitCntArray,
-#endif
+// #ifdef ENV64
+//         u64 *bufHitCntArray,
+// #else
+//         u32 *bufHitCntArray,
+// #endif
+        u8 *bufHitCntArray,
         u32 numOfBuf,
         u32 byteThreashold);
 
 void
 printBufHitCntArray(
-#ifdef ENV64
-        u64 *bufHitCntArray,
-#else
-        u32 *bufHitCntArray,
-#endif
+// #ifdef ENV64
+//         u64 *bufHitCntArray,
+// #else
+//         u32 *bufHitCntArray,
+// #endif
+        u8 *bufHitCntArray,       
         u32 numOfBuf);
 #endif /* BUFHITCNT_H_ */

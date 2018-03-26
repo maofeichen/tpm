@@ -179,11 +179,12 @@ storeUnvisitHMNodeChildrenReverse(
 /* dfs search HitMap to build buffer hit count array*/
 static int
 dfsHitMapNodePropgtOfBuildBufHitCntAry(
-#ifdef ENV64
-        u64 *bufHitCntAry,
-#else
-        u32 *bufHitCntAry,
-#endif
+// #ifdef ENV64
+//         u64 *bufHitCntAry,
+// #else
+//         u32 *bufHitCntAry,
+// #endif
+        u8 *bufHitCntAry,       
         u32 numOfBuf,
         HitMapNode *srcNode);
 
@@ -197,11 +198,12 @@ storeHitTransChildren(
 
 static void
 updateBufHitCntArray(
-#ifdef ENV64
-        u64 *bufHitCntAry,
-#else
-        u32 *bufHitCntAry,
-#endif
+// #ifdef ENV64
+//         u64 *bufHitCntAry,
+// #else
+//         u32 *bufHitCntAry,
+// #endif
+        u8 *bufHitCntAry,       
         u32 numOfBuf,
         StackHitMapNode *stackHMNodeTop);
 
@@ -239,11 +241,12 @@ hitMapNodePropagateReverse(
 
 int
 hitMapNodePropgtOfBuildBufHitCntAry(
-#ifdef ENV64
-        u64 *bufHitCntAry,
-#else
-        u32 *bufHitCntAry,
-#endif
+// #ifdef ENV64
+//         u64 *bufHitCntAry,
+// #else
+//         u32 *bufHitCntAry,
+// #endif
+        u8 *bufHitCntAry,
         u32 numOfBuf,
         HitMapNode *addrHead)
 {
@@ -903,11 +906,12 @@ storeUnvisitHMNodeChildrenReverse(
 
 static int
 dfsHitMapNodePropgtOfBuildBufHitCntAry(
-#ifdef ENV64
-        u64 *bufHitCntAry,
-#else
-        u32 *bufHitCntAry,
-#endif
+// #ifdef ENV64
+//         u64 *bufHitCntAry,
+// #else
+//         u32 *bufHitCntAry,
+// #endif
+        u8 *bufHitCntAry,
         u32 numOfBuf,
         HitMapNode *srcNode)
 {
@@ -997,11 +1001,12 @@ storeHitTransChildren(
 
 static void
 updateBufHitCntArray(
-#ifdef ENV64
-        u64 *bufHitCntAry,
-#else
-        u32 *bufHitCntAry,
-#endif
+// #ifdef ENV64
+//         u64 *bufHitCntAry,
+// #else
+//         u32 *bufHitCntAry,
+// #endif
+        u8 *bufHitCntAry,       
         u32 numOfBuf,
         StackHitMapNode *stackHMNodeTop)
 {
@@ -1029,20 +1034,27 @@ updateBufHitCntArray(
         srcBufID = stackHMNodeTop->hmNode->bufId;
         newBufID = srcBufID;
         if(srcBufID != dstBufID && srcBufID != oldBufID) {
-            if(stackHMNodeTop->taintBy != NULL
-               && stackHMNodeTop->taintBy->hasUpdateBufHitCnt == 0) {
-                // printf("src buf ID:%u --> dst buf ID:%u size:%u\n", srcBufID, dstBufID, dstNode->bytesz);
+            if(stackHMNodeTop->taintBy != NULL && 
+               stackHMNodeTop->taintBy->hasUpdateBufHitCnt == 0) {
+
                 u32 srcBufIdx = srcBufID-1, dstBufIdx = dstBufID -1;
                 assert(srcBufIdx < numOfBuf);
                 assert(dstBufIdx < numOfBuf);
                 if(srcBufIdx < numOfBuf && dstBufIdx < numOfBuf) {
-                    // *(bufHitCntAry + srcBufIdx * numOfBuf + dstBufIdx) += dstNode->bytesz;
-                    bufHitCntAry[srcBufIdx * numOfBuf + dstBufIdx] += dstNode->bytesz;
+                    // printf("src buf ID:%u --> dst buf ID:%u size:%u\n", srcBufID, dstBufID, dstNode->bytesz);
+                    u8 currVal = bufHitCntAry[srcBufIdx*numOfBuf + dstBufIdx];
+                    // printf("before update: bufHitCntAry:%p plus offset:%p val:%u\n", 
+                    //         bufHitCntAry, bufHitCntAry+(srcBufIdx*numOfBuf + dstBufIdx), currVal);
+                    if(currVal + dstNode->bytesz <= 255) {
+                        bufHitCntAry[srcBufIdx * numOfBuf + dstBufIdx] += dstNode->bytesz;
+                        // printf("after update: bufHitCntAry:%p plus offset:%p val:%u\n", 
+                        //         bufHitCntAry, bufHitCntAry+(srcBufIdx*numOfBuf + dstBufIdx), 
+                        //         bufHitCntAry[srcBufIdx * numOfBuf + dstBufIdx]);
+                    }
                 }
             }
             // printf("src buf ID:%u --> dst buf ID:%u size:%u\n", srcBufID, dstBufID, dstNode->bytesz);
         }
-
         oldBufID = newBufID;
         stackHMNodeTop = stackHMNodeTop->next;
     }

@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include "avalanche.h"
+#include "bufhitcnt.h"
 #include "env.h"
 #include "hitmap.h"
 #include "hitmapavalanche.h"
@@ -21,11 +22,12 @@ int main(int argc, char const *argv[])
 	int numOfNode;
 	TPMBufHashTable *tpmBufHash;
 	u32 numOfTPMBuf;
-#if defined ENV64
-	u64 *bufHitCntArray;
-#else
-	u32 *bufHitCntArray;
-#endif
+// #if defined ENV64
+// 	u64 *bufHitCntArray;
+// #else
+// 	u32 *bufHitCntArray;
+// #endif
+	u8 *bufHitCntArray;
     HitMapBufHash *hitMapBufHash = NULL;
 
     if(argc <= 1){

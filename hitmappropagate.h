@@ -64,11 +64,12 @@ hitMapNodePropagateReverse(
 
 int
 hitMapNodePropgtOfBuildBufHitCntAry(
-#ifdef ENV64
-        u64 *bufHitCntAry,
-#else
-        u32 *bufHitCntAry,
-#endif
+// #ifdef ENV64
+//         u64 *bufHitCntAry,
+// #else
+//         u32 *bufHitCntAry,
+// #endif
+        u8 *bufHitCntAry,
         u32 numOfBuf,
         HitMapNode *addrHead);
 
