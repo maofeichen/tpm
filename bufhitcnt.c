@@ -129,7 +129,7 @@ printBufHitCntArray(
         for (size_t c = 0; c < numOfBuf; c++) {
             // printf("buffer hit count array[%d][%d]:%u\n", r, c, bufHitCntArray[r][c]);
 #ifdef ENV64
-            u64 val = bufHitCntArray[r][c];
+            u64 val = bufHitCntArray[r*numOfBuf + c];
             printf("buffer hit count array[%zu][%zu]:%lu\n", r, c, val);
 #else
             // u32 val = *(bufHitCntArray + r * numOfBuf + c);
