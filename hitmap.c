@@ -1,6 +1,7 @@
 #include "env.h"
 #include "hitmap.h"
 #include "propagate.h"
+#include "misc.h"
 #include <assert.h>
 
 /* build HitMap of each buffer in TPM*/
@@ -534,7 +535,7 @@ printHitMapBufHitCnt(BufHitcntCtxt *bufHitcntCtxt)
     if(bufHitcntCtxt == NULL) { return; }
     printf("HitMap Buf Hitcnt: num of addr:%u\n", bufHitcntCtxt->numOfAddr);
     for(int i = 0; i < bufHitcntCtxt->numOfAddr; i++) {
-        printf("addr Hitcnt:%u\n", bufHitcntCtxt->addrHitcntArray[i]);
+        printf("addr Hitcnt:%u\n", *(bufHitcntCtxt->addrHitcntArray[i]) );
     }
 }
 
