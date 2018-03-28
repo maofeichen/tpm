@@ -181,6 +181,8 @@ initBufHitCntArray(u32 numOfBuf)
     bufHitCntAry = calloc(sizeof(u8), numOfBuf * numOfBuf);
     assert(bufHitCntAry != NULL);
 
+    printf("Init 2D array:\n");
+    // printBufHitCntArray(bufHitCntAry, numOfBuf);
     // for(size_t r = 0; r < numOfBuf; r++) {
     //     for(size_t c = 0; c < numOfBuf; c++) {
     //         printf("bufHitCntAry:%p bufHitCntAry+offset:%p\n", 

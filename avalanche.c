@@ -292,7 +292,7 @@ searchAllAvalancheInTPM(TPMContext *tpm)
 
 	    	searchcnt++;
 		}
-		break;
+		// break;
 	}
 OUTLOOP:
 #ifdef DEBUG
@@ -373,7 +373,7 @@ searchAvalancheInOutBuf(TPMContext *tpm, AvalancheSearchCtxt *avalsctxt, Propaga
 #endif
 	print2LevelHashTable(avalsctxt->addr2NodeAry, avalsctxt->numOfSrcAddr);
 	// detectAvalancheInOutBuf(tpm, avalsctxt);
-	// detectAvalancheInOutBufFast(tpm, avalsctxt); // latest use
+	detectAvalancheInOutBufFast(tpm, avalsctxt); // latest use
 	return 0;
 }
 

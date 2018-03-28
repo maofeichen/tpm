@@ -60,7 +60,7 @@ int main(int argc, char const *argv[])
 			compHitMapStat(hitMap);
 			// compReverseHitMapStat(hitMap);
 
-			delTPM(tpm);
+			// delTPM(tpm);
 			hitMapBufHash = analyzeHitMapBuf(hitMap);
 			printHitMapBufHash(hitMapBufHash);
 
@@ -68,7 +68,7 @@ int main(int argc, char const *argv[])
 			// printHitMap(hitMap);
 
 			bufHitCntArray = buildBufHitCntArray(hitMap);
-			// printBufHitCntArray(bufHitCntArray, hitMap->numOfBuf);
+			printBufHitCntArray(bufHitCntArray, hitMap->numOfBuf);
 			compBufHitCntArrayStat(bufHitCntArray, hitMap->numOfBuf, 64);
 			delBufHitCntArray(bufHitCntArray, hitMap->numOfBuf);
 
@@ -78,9 +78,9 @@ int main(int argc, char const *argv[])
 			delHitMap(hitMap);
 			// delTPM(tpm);
 
-			// searchAllAvalancheInTPM(tpm);
+			searchAllAvalancheInTPM(tpm);
 			// searchTPMAvalancheFast(tpm);
-			// delTPM(tpm);
+			delTPM(tpm);
 		} 
 		else { fprintf(stderr, "error alloc: TPMContext\n"); }
 		fclose(log);

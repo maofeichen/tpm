@@ -67,7 +67,7 @@ detectHitMapAvalanche(HitMapContext *hitMap, TPMContext *tpm)
 
             searchCnt++;
         }
-        break;
+        // break;
     }
     if(searchCnt > 0) {
         printf("---------------\navg build 2-level hash table time:%.1f microseconds\n", totalElapse/searchCnt);
@@ -149,8 +149,8 @@ detectHitMapAvalInOut(
     // printTime("before search propagation");
     printTimeMicroStart();
 
-    // searchHitMapPropgtInOut(hitMapAvalSrchCtxt, hitMap);
-    totalTraverse = srchHitMapPropgtInOutReverse(hitMapAvalSrchCtxt, hitMap);
+    searchHitMapPropgtInOut(hitMapAvalSrchCtxt, hitMap);
+    // totalTraverse = srchHitMapPropgtInOutReverse(hitMapAvalSrchCtxt, hitMap);
 
     // printTime("after search propagation");
     printTimeMicroEnd(totalElapse);

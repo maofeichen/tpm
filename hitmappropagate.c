@@ -1050,6 +1050,8 @@ updateBufHitCntArray(
                         // printf("after update: bufHitCntAry:%p plus offset:%p val:%u\n", 
                         //         bufHitCntAry, bufHitCntAry+(srcBufIdx*numOfBuf + dstBufIdx), 
                         //         bufHitCntAry[srcBufIdx * numOfBuf + dstBufIdx]);
+                        // printf("update 2D array: bufHitCntAry[ %u ][ %u ] += byte size: %u\n", 
+                        //         srcBufIdx, dstBufIdx, dstNode->bytesz);                       
                     }
                 }
             }
