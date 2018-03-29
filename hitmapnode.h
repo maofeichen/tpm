@@ -76,10 +76,29 @@ typedef struct BufHitcntCtxt
   u32 **addrHitcntArray;  // hitcnt array of the buffer, each item points to the aggregate hitcnt of nodes of same addr
 } BufHitcntCtxt;
 
+typedef struct HitMapBufHash
+{
+  u32 baddr;      // start addr: uses as key
+  u32 eaddr;      // end addr
+  int minseq;     // minimum seqNo
+  int maxseq;     // maximum seqNo
+  u32 numOfAddr;  // num of diff addr in the buf
+  u32 totalNode;  // num of total nodes in buffer
+  HitMapNode *headNode;
+  UT_hash_handle hh_hmBufHash;
+} HitMapBufHash;
+
+typedef struct HitMapBufContext
+{
+  HitMapBufHash *hitMapBufHash;
+  u32 numOfBuf;
+} HitMapBufContext;
+
 typedef struct HitMapContext
 {
   TPMBufHashTable *tpmBuf;// points to TPMBuf
   TPMBufContext *tpmBufCtxt;
+  HitMapBufContext *hitMapBufCtxt;
   HitMapBufNodePtr2NodeHashTable *hitMapNodeHT; // hash table head
   IntrtmdtNode2HitMapNodeHashTalbe *intrtmdt2HitMapNodeHT; // hash table intermediate head
   u32 maxBufSeqN;         // max seqN of all buffers in TPM
@@ -90,6 +109,7 @@ typedef struct HitMapContext
   BufHitcntCtxt **bufHitcntOutArray;  // buf hitcnt out array, each item points aggregate out hitcnt for a buffer
 } HitMapContext;
 
+/* function prototype */
 HitMapNode *
 createHitMapNode(
     u32 bufId,

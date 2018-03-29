@@ -91,11 +91,11 @@ static int
 cmpHitMapBufHashNode(HitMapBufHash *l, HitMapBufHash *r);
 
 HitMapContext *
-initHitMap(TPMContext *tpm, TPMBufHashTable *tpmBufHash)
+initHitMap(TPMContext *tpm, TPMBufContext *tpmBufCtxt)
 {
   HitMapContext *hitMap;
   TPMBufHashTable *currBuf;
-  int numOfBuf, i;
+  int numOfBuf;
   u32 maxBufSeqN;
 
   hitMap = calloc(sizeof(HitMapContext), 1);
@@ -103,22 +103,24 @@ initHitMap(TPMContext *tpm, TPMBufHashTable *tpmBufHash)
 
   hitMap->hitMapNodeHT = NULL;
   hitMap->intrtmdt2HitMapNodeHT = NULL;
-  hitMap->maxBufSeqN = getTPMBufMaxSeqN(tpmBufHash);
+  hitMap->maxBufSeqN = getTPMBufMaxSeqN(tpmBufCtxt->tpmBufHash);
   // printf("maxBufSeqN:%u\n", hitMap->maxBufSeqN);
-  numOfBuf = HASH_CNT(hh_tpmBufHT, tpmBufHash);
+
+  numOfBuf = HASH_CNT(hh_tpmBufHT, tpmBufCtxt->tpmBufHash);
   hitMap->numOfBuf = numOfBuf;
   hitMap->minBufSz = tpm->minBufferSz;
-  hitMap->tpmBuf = tpmBufHash;
+  hitMap->tpmBufCtxt = tpmBufCtxt;
+  hitMap->tpmBuf = tpmBufCtxt->tpmBufHash;
 
-  hitMap->bufArray = calloc(1, sizeof(BufContext *) * numOfBuf);
-  hitMap->bufHitcntInArray = calloc(1, sizeof(BufHitcntCtxt *) * numOfBuf);
-  hitMap->bufHitcntOutArray = calloc(1, sizeof(BufHitcntCtxt *) * numOfBuf);
+  hitMap->bufArray = calloc(sizeof(BufContext *), numOfBuf);
+  hitMap->bufHitcntInArray = calloc(sizeof(BufHitcntCtxt *), numOfBuf);
+  hitMap->bufHitcntOutArray = calloc(sizeof(BufHitcntCtxt *), numOfBuf);
   assert(hitMap->bufArray != NULL);
   assert(hitMap->bufHitcntInArray != NULL);
   assert(hitMap->bufHitcntOutArray != NULL);
 
-  i = 0;
-  for(currBuf = tpmBufHash; currBuf != NULL; currBuf = currBuf->hh_tpmBufHT.next) {
+  int i = 0;
+  for(currBuf = tpmBufCtxt->tpmBufHash; currBuf != NULL; currBuf = currBuf->hh_tpmBufHT.next) {
     hitMap->bufArray[i] = initBufContext(tpm, hitMap, currBuf);
     // hitMap->bufHitcntInArray[i] = initBufHitCntCtxt(currBuf); currently not used
     // hitMap->bufHitcntOutArray[i] = initBufHitCntCtxt(currBuf);
@@ -135,7 +137,7 @@ buildHitMap(TPMContext *tpm, TPMBufContext *tpmBufCtxt)
   HitMapContext *hitMap;
   u32 maxBufSeqN;
 
-  hitMap = initHitMap(tpm, tpmBufCtxt->tpmBufHash);
+  hitMap = initHitMap(tpm, tpmBufCtxt);
 
   int i = 0;
   TPMBufHashTable *currBuf = hitMap->tpmBuf;
@@ -145,7 +147,7 @@ buildHitMap(TPMContext *tpm, TPMBufContext *tpmBufCtxt)
   }
   printTime("Finish building HitMap");
   // updateHitMapBuftHitCnt(hitMap); // Currently not used
-
+  updateHitMapBufContext(hitMap);
   return hitMap;
 }
 
@@ -225,6 +227,36 @@ compReverseHitMapStat(HitMapContext *hitMap)
   printf("total transitions: %u\n", totalTrans);
 }
 
+void
+updateHitMapBufContext(HitMapContext *hitMap)
+{
+  HitMapBufContext *hitMapBufCtxt;
+  hitMapBufCtxt = initHitMapBufContext(hitMap);
+  hitMap->hitMapBufCtxt = hitMapBufCtxt;
+}
+
+HitMapBufContext *
+initHitMapBufContext(HitMapContext *hitMap)
+{
+  HitMapBufContext *hitMapBufCtxt;
+
+  hitMapBufCtxt = calloc(sizeof(HitMapBufContext), 1);
+  assert(hitMapBufCtxt != NULL);
+
+  hitMapBufCtxt->hitMapBufHash = analyzeHitMapBuf(hitMap);
+  hitMapBufCtxt->numOfBuf = HASH_CNT(hh_hmBufHash, hitMapBufCtxt->hitMapBufHash);
+
+  return hitMapBufCtxt;
+}
+
+void
+delHitMapBufContext(HitMapBufContext *hitMapBufCtxt)
+{
+  delHitHitMapBufHash(hitMapBufCtxt->hitMapBufHash);
+  free(hitMapBufCtxt);
+  printf("del HitMap buffers context.\n");
+}
+
 HitMapBufHash *
 analyzeHitMapBuf(HitMapContext *hitMap)
 {
@@ -261,6 +293,19 @@ analyzeHitMapBuf(HitMapContext *hitMap)
 
   printHitMapBufHash(hitMapBufHash);
   return hitMapBufHash;
+}
+
+void
+delHitHitMapBufHash(HitMapBufHash *hitMapBufHash)
+{
+  HitMapBufHash *cur, *tmp;
+  assert(hitMapBufHash != NULL);
+
+  HASH_ITER(hh_hmBufHash, hitMapBufHash, cur, tmp) {
+    HASH_DELETE(hh_hmBufHash, hitMapBufHash, cur);
+    free(cur);
+  }
+  // printf("del HitMap buffers.\n");
 }
 
 static u32

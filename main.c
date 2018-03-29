@@ -20,10 +20,7 @@ int main(int argc, char const *argv[])
   struct TPMContext* tpm;
   HitMapContext *hitMap;
   int numOfTPMNode;
-  TPMBufHashTable *tpmBufHash;
   TPMBufContext *tpmBufCtxt;
-  u32 numOfTPMBuf;
-  HitMapBufHash *hitMapBufHash = NULL;
   u8 *bufHitCntArray;
 
   if(argc <= 1){
@@ -51,15 +48,14 @@ int main(int argc, char const *argv[])
         compHitMapStat(hitMap);
         // compReverseHitMapStat(hitMap);
 
-        hitMapBufHash = analyzeHitMapBuf(hitMap);
-
         bufHitCntArray = buildBufHitCntArray(hitMap);
         compBufHitCntArrayStat(bufHitCntArray, hitMap->numOfBuf, 64); // 64 bytes
         delBufHitCntArray(bufHitCntArray, hitMap->numOfBuf);
 
         // detectHitMapAvalanche(hitMap, tpm);  // TODO: flag forward or reverse build
 
-        delTPMBufContext(tpmBufCtxt);
+        delTPMBufContext(hitMap->tpmBufCtxt);
+        delHitMapBufContext(hitMap->hitMapBufCtxt);
         delHitMap(hitMap);
         delTPM(tpm);
 

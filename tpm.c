@@ -242,6 +242,7 @@ delTPMBufContext(TPMBufContext *tpmBufCtxt)
 {
   delAllTPMBuf(tpmBufCtxt->tpmBufHash);
   free(tpmBufCtxt);
+  printf("del TPM buffers context.\n");
 }
 
 
@@ -408,7 +409,7 @@ delAllTPMBuf(TPMBufHashTable *tpmBuf)
     HASH_DELETE(hh_tpmBufHT, tpmBuf, curr);
     free(curr);
   }
-  printf("del tpm buffers\n");
+  // printf("del tpm buffers\n");
 }
 
 
