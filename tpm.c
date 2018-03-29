@@ -217,6 +217,34 @@ seqNo2NodeSearch(struct TPMContext *tpm, u32 seqNo)
   }
 }
 
+TPMBufContext *
+initTPMBufContext(TPMContext *tpm)
+{
+  TPMBufContext *tpmBufCtxt   = NULL;
+  TPMBufHashTable *tpmBufHash = NULL;
+  int numOfBuf = 0;
+
+  tpmBufCtxt = calloc(sizeof(TPMBufContext), 1);
+  assert(tpmBufCtxt != NULL);
+
+  tpmBufHash = analyzeTPMBuf(tpm);
+  assignTPMBufID(tpmBufHash);
+  numOfBuf = HASH_CNT(hh_tpmBufHT, tpmBufHash);
+
+  tpmBufCtxt->tpmBufHash = tpmBufHash;
+  tpmBufCtxt->numOfBuf = numOfBuf;
+
+  return tpmBufCtxt;
+}
+
+void
+delTPMBufContext(TPMBufContext *tpmBufCtxt)
+{
+  delAllTPMBuf(tpmBufCtxt->tpmBufHash);
+  free(tpmBufCtxt);
+}
+
+
 TPMBufHashTable *
 analyzeTPMBuf(TPMContext *tpm)
 {

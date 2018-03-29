@@ -29,7 +29,7 @@
 #define NUM_REG             14  // num of register (global temps)  
 #define REG_IDX_MASK        0xf
 #define MAX_TEMPIDX         128 // the max temp index that Qemu uses
-                                // need to be adjuested based on XTaint log: 
+// need to be adjuested based on XTaint log:
 
 #define BYTE                1
 #define WORD                2
@@ -43,51 +43,58 @@ struct Mem2NodeHT;
 
 struct Transition
 {
-    u32 seqNo;		// sequence number of corresponding XTaint record
-    union TPMNode *child;
-    struct Transition *next;
-    char hasVisit;  // if the transition (edge) had been visited already in building HitMap
-                    // 0: unvisit 1: visit
+  u32 seqNo;		// sequence number of corresponding XTaint record
+  union TPMNode *child;
+  struct Transition *next;
+  char hasVisit;  // if the transition (edge) had been visited already in building HitMap
+  // 0: unvisit 1: visit
 };
 typedef struct Transition Transition;
 
 struct TPMContext
 {
-    u32 nodeNum;	// total number of TPM node
-    u32 memAddrNum;	// number of different memory addresses encountered
-    u32 tempVarNum;	// number of different temporary variables encounted
+  u32 nodeNum;	// total number of TPM node
+  u32 memAddrNum;	// number of different memory addresses encountered
+  u32 tempVarNum;	// number of different temporary variables encounted
 
-    // struct TPMNode2 *mem2NodeHash[mem2NodeHashSize];	// maps mem addr to TPMNode2 of the latest version of a mem addr
-    struct Mem2NodeHT *mem2NodeHT;          // uses uthash, maps mem addr to TPMNode2 of the latest version of a mem addr
-    union TPMNode *seqNo2NodeHash[seqNo2NodeHashSize];	// maps seq no. to TPMNode of the source of the transision
+  // struct TPMNode2 *mem2NodeHash[mem2NodeHashSize];	// maps mem addr to TPMNode2 of the latest version of a mem addr
+  struct Mem2NodeHT *mem2NodeHT;          // uses uthash, maps mem addr to TPMNode2 of the latest version of a mem addr
+  union TPMNode *seqNo2NodeHash[seqNo2NodeHashSize];	// maps seq no. to TPMNode of the source of the transision
 
-    u32 minBufferSz;	// minimum buffer size (such as 8) considered for avalanche effect search
-    u32 taintedBufNum;	// number of tainted buffers in the TPM.
-    struct taintedBuf *taintedbuf;	// point to the tainted buffers in TPM
+  u32 minBufferSz;	// minimum buffer size (such as 8) considered for avalanche effect search
+  u32 taintedBufNum;	// number of tainted buffers in the TPM.
+  struct taintedBuf *taintedbuf;	// point to the tainted buffers in TPM
 };
 typedef struct TPMContext TPMContext;
 
 /* mem to node hash tables, according to uthash */
 struct Mem2NodeHT
 {
-    u32 addr;               // key
-    struct TPMNode2 *toMem; // val, latest version node of the addr
-    UT_hash_handle hh_mem;  // hash table head, required by uthash
+  u32 addr;               // key
+  struct TPMNode2 *toMem; // val, latest version node of the addr
+  UT_hash_handle hh_mem;  // hash table head, required by uthash
 };
 typedef struct Mem2NodeHT Mem2NodeHT;
 
 struct TPMBufHashTable
 {
-    u32 baddr;      // start addr
-    u32 eaddr;      // end addr
-    int minseq;     // minimum seqNo
-    int maxseq;     // maximum seqNo
-    u32 numOfAddr;  // num of diff addr in the buf
-    u32 totalNode;  // num of total nodes in buffer
-    TPMNode2 *headNode;
-    UT_hash_handle hh_tpmBufHT;   
+  u32 baddr;      // start addr: uses as key in hash
+  u32 eaddr;      // end addr
+  int minseq;     // minimum seqNo
+  int maxseq;     // maximum seqNo
+  u32 numOfAddr;  // num of diff addr in the buf
+  u32 totalNode;  // num of total nodes in buffer
+  TPMNode2 *headNode;
+  UT_hash_handle hh_tpmBufHT;
 };
-typedef struct TPMBufHashTable TPMBufHashTable; // stores all different bufs in a tpm in hash table
+typedef struct TPMBufHashTable TPMBufHashTable;
+// Stores all different bufs in a tpm in hash table
+
+typedef struct TPMBufContext
+{
+  struct TPMBufHashTable *tpmBufHash;
+  u32 numOfBuf;
+} TPMBufContext;
 
 /* TPM function prototypes */
 int
@@ -109,10 +116,19 @@ getTransitionDst(Transition *transition);
 u32
 getTransitionChildrenNum(Transition *firstChild);
 
-/* All TPM buffers */
+/* TPM buffers */
+
+TPMBufContext *
+initTPMBufContext(TPMContext *tpm);
+
+void
+delTPMBufContext(TPMBufContext *tpmBufCtxt);
+
+/*
+ * Computes all the bufs in tpm.
+ */
 TPMBufHashTable *
 analyzeTPMBuf(TPMContext *tpm);
-// computes all the bufs in tpm
 
 void 
 assignTPMBufID(TPMBufHashTable *tpmBuf);
@@ -132,9 +148,9 @@ getTPMBufMaxSeqN(TPMBufHashTable *tpmBuf);
 
 int
 getTPMBufAddrIdx(
-        u32 bufID,
-        u32 addr,
-        TPMBufHashTable *tpmBuf);
+    u32 bufID,
+    u32 addr,
+    TPMBufHashTable *tpmBuf);
 
 void
 delAllTPMBuf(TPMBufHashTable *tpmBuf);

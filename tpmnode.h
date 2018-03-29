@@ -14,57 +14,57 @@ struct HitcntHashTable;
 
 struct TPMNode1		// for temp, register addresses
 {
-    u32	type;		  // indicating the type of the node
-    u32	addr;		  // mem addr, id of temp or register
-    u32 val;        
-    int lastUpdateTS;	// the TS (seq#) of last update of the node
-    struct Transition *firstChild;  // points to structure that points to the first child
-    char hasVisit;  // determines if the node had been visited during building HitMap
+  u32	type;		  // indicating the type of the node
+  u32	addr;		  // mem addr, id of temp or register
+  u32 val;
+  int lastUpdateTS;	// the TS (seq#) of last update of the node
+  struct Transition *firstChild;  // points to structure that points to the first child
+  char hasVisit;  // determines if the node had been visited during building HitMap
 };
 typedef struct TPMNode1 TPMNode1;
 
 struct TPMNode2		// for memory address
 {
-    u32	type;		  // indicating the type of the node
-    u32	addr;		  // mem addr, id of temp or register
-    u32 val;
-    int lastUpdateTS;	// the TS (seq#) of last update of the node
-    struct Transition *firstChild;  // points to structure that points to the first child
-    char hasVisit;  // determines if the node had been visited during building HitMap
-    /* the following fields are only for TPMNode for memory */
-    u32 bytesz;                   // byte sz
-    struct TPMNode2 *leftNBR;	  // point to node of adjacent, smaller memory address
-    struct TPMNode2 *rightNBR;	  // point to node of adjacent, bigger memory address
-    struct TPMNode2 *nextVersion; // point to node of the same addr buf of different version or age. Forms circular link
-    u32 version;	// the version of current node, monotonically increasing from 0.
-    u32	hitcnt;		/* as source, the number of TMPNode2 in destination buffer this node propagates to; or
+  u32	type;		  // indicating the type of the node
+  u32	addr;		  // mem addr, id of temp or register
+  u32 val;
+  int lastUpdateTS;	// the TS (seq#) of last update of the node
+  struct Transition *firstChild;  // points to structure that points to the first child
+  char hasVisit;  // determines if the node had been visited during building HitMap
+  /* the following fields are only for TPMNode for memory */
+  u32 bytesz;                   // byte sz
+  struct TPMNode2 *leftNBR;	  // point to node of adjacent, smaller memory address
+  struct TPMNode2 *rightNBR;	  // point to node of adjacent, bigger memory address
+  struct TPMNode2 *nextVersion; // point to node of the same addr buf of different version or age. Forms circular link
+  u32 version;	// the version of current node, monotonically increasing from 0.
+  u32	hitcnt;		/* as source, the number of TMPNode2 in destination buffer this node propagates to; or
 			   as detination, the number of TMPNode2 in source buffer that propagates to this node	*/
-    u32 bufid;      // bufid the node belongs to, init to 0 (belongs to no buf), will be assigned after tpm is build
-    struct HitcntHashTable *hitcntHT; // Not use right now
+  u32 bufid;      // bufid the node belongs to, init to 0 (belongs to no buf), will be assigned after tpm is build
+  struct HitcntHashTable *hitcntHT; // Not use right now
 };
 typedef struct TPMNode2 TPMNode2;
 
 union TPMNode
 {
-    struct TPMNode1 tpmnode1;
-    struct TPMNode2 tpmnode2;
+  struct TPMNode1 tpmnode1;
+  struct TPMNode2 tpmnode2;
 };
 typedef union TPMNode TPMNode;
 
 struct taintedBuf
 {
-    struct TPMNode2 *bufstart;	// point to the TMPNode2 of the start addr of some tainted buffer in TPM;
-    struct taintedBuf *next;	  // point to the taintedBuf structure of the next tainted buffer; null if no more
+  struct TPMNode2 *bufstart;	// point to the TMPNode2 of the start addr of some tainted buffer in TPM;
+  struct taintedBuf *next;	  // point to the taintedBuf structure of the next tainted buffer; null if no more
 };
 typedef struct taintedBuf TaintedBuf;
 
 typedef struct HitcntHashTable
 {
-    u32 bufId;  // when the node is src, it indictates which buffer it can propagate to have the hitcnt;
-                // when it is as destination, it indicates which src buffer
-    u32 hitcnt; /* as source, the number of TMPNode2 in destination buffer this node propagates to; or
+  u32 bufId;  // when the node is src, it indictates which buffer it can propagate to have the hitcnt;
+  // when it is as destination, it indicates which src buffer
+  u32 hitcnt; /* as source, the number of TMPNode2 in destination buffer this node propagates to; or
 			   as detination, the number of TMPNode2 in source buffer that propagates to this node	*/
-    UT_hash_handle hh_hitcnt;
+  UT_hash_handle hh_hitcnt;
 } HitcntHashTable;
 
 
