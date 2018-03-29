@@ -47,7 +47,7 @@ int main(int argc, char const *argv[])
 #endif
         tpmBufCtxt = initTPMBufContext(tpm);
 
-        hitMap = buildHitMap(tpm, tpmBufCtxt->tpmBufHash);   // TODO: flag forward or reverse build
+        hitMap = buildHitMap(tpm, tpmBufCtxt);   // TODO: flag forward or reverse build
         compHitMapStat(hitMap);
         // compReverseHitMapStat(hitMap);
 

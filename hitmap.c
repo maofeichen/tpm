@@ -98,7 +98,7 @@ initHitMap(TPMContext *tpm, TPMBufHashTable *tpmBufHash)
   int numOfBuf, i;
   u32 maxBufSeqN;
 
-  hitMap = calloc(1, sizeof(HitMapContext) );
+  hitMap = calloc(sizeof(HitMapContext), 1);
   assert(hitMap != NULL);
 
   hitMap->hitMapNodeHT = NULL;
@@ -125,22 +125,20 @@ initHitMap(TPMContext *tpm, TPMBufHashTable *tpmBufHash)
     i++;
   }
   printTime("Finish init HitMap");
+  // printTPMBufHashTable(hitMap->tpmBuf);
   return hitMap;
 }
 
 HitMapContext *
-buildHitMap(TPMContext *tpm, TPMBufHashTable *tpmBufHash)
+buildHitMap(TPMContext *tpm, TPMBufContext *tpmBufCtxt)
 {
   HitMapContext *hitMap;
-  TPMBufHashTable *currBuf;
-  int numOfBuf, i;
   u32 maxBufSeqN;
 
-  hitMap = initHitMap(tpm, tpmBufHash);
+  hitMap = initHitMap(tpm, tpmBufCtxt->tpmBufHash);
 
-  // printTPMBufHashTable(hitMap->tpmBuf);
-  i = 0;
-  currBuf = hitMap->tpmBuf;
+  int i = 0;
+  TPMBufHashTable *currBuf = hitMap->tpmBuf;
   for(; currBuf != NULL; currBuf = currBuf->hh_tpmBufHT.next) {
     buildBufContext(tpm, hitMap, currBuf);
     i++;

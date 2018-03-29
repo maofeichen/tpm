@@ -2,13 +2,12 @@
 #define HITMAP_H
 
 #include "hitmapnode.h"
-// #include "tpm.h"    // move in hitmapnode.h
 #include "type.h"
 #include "uthash.h"
 
 typedef struct HitMapBufHash
 {
-  u32 baddr;      // start addr
+  u32 baddr;      // start addr: uses as key
   u32 eaddr;      // end addr
   int minseq;     // minimum seqNo
   int maxseq;     // maximum seqNo
@@ -22,7 +21,7 @@ HitMapContext *
 initHitMap(TPMContext *tpm, TPMBufHashTable *tpmBufHash);
 
 HitMapContext *
-buildHitMap(TPMContext *tpm, TPMBufHashTable *tpmBufHash);
+buildHitMap(TPMContext *tpm, TPMBufContext *tpmBufCtxt);
 
 void
 updateHitMapBuftHitCnt(HitMapContext *hitMap);
