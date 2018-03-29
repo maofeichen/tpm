@@ -8,21 +8,21 @@
 
 typedef struct HitMapBufHash
 {
-    u32 baddr;      // start addr
-    u32 eaddr;      // end addr
-    int minseq;     // minimum seqNo
-    int maxseq;     // maximum seqNo
-    u32 numOfAddr;  // num of diff addr in the buf
-    u32 totalNode;  // num of total nodes in buffer
-    HitMapNode *headNode;
-    UT_hash_handle hh_hmBufHash;
+  u32 baddr;      // start addr
+  u32 eaddr;      // end addr
+  int minseq;     // minimum seqNo
+  int maxseq;     // maximum seqNo
+  u32 numOfAddr;  // num of diff addr in the buf
+  u32 totalNode;  // num of total nodes in buffer
+  HitMapNode *headNode;
+  UT_hash_handle hh_hmBufHash;
 } HitMapBufHash;
 
 HitMapContext *
 initHitMap(TPMContext *tpm, TPMBufHashTable *tpmBufHash);
 
-void
-buildHitMap(HitMapContext *hitMap, TPMContext *tpm);
+HitMapContext *
+buildHitMap(TPMContext *tpm, TPMBufHashTable *tpmBufHash);
 
 void
 updateHitMapBuftHitCnt(HitMapContext *hitMap);

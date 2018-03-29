@@ -40,37 +40,34 @@ int main(int argc, char const *argv[])
       if((numOfTPMNode = buildTPM(log, tpm) ) >= 0) {
         printf("build TPM successful, total number nodes:%d\n", numOfTPMNode);
         printTime("Finish building TPM");
+
+#ifdef STAT
+        stat(tpm);
+        // benchTPMDFS(tpm);
+#endif
+        tpmBufCtxt = initTPMBufContext(tpm);
+
+        hitMap = buildHitMap(tpm, tpmBufCtxt->tpmBufHash);   // TODO: flag forward or reverse build
+        compHitMapStat(hitMap);
+        // compReverseHitMapStat(hitMap);
+
+        hitMapBufHash = analyzeHitMapBuf(hitMap);
+
+        bufHitCntArray = buildBufHitCntArray(hitMap);
+        compBufHitCntArrayStat(bufHitCntArray, hitMap->numOfBuf, 64); // 64 bytes
+        delBufHitCntArray(bufHitCntArray, hitMap->numOfBuf);
+
+        // detectHitMapAvalanche(hitMap, tpm);  // TODO: flag forward or reverse build
+
+        delTPMBufContext(tpmBufCtxt);
+        delHitMap(hitMap);
+        delTPM(tpm);
+
+        // searchAllAvalancheInTPM(tpm);
+        // searchTPMAvalancheFast(tpm); // SUPRESS
+        // delTPM(tpm);
       }
       else { fprintf(stderr, "error build TPM\n"); }
-#ifdef STAT
-      stat(tpm);
-      // benchTPMDFS(tpm);
-#endif
-      tpmBufCtxt = initTPMBufContext(tpm);
-//      tpmBufHash = analyzeTPMBuf(tpm);
-//      assignTPMBufID(tpmBufHash);
-
-      hitMap = initHitMap(tpm, tpmBufCtxt->tpmBufHash);
-      buildHitMap(hitMap, tpm);   // TODO: flag forward or reverse build
-      // updateHitMapBuftHitCnt(hitMap); // Currently not used
-      compHitMapStat(hitMap);
-      // compReverseHitMapStat(hitMap);
-
-      // hitMapBufHash = analyzeHitMapBuf(hitMap);
-
-//      bufHitCntArray = buildBufHitCntArray(hitMap);
-//      compBufHitCntArrayStat(bufHitCntArray, hitMap->numOfBuf, 64); // 64 bytes
-//      delBufHitCntArray(bufHitCntArray, hitMap->numOfBuf);
-
-      // detectHitMapAvalanche(hitMap, tpm);  // TODO: flag forward or reverse build
-
-      // delAllTPMBuf(tpmBufHash);
-      delHitMap(hitMap);
-      delTPM(tpm);
-
-      // searchAllAvalancheInTPM(tpm);
-      // searchTPMAvalancheFast(tpm); // SUPRESS
-      // delTPM(tpm);
     }
     else { fprintf(stderr, "error alloc: TPMContext\n"); }
     fclose(log);

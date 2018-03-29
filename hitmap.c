@@ -128,12 +128,15 @@ initHitMap(TPMContext *tpm, TPMBufHashTable *tpmBufHash)
   return hitMap;
 }
 
-void
-buildHitMap(HitMapContext *hitMap, TPMContext *tpm)
+HitMapContext *
+buildHitMap(TPMContext *tpm, TPMBufHashTable *tpmBufHash)
 {
+  HitMapContext *hitMap;
   TPMBufHashTable *currBuf;
   int numOfBuf, i;
   u32 maxBufSeqN;
+
+  hitMap = initHitMap(tpm, tpmBufHash);
 
   // printTPMBufHashTable(hitMap->tpmBuf);
   i = 0;
@@ -143,6 +146,9 @@ buildHitMap(HitMapContext *hitMap, TPMContext *tpm)
     i++;
   }
   printTime("Finish building HitMap");
+  // updateHitMapBuftHitCnt(hitMap); // Currently not used
+
+  return hitMap;
 }
 
 void
