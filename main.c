@@ -11,77 +11,71 @@
 void
 usage()
 {
-	printf("usage:\ttpm <log file path>\n");
+  printf("usage:\ttpm <log file path>\n");
 }
 
 int main(int argc, char const *argv[])
 {
-	FILE *log;
-	struct TPMContext* tpm;
-	HitMapContext *hitMap;
-	int numOfNode;
-	TPMBufHashTable *tpmBufHash;
-	u32 numOfTPMBuf;
-	u8 *bufHitCntArray;
-    HitMapBufHash *hitMapBufHash = NULL;
+  FILE *log;
+  struct TPMContext* tpm;
+  HitMapContext *hitMap;
+  int numOfNode;
+  TPMBufHashTable *tpmBufHash;
+  u32 numOfTPMBuf;
+  HitMapBufHash *hitMapBufHash = NULL;
+  u8 *bufHitCntArray;
 
-    if(argc <= 1){
-		usage();
-		exit(1);
-	}
+  if(argc <= 1){
+    usage();
+    exit(1);
+  }
 
-	if((log = fopen(argv[1], "r") ) != NULL) {
-		printf("open log: %s\n", argv[1]);
-		if((tpm = calloc(1, sizeof(struct TPMContext) ) ) != NULL) { 
-			printf("alloc TPMContext: %zu MB\n", sizeof(struct TPMContext) / (1024*1024) );
-			printTime("Before build TPM");
+  if((log = fopen(argv[1], "r") ) != NULL) {
+    printf("open log: %s\n", argv[1]);
+    if((tpm = calloc(1, sizeof(struct TPMContext) ) ) != NULL) {
+      printf("alloc TPMContext: %zu MB\n", sizeof(struct TPMContext) / (1024*1024) );
+      printTime("Before build TPM");
 
-			if((numOfNode = buildTPM(log, tpm) ) >= 0) {
-				printf("build TPM successful, total number nodes:%d\n", numOfNode);
-				printTime("Finish building TPM");
-			} else {
-			    fprintf(stderr, "error build TPM\n");
-			}
+      if((numOfNode = buildTPM(log, tpm) ) >= 0) {
+        printf("build TPM successful, total number nodes:%d\n", numOfNode);
+        printTime("Finish building TPM");
+      } else {
+        fprintf(stderr, "error build TPM\n");
+      }
 #ifdef STAT
-			stat(tpm);
-			// benchTPMDFS(tpm);
+      stat(tpm);
+      // benchTPMDFS(tpm);
 #endif
-			tpmBufHash = analyzeTPMBuf(tpm);
-			assignTPMBufID(tpmBufHash);
-			printTPMBufHashTable(tpmBufHash);
+      tpmBufHash = analyzeTPMBuf(tpm);
+      assignTPMBufID(tpmBufHash);
 
-			hitMap = initHitMap(tpm, tpmBufHash);
-			buildHitMap(hitMap, tpm);   // TODO: flag forward or reverse build
-			compHitMapStat(hitMap);
-			// compReverseHitMapStat(hitMap);
+      hitMap = initHitMap(tpm, tpmBufHash);
+      buildHitMap(hitMap, tpm);   // TODO: flag forward or reverse build
+      // updateHitMapBuftHitCnt(hitMap); // Currently not used
+      compHitMapStat(hitMap);
+      // compReverseHitMapStat(hitMap);
 
-			// delTPM(tpm);
-			hitMapBufHash = analyzeHitMapBuf(hitMap);
-			printHitMapBufHash(hitMapBufHash);
+      hitMapBufHash = analyzeHitMapBuf(hitMap);
 
-			// updateHitMapBuftHitCnt(hitMap); // Currently not used
-			// printHitMap(hitMap);
+      bufHitCntArray = buildBufHitCntArray(hitMap);
+      compBufHitCntArrayStat(bufHitCntArray, hitMap->numOfBuf, 64); // 64 bytes
+      delBufHitCntArray(bufHitCntArray, hitMap->numOfBuf);
 
-			bufHitCntArray = buildBufHitCntArray(hitMap);
-			// printBufHitCntArray(bufHitCntArray, hitMap->numOfBuf);
-			compBufHitCntArrayStat(bufHitCntArray, hitMap->numOfBuf, 64);
-			delBufHitCntArray(bufHitCntArray, hitMap->numOfBuf);
+      // detectHitMapAvalanche(hitMap, tpm);  // TODO: flag forward or reverse build
 
-			// detectHitMapAvalanche(hitMap, tpm);  // TODO: flag forward or reverse build
+      delAllTPMBuf(tpmBufHash);
+      delHitMap(hitMap);
+      delTPM(tpm);
 
-			delAllTPMBuf(tpmBufHash);
-			delHitMap(hitMap);
-			delTPM(tpm);
+      // searchAllAvalancheInTPM(tpm);
+      // searchTPMAvalancheFast(tpm); // SUPRESS
+      // delTPM(tpm);
+    }
+    else { fprintf(stderr, "error alloc: TPMContext\n"); }
+    fclose(log);
+  }
+  else { fprintf(stderr, "error open log:%s\n", argv[1]); exit(1); }
 
-			// searchAllAvalancheInTPM(tpm);
-			// searchTPMAvalancheFast(tpm); // SUPRESS
-			// delTPM(tpm);
-		} 
-		else { fprintf(stderr, "error alloc: TPMContext\n"); }
-		fclose(log);
-	} 
-	else { fprintf(stderr, "error open log:%s\n", argv[1]); exit(1); }
-
-	return 0;
+  return 0;
 }
 
