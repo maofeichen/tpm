@@ -22,11 +22,6 @@ int main(int argc, char const *argv[])
 	int numOfNode;
 	TPMBufHashTable *tpmBufHash;
 	u32 numOfTPMBuf;
-// #if defined ENV64
-// 	u64 *bufHitCntArray;
-// #else
-// 	u32 *bufHitCntArray;
-// #endif
 	u8 *bufHitCntArray;
     HitMapBufHash *hitMapBufHash = NULL;
 
@@ -76,11 +71,11 @@ int main(int argc, char const *argv[])
 
 			delAllTPMBuf(tpmBufHash);
 			delHitMap(hitMap);
-			// delTPM(tpm);
-
-			// searchAllAvalancheInTPM(tpm); // current use
-			// searchTPMAvalancheFast(tpm);
 			delTPM(tpm);
+
+			// searchAllAvalancheInTPM(tpm);
+			// searchTPMAvalancheFast(tpm); // SUPRESS
+			// delTPM(tpm);
 		} 
 		else { fprintf(stderr, "error alloc: TPMContext\n"); }
 		fclose(log);

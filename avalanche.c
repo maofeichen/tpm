@@ -371,7 +371,7 @@ searchAvalancheInOutBuf(TPMContext *tpm, AvalancheSearchCtxt *avalsctxt, Propaga
 	printDstMemNodesHTTotal(avalsctxt->addr2Node);
 	printDstMemNodesHT(avalsctxt->addr2Node);
 #endif
-	print2LevelHashTable(avalsctxt->addr2NodeAry, avalsctxt->numOfSrcAddr);
+	// print2LevelHashTable(avalsctxt->addr2NodeAry, avalsctxt->numOfSrcAddr);
 	// detectAvalancheInOutBuf(tpm, avalsctxt);
 	detectAvalancheInOutBufFast(tpm, avalsctxt); // latest use
 	return 0;

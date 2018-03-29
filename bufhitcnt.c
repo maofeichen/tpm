@@ -35,22 +35,10 @@ buildBufHitCntAryOfAddr(
         u32 numOfBuf,
         HitMapNode *addrHead);
 
-// #ifdef ENV64
-// u64 *
-// buildBufHitCntArray(HitMapContext *hitMap)
-// #else
-// u32 *
-// buildBufHitCntArray(HitMapContext *hitMap)
-// #endif
 u8 *
 buildBufHitCntArray(HitMapContext *hitMap)
 {
     TPMBufHashTable *tpm_buf;
-// #if defined ENV64
-// 	u64 *bufHitCntAry = NULL;
-// #else
-// 	u32 *bufHitCntAry = NULL;
-// #endif
     u8 *bufHitCntAry = NULL;
     u32 numOfBuf, bufIdx;
 
