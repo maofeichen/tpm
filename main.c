@@ -48,8 +48,9 @@ int main(int argc, char const *argv[])
         compHitMapStat(hitMap);
         // compReverseHitMapStat(hitMap);
 
-        if( (bufHitCntArray = buildBufHitCntArray(hitMap, HitMapBuf) ) != NULL) {
-          compBufHitCntArrayStat(hitMap, HitMapBuf, bufHitCntArray, 64); // 64 bytes
+        BufType bufType = TPMBuf;
+        if( (bufHitCntArray = buildBufHitCntArray(hitMap, bufType) ) != NULL) {
+          compBufHitCntArrayStat(hitMap, bufType, bufHitCntArray, 64); // 64 bytes
           delBufHitCntArray(bufHitCntArray, hitMap->numOfBuf);
         }
         else { fprintf(stderr, "build buffer hit count array error\n"); }

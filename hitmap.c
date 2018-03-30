@@ -77,6 +77,7 @@ isAllVersionNodeLeftMost(HitMapNode *node);
 static void
 getFirstVerNode(HitMapNode **first);
 
+/* HitMap buffer hash */
 static HitMapBufHash *
 initHitMapBufHTNode(
     u32 baddr,
@@ -89,6 +90,9 @@ initHitMapBufHTNode(
 
 static int
 cmpHitMapBufHashNode(HitMapBufHash *l, HitMapBufHash *r);
+
+static void
+assignHitMapBufID(HitMapBufHash *headBuf);
 
 HitMapContext *
 initHitMap(TPMContext *tpm, TPMBufContext *tpmBufCtxt)
@@ -245,7 +249,8 @@ initHitMapBufContext(HitMapContext *hitMap)
 
   hitMapBufCtxt->hitMapBufHash = analyzeHitMapBuf(hitMap);
   hitMapBufCtxt->numOfBuf = HASH_CNT(hh_hmBufHash, hitMapBufCtxt->hitMapBufHash);
-
+  assignHitMapBufID(hitMapBufCtxt->hitMapBufHash);
+  printHitMapBufHash(hitMapBufCtxt->hitMapBufHash);
   return hitMapBufCtxt;
 }
 
@@ -291,7 +296,6 @@ analyzeHitMapBuf(HitMapContext *hitMap)
   }
   HASH_SRT(hh_hmBufHash, hitMapBufHash, cmpHitMapBufHashNode);
 
-  printHitMapBufHash(hitMapBufHash);
   return hitMapBufHash;
 }
 
@@ -517,6 +521,32 @@ cmpHitMapBufHashNode(HitMapBufHash *l, HitMapBufHash *r)
   else if(l->headNode->bufId == r->headNode->bufId) { return 0; }
   else { return 1; }
 }
+
+static void
+assignHitMapBufID(HitMapBufHash *headBuf)
+{
+  assert(headBuf != NULL);
+  HitMapBufHash *headBufHash = headBuf;
+
+  u32 bufID = 1;
+  for(; headBufHash != NULL; headBufHash = headBufHash->hh_hmBufHash.next) {
+    HitMapNode *headNode = headBufHash->headNode;
+    assert(headBufHash->baddr == headNode->addr);
+
+    do {
+      u32 ver = headNode->version;
+
+      do {
+        headNode->bufId = bufID;
+      } while (headNode->version != ver);
+      headNode = headNode->rightNBR;
+    } while (headNode->rightNBR != NULL);
+
+    assert( (headNode->addr + headNode->bytesz) == headBufHash->eaddr);
+    bufID++;
+  }
+}
+
 
 void
 delHitMap(HitMapContext *hitmap)

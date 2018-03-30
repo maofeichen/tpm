@@ -118,7 +118,6 @@ compBufHitCntArrayStat(
     u32 byteThreashold)
 {
   // printf("compBufHitCntArrayStat: bufHitCntAry:%p\n", bufHitCntArray);
-  // printBufHitCntArray(bufHitCntArray, numOfBuf);
   u32 numOfBuf;
   u32 hitThreash = 0;
 
@@ -127,6 +126,7 @@ compBufHitCntArrayStat(
   else
     numOfBuf = hitMap->hitMapBufCtxt->numOfBuf;
 
+  // printBufHitCntArray(bufHitCntArray, numOfBuf);
   for(size_t r = 0; r < numOfBuf; r++) {
     for (size_t c = 0; c < numOfBuf; c++) {
       u8 val = bufHitCntArray[r*numOfBuf + c];
