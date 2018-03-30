@@ -3,40 +3,72 @@
 #include "misc.h"
 #include <assert.h>
 
-// #ifdef ENV64
-// static u64 *
-// initBufHitCntArray(u32 numOfBuf);
-// #else
-// static u32 *
-// initBufHitCntArray(u32 numOfBuf);
-// #endif
 static u8 *
 initBufHitCntArray(u32 numOfBuf);
 
+/* TPM Buffer */
+static u8 *
+buildTPMBufHitCntAry(HitMapContext *hitMap);
+
 static void
 buildBufHitCntAryOfBuf(
-    // #ifdef ENV64
-    //         u64 *bufHitCntAry,
-    // #else
-    //         u32 *bufHitCntAry,
-    // #endif
     u8 *bufHitCntAry,
     u32 numOfBuf,
     BufContext *hitMapBuf);
 
 static void
 buildBufHitCntAryOfAddr(
-    // #ifdef ENV64
-    //         u64 *bufHitCntAry,
-    // #else
-    //         u32 *bufHitCntAry,
-    // #endif
     u8 *bufHitCntAry,
     u32 numOfBuf,
     HitMapNode *addrHead);
 
+/* HitMap Buffer */
+static u8 *
+buildHitMapBufHitCntAry(HitMapContext *hitMap);
+
+static void
+buildHitMapBufHitCntAryOfOneBuf(
+    u8 *bufHitCntAry,
+    u32 numOfBuf,
+    HitMapBufHash *hitMapBuf);
+
+/* -------------------------------------------------------------------------- */
 u8 *
-buildBufHitCntArray(HitMapContext *hitMap)
+buildBufHitCntArray(HitMapContext *hitMap, BufType bufType)
+{
+  u8 *bufHitCntAry;
+
+  if(bufType == TPMBuf) {
+    return buildTPMBufHitCntAry(hitMap);
+  }
+  else {
+    return buildHitMapBufHitCntAry(hitMap);
+  }
+}
+
+static u8 *
+initBufHitCntArray(u32 numOfBuf)
+{
+  u8 *bufHitCntAry = NULL;
+
+  bufHitCntAry = calloc(sizeof(u8), numOfBuf * numOfBuf);
+  assert(bufHitCntAry != NULL);
+
+  // printf("Init 2D array:\n");
+  // printBufHitCntArray(bufHitCntAry, numOfBuf);
+
+  // for(size_t r = 0; r < numOfBuf; r++) {
+  //     for(size_t c = 0; c < numOfBuf; c++) {
+  //         printf("bufHitCntAry:%p bufHitCntAry+offset:%p\n",
+  //                 bufHitCntAry, bufHitCntAry+(r*numOfBuf + c) );
+  //         bufHitCntAry[r*numOfBuf + c] = 0;
+  //     }
+  // }
+  return bufHitCntAry;
+}
+
+static u8 *
+buildTPMBufHitCntAry(HitMapContext *hitMap)
 {
   TPMBufHashTable *tpm_buf;
   u8 *bufHitCntAry = NULL;
@@ -67,11 +99,6 @@ buildBufHitCntArray(HitMapContext *hitMap)
 
 void
 delBufHitCntArray(
-    // #ifdef ENV64
-    //         u64 *bufHitCntArray,
-    // #else
-    //         u32 *bufHitCntArray,
-    // #endif
     u8 *bufHitCntArray,
     u32 numOfBuf)
 {
@@ -85,26 +112,23 @@ delBufHitCntArray(
 
 void
 compBufHitCntArrayStat(
-    // #ifdef ENV64
-    //         u64 *bufHitCntArray,
-    // #else
-    //         u32 *bufHitCntArray,
-    // #endif
+    HitMapContext *hitMap,
+    BufType bufType,
     u8 *bufHitCntArray,
-    u32 numOfBuf,
     u32 byteThreashold)
 {
   // printf("compBufHitCntArrayStat: bufHitCntAry:%p\n", bufHitCntArray);
-
+  // printBufHitCntArray(bufHitCntArray, numOfBuf);
+  u32 numOfBuf;
   u32 hitThreash = 0;
+
+  if(bufType == TPMBuf)
+    numOfBuf = hitMap->tpmBufCtxt->numOfBuf;
+  else
+    numOfBuf = hitMap->hitMapBufCtxt->numOfBuf;
+
   for(size_t r = 0; r < numOfBuf; r++) {
     for (size_t c = 0; c < numOfBuf; c++) {
-      // #ifdef ENV64
-      //             u64 val = bufHitCntArray[r * numOfBuf + c];
-      // #else
-      //             // u32 val  = *(bufHitCntArray + r * numOfBuf + c);
-      //             u32 val = bufHitCntArray[r * numOfBuf + c];
-      // #endif
       u8 val = bufHitCntArray[r*numOfBuf + c];
       if(val >= byteThreashold) {
         hitThreash++;
@@ -117,11 +141,6 @@ compBufHitCntArrayStat(
 
 void
 printBufHitCntArray(
-    // #ifdef ENV64
-    //         u64 *bufHitCntArray,
-    // #else
-    //         u32 *bufHitCntArray,
-    // #endif
     u8 *bufHitCntArray,
     u32 numOfBuf)
 {
@@ -142,53 +161,8 @@ printBufHitCntArray(
   }
 }
 
-// #ifdef ENV64
-// static u64 *
-// initBufHitCntArray(u32 numOfBuf)
-// #else
-// static u32 *
-// initBufHitCntArray(u32 numOfBuf)
-// #endif
-static u8 *
-initBufHitCntArray(u32 numOfBuf)
-{
-  // #ifdef ENV64
-  //     u64 *bufHitCntAry = NULL;
-  // #else
-  //     u32 *bufHitCntAry = NULL;
-  // #endif
-
-  // #ifdef ENV64
-  //     // printf("init buf hit count context 64 bit\n");
-  //     bufHitCntAry = calloc(sizeof(u64), numOfBuf * numOfBuf);
-  // #else
-  //     // printf("init buf hit count context 32 bit\n");
-  //     bufHitCntAry = calloc(sizeof(u32), numOfBuf * numOfBuf);
-  // #endif
-  u8 *bufHitCntAry = NULL;
-
-  bufHitCntAry = calloc(sizeof(u8), numOfBuf * numOfBuf);
-  assert(bufHitCntAry != NULL);
-
-  printf("Init 2D array:\n");
-  // printBufHitCntArray(bufHitCntAry, numOfBuf);
-  // for(size_t r = 0; r < numOfBuf; r++) {
-  //     for(size_t c = 0; c < numOfBuf; c++) {
-  //         printf("bufHitCntAry:%p bufHitCntAry+offset:%p\n",
-  //                 bufHitCntAry, bufHitCntAry+(r*numOfBuf + c) );
-  //         bufHitCntAry[r*numOfBuf + c] = 0;
-  //     }
-  // }
-  return bufHitCntAry;
-}
-
 static void
 buildBufHitCntAryOfBuf(
-    // #ifdef ENV64
-    //         u64 *bufHitCntAry,
-    // #else
-    //         u32 *bufHitCntAry,
-    // #endif
     u8 *bufHitCntAry,
     u32 numOfBuf,
     BufContext *hitMapBuf)
@@ -208,11 +182,6 @@ buildBufHitCntAryOfBuf(
 
 static void
 buildBufHitCntAryOfAddr(
-    // #ifdef ENV64
-    //         u64 *bufHitCntAry,
-    // #else
-    //         u32 *bufHitCntAry,
-    // #endif
     u8 *bufHitCntAry,
     u32 numOfBuf,
     HitMapNode *addrHead)
@@ -229,3 +198,58 @@ buildBufHitCntAryOfAddr(
     addrHead = addrHead->nextVersion;
   } while(ver != addrHead->version);
 }
+
+static u8 *
+buildHitMapBufHitCntAry(HitMapContext *hitMap)
+{
+  u8 *bufHitCntAry = NULL;
+  u32 numOfBuf;
+  HitMapBufHash *hitMapBufHash;
+
+  if(hitMap != NULL) {
+    printTime("Before build buffer hit count array");
+
+    numOfBuf = hitMap->hitMapBufCtxt->numOfBuf;
+    bufHitCntAry = initBufHitCntArray(numOfBuf);
+
+    for(hitMapBufHash = hitMap->hitMapBufCtxt->hitMapBufHash; hitMapBufHash != NULL;
+        hitMapBufHash = hitMapBufHash->hh_hmBufHash.next) {
+      if(hitMapBufHash->minseq >= 0) // minseq < 0 indicates it might contain source nodes
+        continue;
+
+      buildHitMapBufHitCntAryOfOneBuf(bufHitCntAry, numOfBuf, hitMapBufHash);
+    }
+    printTime("After build buffer hit count array");
+    return bufHitCntAry;
+  }
+  else { return NULL; }
+}
+
+static void
+buildHitMapBufHitCntAryOfOneBuf(
+    u8 *bufHitCntAry,
+    u32 numOfBuf,
+    HitMapBufHash *hitMapBuf)
+{
+  if(bufHitCntAry == NULL || hitMapBuf == NULL) {
+    fprintf(stderr, "buildHitMapBufHitCntAryOfOneBuf: error\n");
+    return;
+  }
+
+  HitMapNode *head = hitMapBuf->headNode;
+  assert(head->addr == hitMapBuf->baddr);
+
+  do {
+    u32 ver = head->version;
+
+    do {
+      if(head->lastUpdateTS < 0) {
+        hitMapNodePropgtOfBuildBufHitCntAry(bufHitCntAry, numOfBuf, head);
+      }
+      head = head->nextVersion;
+    } while (ver != head->version);
+
+    head = head->rightNBR;
+  } while (head != NULL);
+}
+

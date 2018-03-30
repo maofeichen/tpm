@@ -48,9 +48,11 @@ int main(int argc, char const *argv[])
         compHitMapStat(hitMap);
         // compReverseHitMapStat(hitMap);
 
-        bufHitCntArray = buildBufHitCntArray(hitMap);
-        compBufHitCntArrayStat(bufHitCntArray, hitMap->numOfBuf, 64); // 64 bytes
-        delBufHitCntArray(bufHitCntArray, hitMap->numOfBuf);
+        if( (bufHitCntArray = buildBufHitCntArray(hitMap, HitMapBuf) ) != NULL) {
+          compBufHitCntArrayStat(hitMap, HitMapBuf, bufHitCntArray, 64); // 64 bytes
+          delBufHitCntArray(bufHitCntArray, hitMap->numOfBuf);
+        }
+        else { fprintf(stderr, "build buffer hit count array error\n"); }
 
         // detectHitMapAvalanche(hitMap, tpm);  // TODO: flag forward or reverse build
 
