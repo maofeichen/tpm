@@ -292,7 +292,7 @@ searchAllAvalancheInTPM(TPMContext *tpm)
 
       searchcnt++;
     }
-    // break;
+    break;
   }
   OUTLOOP:
 #ifdef DEBUG

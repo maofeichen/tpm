@@ -67,7 +67,7 @@ detectHitMapAvalanche(HitMapContext *hitMap, TPMContext *tpm)
 
       searchCnt++;
     }
-    // break;
+    break;
   }
   if(searchCnt > 0) {
     printf("---------------\navg build 2-level hash table time:%.1f microseconds\n", totalElapse/searchCnt);
@@ -199,7 +199,7 @@ searchHitMapPropgtInOut(HitMapAvalSearchCtxt *hitMapAvalSrchCtxt, HitMapContext 
     } while(ver != head->version);
 
     HASH_SRT(hh_hmAddr2NodeItem, hitMapAvalSrchCtxt->hitMapAddr2NodeAry[srcAddrIdx], cmpHitMapAddr2NodeItem);
-    // printHitMap2LAddr2NodeItem(hitMapAvalSrchCtxt->hitMapAddr2NodeAry[srcAddrIdx]);
+    printHitMap2LAddr2NodeItem(hitMapAvalSrchCtxt->hitMapAddr2NodeAry[srcAddrIdx]);
     // assert(head->leftNBR == NULL);
   }
 }
