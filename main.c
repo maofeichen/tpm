@@ -62,7 +62,7 @@ int main(int argc, char const *argv[])
         delHitMap(hitMap);
         // delTPM(tpm);
 
-        searchAllAvalancheInTPM(tpm);
+        // searchAllAvalancheInTPM(tpm);
         // searchTPMAvalancheFast(tpm); // SUPRESS
         delTPM(tpm);
       }

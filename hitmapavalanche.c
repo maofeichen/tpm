@@ -31,6 +31,13 @@ srchHitMapPropgtInOutReverse(
     HitMapAvalSearchCtxt *hitMapAvalSrchCtxt,
     HitMapContext *hitMap);
 
+static void
+search_bufpair_avalanche(HitMapAvalSearchCtxt *hitMapAvalSrchCtxt);
+
+static bool
+has_enough_dstnode(HitMapAddr2NodeItem *srcnode);
+
+/* Public functions */
 void
 detectHitMapAvalanche(HitMapContext *hitMap, TPMContext *tpm)
 {
@@ -72,8 +79,8 @@ detectHitMapAvalanche(HitMapContext *hitMap, TPMContext *tpm)
   if(searchCnt > 0) {
     printf("---------------\navg build 2-level hash table time:%.1f microseconds\n", totalElapse/searchCnt);
   }
-  OutOfLoop:
-  printf("");
+  // OutOfLoop:
+  // printf("");
 }
 
 void
@@ -150,6 +157,7 @@ detectHitMapAvalInOut(
   printTimeMicroStart();
 
   searchHitMapPropgtInOut(hitMapAvalSrchCtxt, hitMap);
+  search_bufpair_avalanche(hitMapAvalSrchCtxt);
   // totalTraverse = srchHitMapPropgtInOutReverse(hitMapAvalSrchCtxt, hitMap);
 
   // printTime("after search propagation");
@@ -199,7 +207,7 @@ searchHitMapPropgtInOut(HitMapAvalSearchCtxt *hitMapAvalSrchCtxt, HitMapContext 
     } while(ver != head->version);
 
     HASH_SRT(hh_hmAddr2NodeItem, hitMapAvalSrchCtxt->hitMapAddr2NodeAry[srcAddrIdx], cmpHitMapAddr2NodeItem);
-    printHitMap2LAddr2NodeItem(hitMapAvalSrchCtxt->hitMapAddr2NodeAry[srcAddrIdx]);
+    // printHitMap2LAddr2NodeItem(hitMapAvalSrchCtxt->hitMapAddr2NodeAry[srcAddrIdx]);
     // assert(head->leftNBR == NULL);
   }
 }
@@ -265,4 +273,31 @@ srchHitMapPropgtInOutReverse(
     // printHitMap2LAddr2NodeItem(hitMapAvalSrchCtxt->hitMapAddr2NodeAry[srcAddrIdx]);
   }
   return totalTraverse;
+}
+
+static void
+search_bufpair_avalanche(HitMapAvalSearchCtxt *hitMapAvalSrchCtxt)
+{
+  u32 srcbuf_addridx = 0;
+  for(; srcbuf_addridx < hitMapAvalSrchCtxt->numOfSrcAddr; srcbuf_addridx++) {
+    HitMapAddr2NodeItem *srcnode = hitMapAvalSrchCtxt->hitMapAddr2NodeAry[srcbuf_addridx];
+
+    for(; srcnode != NULL; srcnode = srcnode->hh_hmAddr2NodeItem.next) {
+      if(has_enough_dstnode(srcnode) ) {
+        printHitMapAddr2NodeItemSubhash(srcnode);
+      }
+    }
+  }
+}
+
+static bool
+has_enough_dstnode(HitMapAddr2NodeItem *srcnode)
+{
+  if(srcnode != NULL) {
+    HitMapAddr2NodeItem *propgt_to_dstnode = srcnode->subHash;
+    u32 num_of_dstnode = HASH_CNT(hh_hmAddr2NodeItem, propgt_to_dstnode);
+    if(num_of_dstnode > 1)
+      return true;
+  }
+  return false;
 }
