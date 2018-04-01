@@ -5,7 +5,8 @@ CF	= -Wall -Wno-unused-variable -Wno-unused-function -Wno-unused-label -g -std=c
 LF	= -g 
 
 OBJS	= main.o tpm.o tpmnode.o record.o stat.o propagate.o avalanche.o continbuf.o avalanchetype.o \
-		  misc.o hitmapnode.o hitmap.o hitmapavaltype.o hitmapavalanche.o hitmappropagate.o bufhitcnt.o
+		  misc.o hitmapnode.o hitmap.o hitmapavaltype.o hitmapavalanche.o hitmappropagate.o bufhitcnt.o \
+		  hitmap_addr2nodeitem_datastruct.o
 
 all	: tpm #testtpm
 
@@ -62,6 +63,9 @@ hitmappropagate.o: hitmappropagate.c
 
 bufhitcnt.o: bufhitcnt.c
 	$(CC) $(CF) -c bufhitcnt.c
+
+hitmap_addr2nodeitem_datastruct.o: hitmap_addr2nodeitem_datastruct.c
+	$(CC) $(CF) -c hitmap_addr2nodeitem_datastruct.c
 
 misc.o: misc.c
 	$(CC) $(CF) -c misc.c

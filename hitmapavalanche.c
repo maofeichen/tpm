@@ -1,5 +1,6 @@
 #include "hitmapavalanche.h"
 #include "hitmappropagate.h"
+#include "hitmap_addr2nodeitem_datastruct.h"
 #include "misc.h"
 #include "uthash.h"
 #include <assert.h>
@@ -36,6 +37,11 @@ search_bufpair_avalanche(HitMapAvalSearchCtxt *hitMapAvalSrchCtxt);
 
 static bool
 has_enough_dstnode(HitMapAddr2NodeItem *srcnode);
+
+static void
+search_srcnode_avalanche(
+    HitMapAddr2NodeItem *srcnode,
+    HitMapAvalSearchCtxt *hitMapAvalSrchCtxt);
 
 /* Public functions */
 void
@@ -284,7 +290,7 @@ search_bufpair_avalanche(HitMapAvalSearchCtxt *hitMapAvalSrchCtxt)
 
     for(; srcnode != NULL; srcnode = srcnode->hh_hmAddr2NodeItem.next) {
       if(has_enough_dstnode(srcnode) ) {
-        printHitMapAddr2NodeItemSubhash(srcnode);
+        search_srcnode_avalanche(srcnode, hitMapAvalSrchCtxt);
       }
     }
   }
@@ -300,4 +306,12 @@ has_enough_dstnode(HitMapAddr2NodeItem *srcnode)
       return true;
   }
   return false;
+}
+
+static void
+search_srcnode_avalanche(
+    HitMapAddr2NodeItem *srcnode,
+    HitMapAvalSearchCtxt *hitMapAvalSrchCtxt)
+{
+  printHitMapAddr2NodeItemSubhash(srcnode);
 }

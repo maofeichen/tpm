@@ -698,7 +698,7 @@ detectAvalancheInOutBufFast(TPMContext *tpm, AvalancheSearchCtxt *avalsctxt)
       u32 maxAddrIdxInterval = 1; // max interval s.t. avalanche detected given a src node
       u32 addrIdxInterval = 1;    // interval s.t. avalanche detected given a src node
       Addr2NodeItem *srcnode = avalsctxt->addr2NodeAry[addridx];
-
+      
       for(; srcnode != NULL; srcnode = srcnode->hh_addr2NodeItem.next) {
         if(srcnode->node->hitcnt >= avalsctxt->minBufferSz){    // only considers nodes satisfy min buf sz
           printf("--------------------%d detect avalanche\n", detectcnt);
