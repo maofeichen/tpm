@@ -1,3 +1,4 @@
+#include "continbuf.h"
 #include "hitmapavalanche.h"
 #include "hitmappropagate.h"
 #include "hitmap_addr2nodeitem_datastruct.h"
@@ -41,7 +42,18 @@ has_enough_dstnode(HitMapAddr2NodeItem *srcnode);
 static void
 search_srcnode_avalanche(
     HitMapAddr2NodeItem *srcnode,
+    u32 srcbuf_addridx,
     HitMapAvalSearchCtxt *hitMapAvalSrchCtxt);
+
+static void
+store_addr2nodeitem_rightnbr(
+    HitMapAddr2NodeItem *rightnbr_b,
+    StackHitMapAddr2NodeItem **stackHitMapAddr2NodeItemTop,
+    u32 *stackHitMapAddr2NodeItemCount,
+    int curnode_lastupdate_ts);
+
+static RangeArray *
+build_range_array(HitMapAddr2NodeItem *addrnodes);
 
 /* Public functions */
 void
@@ -285,12 +297,13 @@ static void
 search_bufpair_avalanche(HitMapAvalSearchCtxt *hitMapAvalSrchCtxt)
 {
   u32 srcbuf_addridx = 0;
-  for(; srcbuf_addridx < hitMapAvalSrchCtxt->numOfSrcAddr; srcbuf_addridx++) {
+  for(; srcbuf_addridx < (hitMapAvalSrchCtxt->numOfSrcAddr-1); srcbuf_addridx++) {
+    // No need to search last addr
     HitMapAddr2NodeItem *srcnode = hitMapAvalSrchCtxt->hitMapAddr2NodeAry[srcbuf_addridx];
 
     for(; srcnode != NULL; srcnode = srcnode->hh_hmAddr2NodeItem.next) {
       if(has_enough_dstnode(srcnode) ) {
-        search_srcnode_avalanche(srcnode, hitMapAvalSrchCtxt);
+        search_srcnode_avalanche(srcnode, srcbuf_addridx+1, hitMapAvalSrchCtxt);
       }
     }
   }
@@ -311,7 +324,131 @@ has_enough_dstnode(HitMapAddr2NodeItem *srcnode)
 static void
 search_srcnode_avalanche(
     HitMapAddr2NodeItem *srcnode,
+    u32 srcbuf_addridx,
     HitMapAvalSearchCtxt *hitMapAvalSrchCtxt)
 {
+  HitMapAddr2NodeItem *old_srcnode, *new_srcnode;
+  RangeArray *old_ra = NULL, *new_ra = NULL;
+  RangeArray *oldintersect_ra = NULL, *newintersect_ra = NULL;
+
+  StackHitMapAddr2NodeItem *stack_traverse_top = NULL;  // maintains traverse nodes during search
+  u32 stack_traverse_cnt = 0;
+
+  StackHitMapAddr2NodeItem *stack_srcnode_top = NULL;   // maintains src nodes have avalanche
+  u32 stack_srcnode_cnt = 0;
+
+  bool has_print_rslt = false;
+
+  if(srcnode == NULL || hitMapAvalSrchCtxt == NULL) {
+    return;
+  }
+
   printHitMapAddr2NodeItemSubhash(srcnode);
+  hitMapAddr2NodeItemPush(srcnode, &stack_traverse_top, &stack_traverse_cnt);
+  old_srcnode = srcnode;
+  old_ra = build_range_array(old_srcnode->subHash);
+
+  store_addr2nodeitem_rightnbr(hitMapAvalSrchCtxt->hitMapAddr2NodeAry[srcbuf_addridx],
+      &stack_traverse_top, &stack_traverse_cnt, old_srcnode->node->lastUpdateTS);
+
+  while(!isHitMapAddr2NodeItemStackEmpty(stack_traverse_top, stack_traverse_cnt) ) {
+    new_srcnode = hitMapAddr2NodeItemPop(&stack_traverse_top, &stack_traverse_cnt);
+    // TODO: add comment
+    // newnode's addr <= oldnode's addr, indicates the stack is bouncing back
+    if(new_srcnode->node->addr <= old_srcnode->node->addr) {
+
+    }
+
+    // can't delete here, due to in the yes case below, newra is assigned to oldra,
+    // if delete newra, then oldra will be deleted also. Now I set new to NULL if the case.
+    new_ra = build_range_array(new_srcnode->subHash);
+    newintersect_ra = get_common_rangearray(old_srcnode, old_ra, new_srcnode, new_ra);
+
+    if(newintersect_ra->rangeAryUsed > 0) { // valid intersection range array
+
+    }
+    else {  // no valid intersection ranges
+
+    }
+
+    if(srcbuf_addridx < hitMapAvalSrchCtxt->numOfSrcAddr) {
+      srcbuf_addridx++;
+      if(srcbuf_addridx < hitMapAvalSrchCtxt->numOfSrcAddr) {
+        store_addr2nodeitem_rightnbr(hitMapAvalSrchCtxt->hitMapAddr2NodeAry[srcbuf_addridx],
+            &stack_traverse_top, &stack_traverse_cnt, old_srcnode->node->lastUpdateTS);
+      }
+    }
+  }
+}
+
+static void
+store_addr2nodeitem_rightnbr(
+    HitMapAddr2NodeItem *rightnbr_b,
+    StackHitMapAddr2NodeItem **stackHitMapAddr2NodeItemTop,
+    u32 *stackHitMapAddr2NodeItemCount,
+    int curnode_lastupdate_ts)
+// Enforces the increasing last update ts policy.
+{
+  if(rightnbr_b != NULL) {
+    for(; rightnbr_b != NULL; rightnbr_b = rightnbr_b->hh_hmAddr2NodeItem.next) {
+      if(has_enough_dstnode(rightnbr_b) ) { // TODO: uses minBufSz later
+        if(curnode_lastupdate_ts < 0 && rightnbr_b->node->lastUpdateTS < 0) {
+          // if both are negative, smaller is later
+          if(rightnbr_b->node->lastUpdateTS < curnode_lastupdate_ts)
+            hitMapAddr2NodeItemPush(rightnbr_b, stackHitMapAddr2NodeItemTop, stackHitMapAddr2NodeItemCount);
+        }
+        else {
+          if(rightnbr_b->node->lastUpdateTS > curnode_lastupdate_ts)
+             hitMapAddr2NodeItemPush(rightnbr_b, stackHitMapAddr2NodeItemTop, stackHitMapAddr2NodeItemCount);
+        }
+      }
+    }
+  }
+}
+
+static RangeArray *
+build_range_array(HitMapAddr2NodeItem *addrnodes)
+{
+  RangeArray *ra;
+  Range *r;
+  u32 cur_rstart, cur_rend;
+
+  if(addrnodes != NULL) {
+    ra = initRangeArray();
+
+    r = initRange();
+    r->start = addrnodes->node->addr;
+    r->end = addrnodes->node->bytesz;
+
+    cur_rstart = r->start;
+    cur_rend = r->end;
+
+    HitMapAddr2NodeItem *addrnode = addrnodes->hh_hmAddr2NodeItem.next; // starts from next node
+    for(; addrnode != NULL; addrnode = addrnode->hh_hmAddr2NodeItem.next) {
+      HitMapNode *node = addrnode->node;
+      u32 cur_node_start = node->addr;
+
+      if(cur_rend > cur_node_start) {
+        // TODO: propagate to multiple version of same addr, handles latter
+        // printf("buildRangeAry: TODO: multiple version of same addr:%x\n", cur_node_start);
+      }
+      else if(cur_rend == cur_node_start) {
+        r->end += node->bytesz;
+        cur_rend += node->bytesz;
+      }
+      else {    // new range
+        add2Range(ra, r);
+
+        r = initRange();
+        r->start = node->addr;
+        r->end = node->addr + node->bytesz;
+
+        cur_rstart = r->start;
+        cur_rend = r->end;
+      }
+    }
+    add2Range(ra, r);   // adds last range
+    return ra;
+  }
+  else { return NULL; }
 }

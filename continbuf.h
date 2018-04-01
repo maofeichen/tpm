@@ -3,6 +3,7 @@
 
 #include <stdbool.h>
 #include "avalanchetype.h"
+#include "hitmapavaltype.h"
 #include "tpmnode.h"
 #include "type.h"
 
@@ -11,34 +12,34 @@
 
 struct ContinBuf
 {
-	u32 bufStart;
-	u32 bufEnd;
-	u32 nodeArySz;					
-	u32 nodeAryUsed;	// num of nodes in the ary
-	TaintedBuf **contBufNodeAry;	// dynamic pointer of array, 
-									// each pointer is a list of versions of same addr
+  u32 bufStart;
+  u32 bufEnd;
+  u32 nodeArySz;
+  u32 nodeAryUsed;	// num of nodes in the ary
+  TaintedBuf **contBufNodeAry;	// dynamic pointer of array,
+  // each pointer is a list of versions of same addr
 };
 typedef struct ContinBuf ContinBuf;	// stores the continuous buffer
 
 struct ContinBufAry
 {
-	u32 bufArySz;
-	u32 bufAryUsed;
-	ContinBuf **contBufAryHead;	
+  u32 bufArySz;
+  u32 bufAryUsed;
+  ContinBuf **contBufAryHead;
 };
 typedef struct ContinBufAry ContinBufAry;
 
 typedef struct Range
 {
-   u32 start;
-   u32 end;
+  u32 start;
+  u32 end;
 } Range;
 
 typedef struct RangeArray
 {
-    u32 rangeArySz;
-    u32 rangeAryUsed;
-    Range **rangeAry;
+  u32 rangeArySz;
+  u32 rangeAryUsed;
+  Range **rangeAry;
 } RangeArray;
 
 ContinBuf *
@@ -90,7 +91,18 @@ Range *
 initRange();
 
 Range *
-getIntersectRange(Addr2NodeItem *l, Addr2NodeItem *r, u32 start, u32 end);
+getIntersectRange(
+    Addr2NodeItem *l,
+    Addr2NodeItem *r,
+    u32 start,
+    u32 end);
+
+Range *
+get_common_range(
+    HitMapAddr2NodeItem *l,
+    HitMapAddr2NodeItem *r,
+    u32 start,
+    u32 end);
 
 void
 delRange(Range **r);
@@ -106,7 +118,18 @@ void
 add2Range(RangeArray *ra, Range *r);
 
 RangeArray *
-getIntersectRangeArray(Addr2NodeItem *l, RangeArray *lra, Addr2NodeItem *r, RangeArray *rra);
+getIntersectRangeArray(
+    Addr2NodeItem *l,
+    RangeArray *lra,
+    Addr2NodeItem *r,
+    RangeArray *rra);
+
+RangeArray *
+get_common_rangearray(
+    HitMapAddr2NodeItem *l,
+    RangeArray *lra,
+    HitMapAddr2NodeItem *r,
+    RangeArray *rra);
 
 void
 delRangeArray(RangeArray **ra);
