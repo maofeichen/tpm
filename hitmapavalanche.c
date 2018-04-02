@@ -347,7 +347,7 @@ search_srcnode_avalanche(
   }
 
   // printHitMapAddr2NodeItemSubhash(srcnode);
-  hitMapAddr2NodeItemPush(srcnode, &stack_traverse_top, &stack_traverse_cnt);
+  hitMapAddr2NodeItemPush(srcnode, &stack_srcnode_top, &stack_srcnode_cnt);
   old_srcnode = srcnode;
   old_ra = build_range_array(old_srcnode->subHash);
 
