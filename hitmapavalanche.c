@@ -43,6 +43,7 @@ static void
 search_srcnode_avalanche(
     HitMapAddr2NodeItem *srcnode,
     u32 srcbuf_addridx,
+    u32 *block_sz_detect,
     HitMapAvalSearchCtxt *hitMapAvalSrchCtxt);
 
 static void
@@ -174,6 +175,10 @@ detectHitMapAvalInOut(
   print1TPMBufHashTable("src buf: ", hitMapAvalSrchCtxt->srcTPMBuf);
   print1TPMBufHashTable("dst buf: ", hitMapAvalSrchCtxt->dstTPMBuf);
   printf("total src buf node:%u - total dst buf node:%u\n", srcBufNodeTotal, dstBufNodeTotal);
+
+  if(hitMapAvalSrchCtxt->dstTPMBuf->headNode->bufid == 7)
+    printf("dbg\n");
+
   // printTime("before search propagation");
   printTimeMicroStart();
 
@@ -300,15 +305,25 @@ static void
 search_bufpair_avalanche(HitMapAvalSearchCtxt *hitMapAvalSrchCtxt)
 {
   u32 srcbuf_addridx = 0;
-  for(; srcbuf_addridx < (hitMapAvalSrchCtxt->numOfSrcAddr-1); srcbuf_addridx++) {
+  for(; srcbuf_addridx < (hitMapAvalSrchCtxt->numOfSrcAddr-1); /* srcbuf_addridx++ */) {
     // No need to search last addr
     HitMapAddr2NodeItem *srcnode = hitMapAvalSrchCtxt->hitMapAddr2NodeAry[srcbuf_addridx];
+    u32 block_sz = 1;      // block sz s.t. continuous src nodes propagate to same destinations (considered blocks)
+    u32 max_block_sz = 1;  // max block sz found for all version nodes of same address
 
     for(; srcnode != NULL; srcnode = srcnode->hh_hmAddr2NodeItem.next) {
       if(has_enough_dstnode(srcnode) ) {
-        search_srcnode_avalanche(srcnode, srcbuf_addridx+1, hitMapAvalSrchCtxt);
+        printf("--------------------detect avalanche\n");
+        printf("begin node:addr:%x version:%u\n", srcnode->node->addr, srcnode->node->version);
+        printTime("");
+        search_srcnode_avalanche(srcnode, srcbuf_addridx+1, &block_sz, hitMapAvalSrchCtxt);
+
+        if(block_sz > max_block_sz)
+          max_block_sz = block_sz;
       }
     }
+
+    srcbuf_addridx += max_block_sz;
   }
 }
 
@@ -328,6 +343,7 @@ static void
 search_srcnode_avalanche(
     HitMapAddr2NodeItem *srcnode,
     u32 srcbuf_addridx,
+    u32 *block_sz_detect,
     HitMapAvalSearchCtxt *hitMapAvalSrchCtxt)
 {
   HitMapAddr2NodeItem *old_srcnode, *new_srcnode;
@@ -350,6 +366,7 @@ search_srcnode_avalanche(
   hitMapAddr2NodeItemPush(srcnode, &stack_srcnode_top, &stack_srcnode_cnt);
   old_srcnode = srcnode;
   old_ra = build_range_array(old_srcnode->subHash);
+  // printRangeArray(old_ra, "");
 
   store_addr2nodeitem_rightnbr(hitMapAvalSrchCtxt->hitMapAddr2NodeAry[srcbuf_addridx],
       &stack_traverse_top, &stack_traverse_cnt, old_srcnode->node->lastUpdateTS);
@@ -360,13 +377,13 @@ search_srcnode_avalanche(
     // newnode's addr <= oldnode's addr, indicates the stack is bouncing back
     if(new_srcnode->node->addr <= old_srcnode->node->addr) {
       if(!has_print_rslt){
-        if(stack_srcnode_cnt >= 2 /* && stack_srcnode_cnt >= *addrIdxInterval TODO: disable temporarily */) {
+        if(stack_srcnode_cnt >= 2 && stack_srcnode_cnt >= *block_sz_detect) {
           printf("--------------------\n");
           hitMapAddr2NodeItemDispRange(stack_srcnode_top, "avalanche found:\nsrc buf:");
           printf("-> dst buf:\n");
           printRangeArray(oldintersect_ra, "\t");
 
-          // *addrIdxInterval = stckSrcCnt;  // set to max num src node has avalanche TODO: disable temporarily
+          *block_sz_detect = stack_srcnode_cnt;  // set to max num src node has avalanche
         }
       }
 
@@ -381,12 +398,14 @@ search_srcnode_avalanche(
 
       old_srcnode = stack_srcnode_top->hitMapAddr2NodeItem;
       old_ra = build_range_array(old_srcnode->subHash);
+      // printRangeArray(old_ra, "");
     }
 
     // can't delete here, due to in the yes case below, newra is assigned to oldra,
     // if delete newra, then oldra will be deleted also. Now I set new to NULL if the case.
     new_ra = build_range_array(new_srcnode->subHash);
     newintersect_ra = get_common_rangearray(old_srcnode, old_ra, new_srcnode, new_ra);
+    // printRangeArray(newintersect_ra, "");
 
     if(newintersect_ra->rangeAryUsed > 0) { // valid intersection range array
       old_srcnode = new_srcnode;
@@ -405,13 +424,13 @@ search_srcnode_avalanche(
     }
     else {  // no valid intersection ranges
       if(!has_print_rslt){
-        if(stack_srcnode_cnt >= 2 /* && stack_srcnode_cnt >= *addrIdxInterval */) {
+        if(stack_srcnode_cnt >= 2 && stack_srcnode_cnt >= *block_sz_detect) {
           printf("--------------------\n");
           hitMapAddr2NodeItemDispRange(stack_srcnode_top, "avalanche found:\nsrc buf:");
           printf("-> dst buf:\n");
           printRangeArray(oldintersect_ra, "\t");
 
-          // *addrIdxInterval = stckSrcCnt;  // set to max num src node has avalanche
+          *block_sz_detect = stack_srcnode_cnt;  // set to max num src node has avalanche
         }
         has_print_rslt = true;
       }
@@ -470,7 +489,7 @@ build_range_array(HitMapAddr2NodeItem *addrnodes)
 
     r = initRange();
     r->start = addrnodes->node->addr;
-    r->end = addrnodes->node->bytesz;
+    r->end = addrnodes->node->addr + addrnodes->node->bytesz;
 
     cur_rstart = r->start;
     cur_rend = r->end;
