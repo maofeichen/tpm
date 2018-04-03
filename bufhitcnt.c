@@ -98,9 +98,7 @@ buildTPMBufHitCntAry(HitMapContext *hitMap)
 }
 
 void
-delBufHitCntArray(
-    u8 *bufHitCntArray,
-    u32 numOfBuf)
+delBufHitCntArray(u8 *bufHitCntArray)
 {
   // printf("updateBufHitCntArray: bufHitCntAry:%p\n", bufHitCntArray);
   if(bufHitCntArray != NULL) {

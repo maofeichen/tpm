@@ -1,6 +1,7 @@
 #ifndef HITMAPAVALANCHE_H
 #define HITMAPAVALANCHE_H
 
+#include "bufhitcnt.h"
 #include "hitmap.h"
 #include "hitmapavaltype.h"
 #include "type.h"
@@ -34,7 +35,12 @@ typedef struct HitMapAvalSearchCtxt
  * Not implement: detects avalanche basded on the 2-level hash.
  */
 void
-detectHitMapAvalanche(HitMapContext *hitMap, TPMContext *tpm);
+detectHitMapAvalanche(
+    HitMapContext *hitMap,
+    TPMContext *tpm,
+    BufType buf_type,
+    u8 *buf_hitcnt_ary,
+    u32 avalanche_threashold);
 
 void
 printHitMapAvalSrchCtxt(HitMapAvalSearchCtxt *hmAvalSrchCtxt);

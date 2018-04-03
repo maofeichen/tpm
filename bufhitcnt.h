@@ -25,9 +25,7 @@ buildBufHitCntArray(HitMapContext *hitMap, BufType bufType);
 // the hit counts from a buffer to any other buffers.
 
 void
-delBufHitCntArray(
-    u8 *bufHitCntArray,
-    u32 numOfBuf);
+delBufHitCntArray(u8 *bufHitCntArray);
 
 void
 compBufHitCntArrayStat(

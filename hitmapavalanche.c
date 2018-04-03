@@ -18,6 +18,22 @@ static void
 freeHitMapAvalSearchCtxt(HitMapAvalSearchCtxt *hitMapAvalSrchCtxt);
 
 static void
+detect_HM_avalanche_tpmbuf(
+    HitMapContext *hitMap,
+    TPMContext *tpm,
+    BufType buf_type,
+    u8 *buf_hitcnt_ary,
+    u32 avalanche_threashold);
+
+static void
+detect_HM_avalanche_hitmapbuf(
+    HitMapContext *hitMap,
+    TPMContext *tpm,
+    BufType buf_type,
+    u8 *buf_hitcnt_ary,
+    u32 avalanche_threashold);
+
+static void
 detectHitMapAvalInOut(
     HitMapAvalSearchCtxt *hitMapAvalSrchCtxt,
     HitMapContext *hitMap,
@@ -59,13 +75,19 @@ build_range_array(HitMapAddr2NodeItem *addrnodes);
 static void
 delOldNewRangeArray(RangeArray **old, RangeArray **new);
 
-static void display_avalanche(
+static void
+display_avalanche(
     StackHitMapAddr2NodeItem *stack_srcbuf_top,
     RangeArray *dst_ra);
 
 /* Public functions */
 void
-detectHitMapAvalanche(HitMapContext *hitMap, TPMContext *tpm)
+detectHitMapAvalanche(
+    HitMapContext *hitMap,
+    TPMContext *tpm,
+    BufType buf_type,
+    u8 *buf_hitcnt_ary,
+    u32 avalanche_threashold)
 {
   u32 numOfBuf, srcBufIdx, dstBufIdx;
   TPMBufHashTable *srcTPMBuf;
@@ -75,38 +97,31 @@ detectHitMapAvalanche(HitMapContext *hitMap, TPMContext *tpm)
   double totalElapse = 0;
   u32 searchCnt = 0;
 
-  numOfBuf = hitMap->numOfBuf;
-  for(srcBufIdx = 0; srcBufIdx < numOfBuf-1; srcBufIdx++) {
-    for(dstBufIdx = srcBufIdx + 1; dstBufIdx < numOfBuf; dstBufIdx++) {
+  if(buf_hitcnt_ary != NULL) {
+    if(buf_type == TPMBuf)
+      detect_HM_avalanche_tpmbuf(hitMap, tpm, buf_type, buf_hitcnt_ary, avalanche_threashold);
+    else
+      detect_HM_avalanche_hitmapbuf(hitMap, tpm, buf_type, buf_hitcnt_ary, avalanche_threashold);
+  }
+  else {
+    numOfBuf = hitMap->numOfBuf;
+    for(srcBufIdx = 0; srcBufIdx < numOfBuf-1; srcBufIdx++) {
+      for(dstBufIdx = srcBufIdx + 1; dstBufIdx < numOfBuf; dstBufIdx++) {
+        srcTPMBuf = getTPMBuf(hitMap->tpmBuf, srcBufIdx);
+        dstTPMBuf = getTPMBuf(hitMap->tpmBuf, dstBufIdx);
 
-      // if((srcBufIdx >= 265 && srcBufIdx <= 270)
-      //     || (srcBufIdx >= 925 && srcBufIdx <= 930) ) {
-      //     if(dstBufIdx == srcBufIdx+1 || dstBufIdx == numOfBuf-1) {
-      //         srcTPMBuf = getTPMBuf(hitMap->tpmBuf, srcBufIdx);
-      //         dstTPMBuf = getTPMBuf(hitMap->tpmBuf, dstBufIdx);
-      //         hitMapAvalSrchCtxt = initHitMapAvalSearchCtxt(srcBufIdx, srcTPMBuf, dstBufIdx, dstTPMBuf);
-      //         detectHitMapAvalInOut(hitMapAvalSrchCtxt, hitMap, &totalElapse);
-      //         freeHitMapAvalSearchCtxt(hitMapAvalSrchCtxt);
+        hitMapAvalSrchCtxt = initHitMapAvalSearchCtxt(srcBufIdx, srcTPMBuf, dstBufIdx, dstTPMBuf);
+        detectHitMapAvalInOut(hitMapAvalSrchCtxt, hitMap, &totalElapse);
+        freeHitMapAvalSearchCtxt(hitMapAvalSrchCtxt);
 
-      //         searchCnt++;
-      //     }
-      // }
-
-      srcTPMBuf = getTPMBuf(hitMap->tpmBuf, srcBufIdx);
-      dstTPMBuf = getTPMBuf(hitMap->tpmBuf, dstBufIdx);
-      hitMapAvalSrchCtxt = initHitMapAvalSearchCtxt(srcBufIdx, srcTPMBuf, dstBufIdx, dstTPMBuf);
-      detectHitMapAvalInOut(hitMapAvalSrchCtxt, hitMap, &totalElapse);
-      freeHitMapAvalSearchCtxt(hitMapAvalSrchCtxt);
-
-      searchCnt++;
+        searchCnt++;
+      }
+      break;  // Detects first buffer to all other buffers
     }
-    break;
+
+    if(searchCnt > 0)
+      printf("---------------\navg build 2-level hash table time:%.1f microseconds\n", totalElapse/searchCnt);
   }
-  if(searchCnt > 0) {
-    printf("---------------\navg build 2-level hash table time:%.1f microseconds\n", totalElapse/searchCnt);
-  }
-  // OutOfLoop:
-  // printf("");
 }
 
 void
@@ -114,9 +129,7 @@ printHitMapAvalSrchCtxt(HitMapAvalSearchCtxt *hmAvalSrchCtxt)
 {
   if(hmAvalSrchCtxt == NULL)
     return;
-
 }
-
 
 static HitMapAvalSearchCtxt *
 initHitMapAvalSearchCtxt(
@@ -163,6 +176,85 @@ freeHitMapAvalSearchCtxt(HitMapAvalSearchCtxt *hitMapAvalSrchCtxt)
 }
 
 static void
+detect_HM_avalanche_tpmbuf(
+    HitMapContext *hitMap,
+    TPMContext *tpm,
+    BufType buf_type,
+    u8 *buf_hitcnt_ary,
+    u32 avalanche_threashold)
+{
+  u32 numOfBuf;
+  u32 srcBufIdx, dstBufIdx;
+  HitMapAvalSearchCtxt *hitMapAvalSrchCtxt;
+
+  double totalElapse = 0;
+  u32 searchCnt = 0;
+
+  numOfBuf = hitMap->tpmBufCtxt->numOfBuf;
+  TPMBufHashTable *srcTPMBuf;
+  TPMBufHashTable *dstTPMBuf;
+
+  for(u32 r = 0; r < numOfBuf; r++) {
+    for (u32 c = 0; c < numOfBuf; c++) {
+      u8 val = buf_hitcnt_ary[r*numOfBuf + c];
+      if(val >= avalanche_threashold) {
+        srcBufIdx = r;
+        dstBufIdx = c;
+        srcTPMBuf = getTPMBuf(hitMap->tpmBufCtxt->tpmBufHash, srcBufIdx);
+        dstTPMBuf = getTPMBuf(hitMap->tpmBufCtxt->tpmBufHash, dstBufIdx);
+
+        hitMapAvalSrchCtxt = initHitMapAvalSearchCtxt(srcBufIdx, srcTPMBuf, dstBufIdx, dstTPMBuf);
+        detectHitMapAvalInOut(hitMapAvalSrchCtxt, hitMap, &totalElapse);
+        freeHitMapAvalSearchCtxt(hitMapAvalSrchCtxt);
+
+        searchCnt++;
+      }
+    }
+  }
+
+  if(searchCnt > 0)
+    printf("---------------\navg build 2-level hash table time:%.1f microseconds\n", totalElapse/searchCnt);
+}
+
+static void
+detect_HM_avalanche_hitmapbuf(
+    HitMapContext *hitMap,
+    TPMContext *tpm,
+    BufType buf_type,
+    u8 *buf_hitcnt_ary,
+    u32 avalanche_threashold)
+// TODO: not finish
+{
+  u32 numOfBuf;
+  u32 srcBufIdx, dstBufIdx;
+  HitMapAvalSearchCtxt *hitMapAvalSrchCtxt;
+
+  double totalElapse = 0;
+  u32 searchCnt = 0;
+
+  numOfBuf = hitMap->hitMapBufCtxt->numOfBuf;
+  HitMapBufHash *src_HM_buf;
+  HitMapBufHash *dst_HM_buf;
+
+  for(u32 r = 0; r < numOfBuf; r++) {
+    for (u32 c = 0; c < numOfBuf; c++) {
+      u8 val = buf_hitcnt_ary[r*numOfBuf + c];
+      if(val >= avalanche_threashold) {
+        srcBufIdx = r;
+        dstBufIdx = c;
+        src_HM_buf = get_hitmap_buf(hitMap->hitMapBufCtxt->hitMapBufHash, srcBufIdx);
+        dst_HM_buf = get_hitmap_buf(hitMap->hitMapBufCtxt->hitMapBufHash, dstBufIdx);
+
+        searchCnt++;
+      }
+    }
+  }
+
+  if(searchCnt > 0)
+    printf("---------------\navg build 2-level hash table time:%.1f microseconds\n", totalElapse/searchCnt);
+}
+
+static void
 detectHitMapAvalInOut(
     HitMapAvalSearchCtxt *hitMapAvalSrchCtxt,
     HitMapContext *hitMap,
@@ -175,31 +267,26 @@ detectHitMapAvalInOut(
   srcBufNodeTotal = getTPMBufNodeTotal(hitMapAvalSrchCtxt->srcTPMBuf);
   dstBufNodeTotal = getTPMBufNodeTotal(hitMapAvalSrchCtxt->dstTPMBuf);
 
-  printf("----------------------------------------\n");
+  printf("---------------------------------------- ----------------------------------------\n");
   print1TPMBufHashTable("src buf: ", hitMapAvalSrchCtxt->srcTPMBuf);
   print1TPMBufHashTable("dst buf: ", hitMapAvalSrchCtxt->dstTPMBuf);
   printf("total src buf node:%u - total dst buf node:%u\n", srcBufNodeTotal, dstBufNodeTotal);
 
-  if(hitMapAvalSrchCtxt->dstTPMBuf->headNode->bufid == 7)
-    printf("dbg\n");
-
-  // printTime("before search propagation");
   printTimeMicroStart();
 
   searchHitMapPropgtInOut(hitMapAvalSrchCtxt, hitMap);
   search_bufpair_avalanche(hitMapAvalSrchCtxt);
   // totalTraverse = srchHitMapPropgtInOutReverse(hitMapAvalSrchCtxt, hitMap);
 
-  // printTime("after search propagation");
   printTimeMicroEnd(totalElapse);
 
-  numOfTrans = 0;
-  srcBufID = hitMapAvalSrchCtxt->srcBufID;
-  for(srcAddrIdx = 0; srcAddrIdx < hitMap->bufArray[srcBufID]->numOfAddr; srcAddrIdx++) {
-    numOfTrans += getHitMap2LAddr2NodeItemTotal(hitMapAvalSrchCtxt->hitMapAddr2NodeAry[srcAddrIdx]);
-  }
-  printf("number of transition of 2-level hash table:%u\n", numOfTrans);
-  printf("total number of traverse steps:%u\n", totalTraverse);
+  // numOfTrans = 0;
+  // srcBufID = hitMapAvalSrchCtxt->srcBufID;
+  // for(srcAddrIdx = 0; srcAddrIdx < hitMap->bufArray[srcBufID]->numOfAddr; srcAddrIdx++) {
+  //   numOfTrans += getHitMap2LAddr2NodeItemTotal(hitMapAvalSrchCtxt->hitMapAddr2NodeAry[srcAddrIdx]);
+  // }
+  // printf("--------------------\nnumber of transition of 2-level hash table:%u\n", numOfTrans);
+  // printf("total number of traverse steps:%u\n", totalTraverse);
 }
 
 static void
@@ -317,9 +404,9 @@ search_bufpair_avalanche(HitMapAvalSearchCtxt *hitMapAvalSrchCtxt)
 
     for(; srcnode != NULL; srcnode = srcnode->hh_hmAddr2NodeItem.next) {
       if(has_enough_dstnode(srcnode) ) {
-        printf("--------------------detect avalanche\n");
-        printf("begin node:addr:%x version:%u\n", srcnode->node->addr, srcnode->node->version);
-        printTime("");
+        printf("-------------------- --------------------\ndetect avalanche\n");
+        printf("begin node: addr:%x - version:%u\n", srcnode->node->addr, srcnode->node->version);
+        // printTime("");
         search_srcnode_avalanche(srcnode, srcbuf_addridx+1, &block_sz, hitMapAvalSrchCtxt);
 
         if(block_sz > max_block_sz)
@@ -530,7 +617,8 @@ delOldNewRangeArray(RangeArray **old, RangeArray **new)
   }
 }
 
-static void display_avalanche(
+static void
+display_avalanche(
     StackHitMapAddr2NodeItem *stack_srcbuf_top,
     RangeArray *dst_ra)
 {

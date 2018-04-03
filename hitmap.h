@@ -33,6 +33,10 @@ delHitMapBufContext(HitMapBufContext *hitMapBufCtxt);
 HitMapBufHash *
 analyzeHitMapBuf(HitMapContext *hitMap);
 
+HitMapBufHash *get_hitmap_buf(
+    HitMapBufHash *buf_head,
+    u32 buf_idx);
+
 void
 delHitHitMapBufHash(HitMapBufHash *hitMapBufHash);
 

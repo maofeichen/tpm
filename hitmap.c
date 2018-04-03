@@ -299,6 +299,19 @@ analyzeHitMapBuf(HitMapContext *hitMap)
   return hitMapBufHash;
 }
 
+HitMapBufHash *get_hitmap_buf(
+    HitMapBufHash *buf_head,
+    u32 buf_idx)
+{
+  u32 idx = 0;
+  while(buf_head != NULL && idx < buf_idx) {
+    buf_head = buf_head->hh_hmBufHash.next;
+    idx++;
+  }
+  return buf_head;
+}
+
+
 void
 delHitHitMapBufHash(HitMapBufHash *hitMapBufHash)
 {
