@@ -59,6 +59,10 @@ build_range_array(HitMapAddr2NodeItem *addrnodes);
 static void
 delOldNewRangeArray(RangeArray **old, RangeArray **new);
 
+static void display_avalanche(
+    StackHitMapAddr2NodeItem *stack_srcbuf_top,
+    RangeArray *dst_ra);
+
 /* Public functions */
 void
 detectHitMapAvalanche(HitMapContext *hitMap, TPMContext *tpm)
@@ -378,11 +382,7 @@ search_srcnode_avalanche(
     if(new_srcnode->node->addr <= old_srcnode->node->addr) {
       if(!has_print_rslt){
         if(stack_srcnode_cnt >= 2 && stack_srcnode_cnt >= *block_sz_detect) {
-          printf("--------------------\n");
-          hitMapAddr2NodeItemDispRange(stack_srcnode_top, "avalanche found:\nsrc buf:");
-          printf("-> dst buf:\n");
-          printRangeArray(oldintersect_ra, "\t");
-
+          display_avalanche(stack_srcnode_top, oldintersect_ra);
           *block_sz_detect = stack_srcnode_cnt;  // set to max num src node has avalanche
         }
       }
@@ -425,11 +425,7 @@ search_srcnode_avalanche(
     else {  // no valid intersection ranges
       if(!has_print_rslt){
         if(stack_srcnode_cnt >= 2 && stack_srcnode_cnt >= *block_sz_detect) {
-          printf("--------------------\n");
-          hitMapAddr2NodeItemDispRange(stack_srcnode_top, "avalanche found:\nsrc buf:");
-          printf("-> dst buf:\n");
-          printRangeArray(oldintersect_ra, "\t");
-
+          display_avalanche(stack_srcnode_top, oldintersect_ra);
           *block_sz_detect = stack_srcnode_cnt;  // set to max num src node has avalanche
         }
         has_print_rslt = true;
@@ -532,4 +528,14 @@ delOldNewRangeArray(RangeArray **old, RangeArray **new)
     delRangeArray(old);
     delRangeArray(new);
   }
+}
+
+static void display_avalanche(
+    StackHitMapAddr2NodeItem *stack_srcbuf_top,
+    RangeArray *dst_ra)
+{
+  printf("--------------------\n");
+  hitMapAddr2NodeItemDispRange(stack_srcbuf_top, "avalanche found:\nsrc buf:");
+  printf("-> dst buf:\n");
+  printRangeArray(dst_ra, "\t");
 }
