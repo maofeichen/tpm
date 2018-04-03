@@ -131,6 +131,11 @@ get_common_rangearray(
     HitMapAddr2NodeItem *r,
     RangeArray *rra);
 
+bool
+is_rangearray_same(
+    RangeArray *l,
+    RangeArray *r);
+
 void
 delRangeArray(RangeArray **ra);
 

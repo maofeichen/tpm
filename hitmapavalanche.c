@@ -78,7 +78,24 @@ delOldNewRangeArray(RangeArray **old, RangeArray **new);
 static void
 display_avalanche(
     StackHitMapAddr2NodeItem *stack_srcbuf_top,
-    RangeArray *dst_ra);
+    RangeArray *new_dst_ra,
+    u32 *old_srcbuf_start,
+    u32 *old_srcbuf_end,
+    RangeArray **old_dst_ra,
+    u32 *old_dstbuf_start,
+    u32 *old_dstbuf_end);
+
+static void
+compute_avalanche_srcbuf_range(
+    StackHitMapAddr2NodeItem *stack_srcbuf_top,
+    u32 *bufstart,
+    u32 *bufend);
+
+static void
+compute_avalanche_dstbuf_range(
+    RangeArray *dstbuf_ra,
+    u32 *bufstart,
+    u32 *bufend);
 
 /* Public functions */
 void
@@ -404,8 +421,8 @@ search_bufpair_avalanche(HitMapAvalSearchCtxt *hitMapAvalSrchCtxt)
 
     for(; srcnode != NULL; srcnode = srcnode->hh_hmAddr2NodeItem.next) {
       if(has_enough_dstnode(srcnode) ) {
-        printf("-------------------- --------------------\ndetect avalanche\n");
-        printf("begin node: addr:%x - version:%u\n", srcnode->node->addr, srcnode->node->version);
+        printf("-------------------- --------------------\n");
+        printf("detect avalanche: begin node: addr:%x - version:%u\n", srcnode->node->addr, srcnode->node->version);
         // printTime("");
         search_srcnode_avalanche(srcnode, srcbuf_addridx+1, &block_sz, hitMapAvalSrchCtxt);
 
@@ -413,7 +430,6 @@ search_bufpair_avalanche(HitMapAvalSearchCtxt *hitMapAvalSrchCtxt)
           max_block_sz = block_sz;
       }
     }
-
     srcbuf_addridx += max_block_sz;
   }
 }
@@ -449,6 +465,12 @@ search_srcnode_avalanche(
 
   bool has_print_rslt = false;
 
+  u32 old_aval_srcbuf_start = 0;    // saves the old avalanche src and dst buffer ranges
+  u32 old_aval_srcbuf_end = 0;
+  u32 old_aval_dstbuf_start = 0;
+  u32 old_aval_dstbuf_end = 0;
+  RangeArray *old_aval_dst_ra = NULL;
+
   if(srcnode == NULL || hitMapAvalSrchCtxt == NULL) {
     return;
   }
@@ -469,7 +491,9 @@ search_srcnode_avalanche(
     if(new_srcnode->node->addr <= old_srcnode->node->addr) {
       if(!has_print_rslt){
         if(stack_srcnode_cnt >= 2 && stack_srcnode_cnt >= *block_sz_detect) {
-          display_avalanche(stack_srcnode_top, oldintersect_ra);
+          display_avalanche(stack_srcnode_top, oldintersect_ra,
+                            &old_aval_srcbuf_start, &old_aval_srcbuf_end, &old_aval_dst_ra,
+                            &old_aval_dstbuf_start, &old_aval_dstbuf_end);
           *block_sz_detect = stack_srcnode_cnt;  // set to max num src node has avalanche
         }
       }
@@ -512,7 +536,9 @@ search_srcnode_avalanche(
     else {  // no valid intersection ranges
       if(!has_print_rslt){
         if(stack_srcnode_cnt >= 2 && stack_srcnode_cnt >= *block_sz_detect) {
-          display_avalanche(stack_srcnode_top, oldintersect_ra);
+          display_avalanche(stack_srcnode_top, oldintersect_ra,
+                            &old_aval_srcbuf_start, &old_aval_srcbuf_end, &old_aval_dst_ra,
+                            &old_aval_dstbuf_start, &old_aval_dstbuf_end);
           *block_sz_detect = stack_srcnode_cnt;  // set to max num src node has avalanche
         }
         has_print_rslt = true;
@@ -620,10 +646,72 @@ delOldNewRangeArray(RangeArray **old, RangeArray **new)
 static void
 display_avalanche(
     StackHitMapAddr2NodeItem *stack_srcbuf_top,
-    RangeArray *dst_ra)
+    RangeArray *new_dst_ra,
+    u32 *old_srcbuf_start,
+    u32 *old_srcbuf_end,
+    RangeArray **old_dst_ra,
+    u32 *old_dstbuf_start,
+    u32 *old_dstbuf_end)
 {
-  printf("--------------------\n");
-  hitMapAddr2NodeItemDispRange(stack_srcbuf_top, "avalanche found:\nsrc buf:");
-  printf("-> dst buf:\n");
-  printRangeArray(dst_ra, "\t");
+  u32 new_srcbuf_start, new_srcbuf_end;
+  u32 new_dstbuf_start, new_dstbuf_end;
+
+  compute_avalanche_srcbuf_range(stack_srcbuf_top, &new_srcbuf_start, &new_srcbuf_end);
+  compute_avalanche_dstbuf_range(new_dst_ra, &new_dstbuf_start, &new_dstbuf_end);
+
+  // avoid duplicate printing out avalanche results
+  if(new_dst_ra->rangeAryUsed == 1) {
+    if(*old_srcbuf_start != new_srcbuf_start || *old_srcbuf_end != new_srcbuf_end ||
+       *old_dstbuf_start != new_dstbuf_start || *old_dstbuf_end != new_dstbuf_end ) {
+      printf("--------------------\n");
+      hitMapAddr2NodeItemDispRange(stack_srcbuf_top, "avalanche found:\nsrc buf:");
+      printf("dst buf:\n");
+      printRangeArray(new_dst_ra, "\t");
+
+      *old_srcbuf_start = new_srcbuf_start;
+      *old_srcbuf_end = new_srcbuf_end;
+      *old_dstbuf_start = new_dstbuf_start;
+      *old_dstbuf_end = new_dstbuf_end;
+      // *old_dst_ra = new_dst_ra;
+    }
+
+  }
+  else {
+    printf("--------------------\n");
+    hitMapAddr2NodeItemDispRange(stack_srcbuf_top, "avalanche found:\nsrc buf:");
+    printf("dst buf:\n");
+    printRangeArray(new_dst_ra, "\t");
+  }
+}
+
+static void
+compute_avalanche_srcbuf_range(
+    StackHitMapAddr2NodeItem *stack_srcbuf_top,
+    u32 *bufstart,
+    u32 *bufend)
+{
+  StackHitMapAddr2NodeItem *t;
+  HitMapNode *n;
+
+  if(stack_srcbuf_top != NULL) {
+    t = stack_srcbuf_top;
+    n = t->hitMapAddr2NodeItem->node;
+    *bufend = n->addr + n->bytesz;
+
+    while(t != NULL && t->next != NULL) { t = t->next; }
+    n = t->hitMapAddr2NodeItem->node; // gets last node
+    *bufstart = n->addr;
+  }
+}
+
+static void
+compute_avalanche_dstbuf_range(
+    RangeArray *dstbuf_ra,
+    u32 *bufstart,
+    u32 *bufend)
+{
+  if(dstbuf_ra != NULL) {
+    *bufstart = dstbuf_ra->rangeAry[0]->start;
+    *bufend = dstbuf_ra->rangeAry[0]->end;
+  }
 }

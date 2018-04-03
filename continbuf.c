@@ -606,6 +606,31 @@ get_common_rangearray(
   return intersect_ra;
 }
 
+bool
+is_rangearray_same(
+    RangeArray *l,
+    RangeArray *r)
+{
+  if(l == NULL || r == NULL) {
+    return false;
+  }
+  else {
+    if(l->rangeAryUsed != r->rangeAryUsed) {
+      return false;
+    }
+    else {
+      for(int ridx = 0; ridx < l->rangeAryUsed; ridx++) {
+        Range *lr = l->rangeAry[ridx];
+        Range *rr = r->rangeAry[ridx];
+        if(lr->start != rr->start || lr->end != rr->end)
+          return false;
+      }
+    }
+  }
+  return true;
+}
+
+
 void
 delRangeArray(RangeArray **ra)
 {
