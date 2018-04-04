@@ -64,8 +64,8 @@ int
 add2BufAry(ContinBufAry *contBufAry, ContinBuf *contBuf);
 // Adds the continuous buf to the buf ary in increasing order
 
-ContinBufAry *
-getBufAryIntersect(ContinBufAry *l, ContinBufAry *r);
+// ContinBufAry *
+// getBufAryIntersect(ContinBufAry *l, ContinBufAry *r);
 // computes intersection between the two continuous buf arraies
 
 bool 

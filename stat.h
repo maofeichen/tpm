@@ -19,9 +19,9 @@
 /* version hash table */
 struct AddrHT
 {
-    u32 addr;
-    u32 ver; 	
-    UT_hash_handle hh_ver;  // hash table head, required by uthash
+  u32 addr;
+  u32 ver;
+  UT_hash_handle hh_ver;  // hash table head, required by uthash
 };
 
 /* continuous buf */

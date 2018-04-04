@@ -167,44 +167,45 @@ addContBuf(ContinBufAry *contBufAry, ContinBuf *contBuf, int pos)
   return 0;
 }
 
-ContinBufAry *
-getBufAryIntersect(ContinBufAry *l, ContinBufAry *r)
-{
-  ContinBufAry *bufAryIntrsct = NULL;
-  u32 idx_l = 0, idx_r = 0;
-  u32 aryUsed_l = l->bufAryUsed, aryUsed_r = r->bufAryUsed;
-  ContinBuf *buf_l, *buf_r, *bufIntrsct;
+// ContinBufAry *
+// getBufAryIntersect(ContinBufAry *l, ContinBufAry *r)
+// // TODO: comment out
+// {
+//   ContinBufAry *bufAryIntrsct = NULL;
+//   u32 idx_l = 0, idx_r = 0;
+//   u32 aryUsed_l = l->bufAryUsed, aryUsed_r = r->bufAryUsed;
+//   ContinBuf *buf_l, *buf_r, *bufIntrsct;
 
-  bufAryIntrsct = initContBufAry();
+//   bufAryIntrsct = initContBufAry();
 
-  while(true) {
-    if(idx_l >= aryUsed_l || idx_r >= aryUsed_r)
-      break;
+//   while(true) {
+//     if(idx_l >= aryUsed_l || idx_r >= aryUsed_r)
+//       break;
 
-    buf_l = l->contBufAryHead[idx_l];
-    buf_r = r->contBufAryHead[idx_r];
+//     buf_l = l->contBufAryHead[idx_l];
+//     buf_r = r->contBufAryHead[idx_r];
 
-    // choose the larger buf start addr, choose the smaller buf end addr
-    u32 intrsctAddrStart = getMaxAddr(buf_l->bufStart, buf_r->bufStart);
-    u32 intrsctAddrEnd 	 = getMinAddr(buf_l->bufEnd, buf_r->bufEnd);
+//     // choose the larger buf start addr, choose the smaller buf end addr
+//     u32 intrsctAddrStart = getMaxAddr(buf_l->bufStart, buf_r->bufStart);
+//     u32 intrsctAddrEnd 	 = getMinAddr(buf_l->bufEnd, buf_r->bufEnd);
 
-    if(intrsctAddrStart < intrsctAddrEnd) { // gets the intersection buf
-      // printf("intersection: addr start:%x - addr end:%x\n", intrsctAddrStart, intrsctAddrEnd);
-      bufIntrsct = getContBufIntersect(buf_l, intrsctAddrStart, intrsctAddrEnd);
-      // appendContBufAry(bufAryIntrsct, bufIntrsct);
-      add2BufAry(bufAryIntrsct, bufIntrsct);
-    }
+//     if(intrsctAddrStart < intrsctAddrEnd) { // gets the intersection buf
+//       // printf("intersection: addr start:%x - addr end:%x\n", intrsctAddrStart, intrsctAddrEnd);
+//       bufIntrsct = getContBufIntersect(buf_l, intrsctAddrStart, intrsctAddrEnd);
+//       // appendContBufAry(bufAryIntrsct, bufIntrsct);
+//       add2BufAry(bufAryIntrsct, bufIntrsct);
+//     }
 
-    // if left buf range is smaller than right buf range, increases it
-    // notices all bufs in buf ary are in increasing order
-    if(buf_l->bufEnd < buf_r->bufEnd) { idx_l++; }
-    else if(buf_l->bufEnd > buf_r->bufEnd) { idx_r++; }
-    else { idx_l++, idx_r++; }
-  }
+//     // if left buf range is smaller than right buf range, increases it
+//     // notices all bufs in buf ary are in increasing order
+//     if(buf_l->bufEnd < buf_r->bufEnd) { idx_l++; }
+//     else if(buf_l->bufEnd > buf_r->bufEnd) { idx_r++; }
+//     else { idx_l++, idx_r++; }
+//   }
 
 
-  return bufAryIntrsct;
-}
+//   return bufAryIntrsct;
+// }
 
 
 bool 
