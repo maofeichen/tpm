@@ -107,6 +107,10 @@ typedef struct HitMapContext
   BufContext **bufArray;  // buf array, each points to a buffer context
   // BufHitcntCtxt **bufHitcntInArray;   // buf hitcnt in array, each item points aggregate in hitcnt for a HitMap buffer
   // BufHitcntCtxt **bufHitcntOutArray;  // buf hitcnt out array, each item points aggregate out hitcnt for a HitMap buffer
+  u32 **inHitCntBufAry; // Array pointers, each points an aggregate IN hit count buffer array for a buffer of HitMap. Array size
+                        // is same as buffer size. Each item of the array contains aggregate (sum) of In hit counts of all nodes
+                        // of the address accordingly
+  u32 **outHitCntBufAry;    // Similarly, but contains aggregate OUT hit counts
 } HitMapContext;
 
 /* function prototype */
