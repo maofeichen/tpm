@@ -11,8 +11,8 @@ initHitMap(TPMContext *tpm, TPMBufContext *tpmBufCtxt);
 HitMapContext *
 buildHitMap(TPMContext *tpm, TPMBufContext *tpmBufCtxt);
 
-void
-updateHitMapBuftHitCnt(HitMapContext *hitMap);
+// void
+// updateHitMapBuftHitCnt(HitMapContext *hitMap);
 
 void
 compHitMapStat(HitMapContext *hitMap);
@@ -52,8 +52,8 @@ printHitMapLit(HitMapContext *hitmap);
 void
 printHitMapBuf(BufContext *hitMapBuf);
 
-void
-printHitMapBufHitCnt(BufHitcntCtxt *bufHitcntCtxt);
+// void
+// printHitMapBufHitCnt(BufHitcntCtxt *bufHitcntCtxt);
 
 void
 printHitMapBufHash(HitMapBufHash *hitMapBufHash);

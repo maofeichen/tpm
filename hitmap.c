@@ -11,8 +11,8 @@ initBufContext(
     HitMapContext *hitMap,
     TPMBufHashTable *buf);
 
-static BufHitcntCtxt *
-initBufHitCntCtxt(TPMBufHashTable *buf);
+// static BufHitcntCtxt *
+// initBufHitCntCtxt(TPMBufHashTable *buf);
 
 static void
 buildBufContext(
@@ -23,11 +23,11 @@ buildBufContext(
 static void
 delBufContext(BufContext *bufCtxt);
 
-static void
-getAggregtHitcnt(
-    HitMapNode *head,
-    u32 *aggregtHitcntIn,
-    u32 *aggregtHitcntOut);
+// static void
+// getAggregtHitcnt(
+//     HitMapNode *head,
+//     u32 *aggregtHitcntIn,
+//     u32 *aggregtHitcntOut);
 
 /* build HitMap of each addr of each buffer */
 static void
@@ -117,11 +117,11 @@ initHitMap(TPMContext *tpm, TPMBufContext *tpmBufCtxt)
   hitMap->tpmBuf = tpmBufCtxt->tpmBufHash;
 
   hitMap->bufArray = calloc(sizeof(BufContext *), numOfBuf);
-  hitMap->bufHitcntInArray = calloc(sizeof(BufHitcntCtxt *), numOfBuf);
-  hitMap->bufHitcntOutArray = calloc(sizeof(BufHitcntCtxt *), numOfBuf);
   assert(hitMap->bufArray != NULL);
-  assert(hitMap->bufHitcntInArray != NULL);
-  assert(hitMap->bufHitcntOutArray != NULL);
+  // hitMap->bufHitcntInArray = calloc(sizeof(BufHitcntCtxt *), numOfBuf);
+  // hitMap->bufHitcntOutArray = calloc(sizeof(BufHitcntCtxt *), numOfBuf);
+  // assert(hitMap->bufHitcntInArray != NULL);
+  // assert(hitMap->bufHitcntOutArray != NULL);
 
   int i = 0;
   for(currBuf = tpmBufCtxt->tpmBufHash; currBuf != NULL; currBuf = currBuf->hh_tpmBufHT.next) {
@@ -155,45 +155,45 @@ buildHitMap(TPMContext *tpm, TPMBufContext *tpmBufCtxt)
   return hitMap;
 }
 
-void
-updateHitMapBuftHitCnt(HitMapContext *hitMap)
-{
-  for(int bufIdx = 0; bufIdx < hitMap->numOfBuf; bufIdx++) {
-    BufHitcntCtxt *bufHitcntIn = hitMap->bufHitcntInArray[bufIdx];
-    BufHitcntCtxt *bufHitcntOut = hitMap->bufHitcntOutArray[bufIdx];
-    assert(bufHitcntIn->numOfAddr == bufHitcntOut->numOfAddr);
+// void
+// updateHitMapBuftHitCnt(HitMapContext *hitMap)
+// {
+//   for(int bufIdx = 0; bufIdx < hitMap->numOfBuf; bufIdx++) {
+//     BufHitcntCtxt *bufHitcntIn = hitMap->bufHitcntInArray[bufIdx];
+//     BufHitcntCtxt *bufHitcntOut = hitMap->bufHitcntOutArray[bufIdx];
+//     assert(bufHitcntIn->numOfAddr == bufHitcntOut->numOfAddr);
 
-    u32 numOfAddr = bufHitcntIn->numOfAddr;
-    for(int addrIdx = 0; addrIdx < numOfAddr; addrIdx++) {
-      u32 aggregtHitcntIn = 0;
-      u32 aggregtHitcntOut = 0;
-      HitMapNode *addrHead = hitMap->bufArray[bufIdx]->addrArray[addrIdx];
+//     u32 numOfAddr = bufHitcntIn->numOfAddr;
+//     for(int addrIdx = 0; addrIdx < numOfAddr; addrIdx++) {
+//       u32 aggregtHitcntIn = 0;
+//       u32 aggregtHitcntOut = 0;
+//       HitMapNode *addrHead = hitMap->bufArray[bufIdx]->addrArray[addrIdx];
 
-      getAggregtHitcnt(addrHead, &aggregtHitcntIn, &aggregtHitcntOut);
-      bufHitcntIn->addrHitcntArray[addrIdx] = aggregtHitcntIn;
-      bufHitcntOut->addrHitcntArray[addrIdx] = aggregtHitcntOut;
-    }
-  }
-  // printHitMap(hitMap);
-}
+//       getAggregtHitcnt(addrHead, &aggregtHitcntIn, &aggregtHitcntOut);
+//       bufHitcntIn->addrHitcntArray[addrIdx] = aggregtHitcntIn;
+//       bufHitcntOut->addrHitcntArray[addrIdx] = aggregtHitcntOut;
+//     }
+//   }
+//   // printHitMap(hitMap);
+// }
 
-static void
-getAggregtHitcnt(
-    HitMapNode *head,
-    u32 *aggregtHitcntIn,
-    u32 *aggregtHitcntOut)
-{
-  if(head == NULL)
-    return;
+// static void
+// getAggregtHitcnt(
+//     HitMapNode *head,
+//     u32 *aggregtHitcntIn,
+//     u32 *aggregtHitcntOut)
+// {
+//   if(head == NULL)
+//     return;
 
-  u32 ver = head->version;
-  do {
-    *aggregtHitcntIn += head->hitcntIn;
-    *aggregtHitcntOut += head->hitcntOut;
+//   u32 ver = head->version;
+//   do {
+//     *aggregtHitcntIn += head->hitcntIn;
+//     *aggregtHitcntOut += head->hitcntOut;
 
-    head = head->nextVersion;
-  } while(ver != head->version);
-}
+//     head = head->nextVersion;
+//   } while(ver != head->version);
+// }
 
 void
 compHitMapStat(HitMapContext *hitMap)
@@ -590,11 +590,11 @@ printHitMap(HitMapContext *hitmap)
   printf("HitMap: num of buf:%u maxSeqN:%u\n", hitmap->numOfBuf, hitmap->maxBufSeqN);
   for(int i = 0; i < hitmap->numOfBuf; i++) {
     printf("--------------------Buf Idx:%d\n", i);
-    // printHitMapBuf(hitmap->bufArray[i]);
-    printf("----------\nBuf Hitcnt In array:\n");
-    printHitMapBufHitCnt(hitmap->bufHitcntInArray[i]);
-    printf("----------\nBuf Hitcnt out array:\n");
-    printHitMapBufHitCnt(hitmap->bufHitcntOutArray[i]);
+    printHitMapBuf(hitmap->bufArray[i]);
+    // printf("----------\nBuf Hitcnt In array:\n");
+    // printHitMapBufHitCnt(hitmap->bufHitcntInArray[i]);
+    // printf("----------\nBuf Hitcnt out array:\n");
+    // printHitMapBufHitCnt(hitmap->bufHitcntOutArray[i]);
   }
 }
 
@@ -624,15 +624,15 @@ printHitMapBuf(BufContext *hitMapBuf)
   }
 }
 
-void
-printHitMapBufHitCnt(BufHitcntCtxt *bufHitcntCtxt)
-{
-  if(bufHitcntCtxt == NULL) { return; }
-  printf("HitMap Buf Hitcnt: num of addr:%u\n", bufHitcntCtxt->numOfAddr);
-  for(int i = 0; i < bufHitcntCtxt->numOfAddr; i++) {
-    printf("addr Hitcnt:%u\n", *(bufHitcntCtxt->addrHitcntArray[i]) );
-  }
-}
+// void
+// printHitMapBufHitCnt(BufHitcntCtxt *bufHitcntCtxt)
+// {
+//   if(bufHitcntCtxt == NULL) { return; }
+//   printf("HitMap Buf Hitcnt: num of addr:%u\n", bufHitcntCtxt->numOfAddr);
+//   for(int i = 0; i < bufHitcntCtxt->numOfAddr; i++) {
+//     printf("addr Hitcnt:%u\n", *(bufHitcntCtxt->addrHitcntArray[i]) );
+//   }
+// }
 
 void
 printHitMapBufHash(HitMapBufHash *hitMapBufHash)
@@ -686,33 +686,33 @@ initBufContext(
   return bufCtxt;
 }
 
-static BufHitcntCtxt *
-initBufHitCntCtxt(TPMBufHashTable *buf)
-{
-  BufHitcntCtxt *bufHitCntCtxt;
-  u32 numOfAddr;
+// static BufHitcntCtxt *
+// initBufHitCntCtxt(TPMBufHashTable *buf)
+// {
+//   BufHitcntCtxt *bufHitCntCtxt;
+//   u32 numOfAddr;
 
-  bufHitCntCtxt = calloc(1, sizeof(BufHitcntCtxt) );
-  assert(bufHitCntCtxt != NULL);
+//   bufHitCntCtxt = calloc(1, sizeof(BufHitcntCtxt) );
+//   assert(bufHitCntCtxt != NULL);
 
-  numOfAddr = buf->numOfAddr;
-  bufHitCntCtxt->numOfAddr = numOfAddr;
+//   numOfAddr = buf->numOfAddr;
+//   bufHitCntCtxt->numOfAddr = numOfAddr;
 
-#if defined ENV32
-  // printf("init buf hit count context 32 bit\n");
-  bufHitCntCtxt->addrHitcntArray = calloc(1, sizeof(u32) * numOfAddr);
-#elif defined ENV64
-  // printf("init buf hit count context 64 bit\n");
-  bufHitCntCtxt->addrHitcntArray = calloc(1, sizeof(u64) * numOfAddr);
-#endif
-  assert(bufHitCntCtxt->addrHitcntArray != NULL);
+// #if defined ENV32
+//   // printf("init buf hit count context 32 bit\n");
+//   bufHitCntCtxt->addrHitcntArray = calloc(1, sizeof(u32) * numOfAddr);
+// #elif defined ENV64
+//   // printf("init buf hit count context 64 bit\n");
+//   bufHitCntCtxt->addrHitcntArray = calloc(1, sizeof(u64) * numOfAddr);
+// #endif
+//   assert(bufHitCntCtxt->addrHitcntArray != NULL);
 
-  for(int i = 0; i < numOfAddr; i++) {
-    bufHitCntCtxt->addrHitcntArray[i] = 0;
-  }
+//   for(int i = 0; i < numOfAddr; i++) {
+//     bufHitCntCtxt->addrHitcntArray[i] = 0;
+//   }
 
-  return bufHitCntCtxt;
-}
+//   return bufHitCntCtxt;
+// }
 
 static void
 buildBufContext(

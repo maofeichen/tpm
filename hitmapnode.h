@@ -70,11 +70,11 @@ typedef struct BufContext
   // each points to the earliest version node in the hitmap
 } BufContext;
 
-typedef struct BufHitcntCtxt
-{
-  u32 numOfAddr;          // num of addr of the buffer
-  u32 **addrHitcntArray;  // hitcnt array of the buffer, each item points to the aggregate hitcnt of nodes of same addr
-} BufHitcntCtxt;
+// typedef struct BufHitcntCtxt
+// {
+//   u32 numOfAddr;          // num of addr of the buffer
+//   u32 **addrHitcntArray;  // hitcnt array of the buffer, each item points to the aggregate hitcnt of nodes of same addr
+// } BufHitcntCtxt;
 
 typedef struct HitMapBufHash
 {
@@ -105,8 +105,8 @@ typedef struct HitMapContext
   u32 numOfBuf;           // num of buffers in TPM
   u32 minBufSz;           // minimum buffer size
   BufContext **bufArray;  // buf array, each points to a buffer context
-  BufHitcntCtxt **bufHitcntInArray;   // buf hitcnt in array, each item points aggregate in hitcnt for a buffer
-  BufHitcntCtxt **bufHitcntOutArray;  // buf hitcnt out array, each item points aggregate out hitcnt for a buffer
+  // BufHitcntCtxt **bufHitcntInArray;   // buf hitcnt in array, each item points aggregate in hitcnt for a HitMap buffer
+  // BufHitcntCtxt **bufHitcntOutArray;  // buf hitcnt out array, each item points aggregate out hitcnt for a HitMap buffer
 } HitMapContext;
 
 /* function prototype */
