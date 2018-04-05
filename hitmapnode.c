@@ -70,7 +70,7 @@ createHitMapNode(
     int lastUpdateTS,
     u32 type)
 {
-  HitMapNode *h = calloc(1, sizeof(HitMapNode));
+  HitMapNode *h = calloc(sizeof(HitMapNode), 1);
   assert(h != NULL);
 
   h->bufId = bufId;
@@ -147,27 +147,25 @@ createHitMapRecord(
   // printf("dst:\n");
   // printMemNodeLit(dst);
 
-  HitMapNode *HMNSrc, *HMNDst;
+  HitMapNode *srcHMNode, *dstHMNode;
   HitTransition *t;
 
-  HMNSrc = createHitMapRecordNode(src, hitMapCtxt);
-  HMNDst = createHitMapRecordNode(dst, hitMapCtxt);
+  srcHMNode = createHitMapRecordNode(src, hitMapCtxt);
+  dstHMNode = createHitMapRecordNode(dst, hitMapCtxt);
 
-  if(!isHitTransitionExist(HMNSrc, HMNDst) ) {
-    t = createHitTransition(minSeqN, maxSeqN, HMNDst);
-    attachHitTransition(HMNSrc, t);
+  if(!isHitTransitionExist(srcHMNode, dstHMNode) ) {
+    t = createHitTransition(minSeqN, maxSeqN, dstHMNode);
+    attachHitTransition(srcHMNode, t);
+
+    // updates hitcnt in, out
+    srcHMNode->hitcntOut += dstHMNode->bytesz;
+    dstHMNode->hitcntIn += srcHMNode->bytesz;
+
   }
-  else {
-    // printf("Hit transition had been created!\n");
-  }
-
-  // t = createHitTransition(0, 0, HMNDst);
-  // attachHitTransition(HMNSrc, t);
-
   // printf("---------------\nHitMap Node src:\n");
-  // printHitMapNode(HMNSrc);
+  // printHitMapNode(srcHMNode);
   // printf("HitMap Node dst:\n");
-  // printHitMapNode(HMNDst);
+  // printHitMapNode(dstHMNode);
   // printf("HitMap Transition:\n");
   // printHitMapTransition(t);
 }
@@ -198,6 +196,7 @@ createHitMapRecordReverse(
   }
 
   // updates hitcnt in, out
+  // TODO: put into if condition
   srcHitMapNode->hitcntOut += dstHitMapNode->bytesz;
   dstHitMapNode->hitcntIn += srcHitMapNode->bytesz;
 }

@@ -720,7 +720,6 @@ buildBufContext(
     HitMapContext *hitMap,
     TPMBufHashTable *buf)
 {
-
   // printf("----------\nbegin addr:0x%-8x end addr:0x%-8x sz:%u numofaddr:%-2u minseq:%d maxseq:%d diffseq:%d bufID:%u\n",
   //         buf->baddr, buf->eaddr, buf->eaddr - buf->baddr,
   //         buf->numOfAddr, buf->minseq, buf->maxseq, (buf->maxseq - buf->minseq), buf->headNode->bufid);
