@@ -57,6 +57,7 @@ int main(int argc, char const *argv[])
         else { fprintf(stderr, "build buffer hit count array error\n"); }
 
         delTPMBufContext(hitMap->tpmBufCtxt);
+        delHitMapBufHitCnt(hitMap);
         delHitMapBufContext(hitMap->hitMapBufCtxt);
         delHitMap(hitMap);
         // delTPM(tpm);

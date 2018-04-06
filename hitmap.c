@@ -94,6 +94,17 @@ cmpHitMapBufHashNode(HitMapBufHash *l, HitMapBufHash *r);
 static void
 assignHitMapBufID(HitMapBufHash *headBuf);
 
+/* HitMap buffer hit count array */
+static int
+initHitMapBufHitCntAray(HitMapContext *hitMap);
+
+static int
+createOneHitMapBufHitCntAry(
+    u32 bufIdx,
+    u32 numOfBuf,
+    HitMapBufHash *buf,
+    HitMapContext *hitMap);
+
 HitMapContext *
 initHitMap(TPMContext *tpm, TPMBufContext *tpmBufCtxt)
 {
@@ -150,32 +161,10 @@ buildHitMap(TPMContext *tpm, TPMBufContext *tpmBufCtxt)
     i++;
   }
   printTime("Finish building HitMap");
-  // updateHitMapBuftHitCnt(hitMap); // Currently not used
   updateHitMapBufContext(hitMap);
+  createHitMapBuftHitCnt(hitMap);   // Currently not used
   return hitMap;
 }
-
-// void
-// updateHitMapBuftHitCnt(HitMapContext *hitMap)
-// {
-//   for(int bufIdx = 0; bufIdx < hitMap->numOfBuf; bufIdx++) {
-//     BufHitcntCtxt *bufHitcntIn = hitMap->bufHitcntInArray[bufIdx];
-//     BufHitcntCtxt *bufHitcntOut = hitMap->bufHitcntOutArray[bufIdx];
-//     assert(bufHitcntIn->numOfAddr == bufHitcntOut->numOfAddr);
-
-//     u32 numOfAddr = bufHitcntIn->numOfAddr;
-//     for(int addrIdx = 0; addrIdx < numOfAddr; addrIdx++) {
-//       u32 aggregtHitcntIn = 0;
-//       u32 aggregtHitcntOut = 0;
-//       HitMapNode *addrHead = hitMap->bufArray[bufIdx]->addrArray[addrIdx];
-
-//       getAggregtHitcnt(addrHead, &aggregtHitcntIn, &aggregtHitcntOut);
-//       bufHitcntIn->addrHitcntArray[addrIdx] = aggregtHitcntIn;
-//       bufHitcntOut->addrHitcntArray[addrIdx] = aggregtHitcntOut;
-//     }
-//   }
-//   // printHitMap(hitMap);
-// }
 
 // static void
 // getAggregtHitcnt(
@@ -311,7 +300,6 @@ HitMapBufHash *get_hitmap_buf(
   return buf_head;
 }
 
-
 void
 delHitHitMapBufHash(HitMapBufHash *hitMapBufHash)
 {
@@ -324,6 +312,63 @@ delHitHitMapBufHash(HitMapBufHash *hitMapBufHash)
   }
   // printf("del HitMap buffers.\n");
 }
+
+int
+createHitMapBuftHitCnt(HitMapContext *hitMap)
+{
+  HitMapBufHash *bufHead = NULL;
+  u32 bufIdx = 0;
+
+  if(initHitMapBufHitCntAray(hitMap) >= 0) {
+    bufHead = hitMap->hitMapBufCtxt->hitMapBufHash;
+    for(; bufHead != NULL; bufHead = bufHead->hh_hmBufHash.next) {
+      if(createOneHitMapBufHitCntAry(bufIdx, hitMap->hitMapBufCtxt->numOfBuf, bufHead, hitMap) < 0 ) {
+        goto error;
+      }
+      bufIdx++;
+    }
+    return 0;
+  }
+  else { goto error; }
+
+error:
+  fprintf(stderr, "createHitMapBuftHitCnt: fail\n");
+  return -1;
+}
+
+void
+delHitMapBufHitCnt(HitMapContext *hitMap)
+{
+  u32 bufIdx;
+  if(hitMap != NULL && hitMap->hitMapBufCtxt != NULL) {
+    if(hitMap->inHitCntBufAry != NULL) {
+      for(bufIdx = 0; bufIdx < hitMap->hitMapBufCtxt->numOfBuf; bufIdx++) {
+        if(hitMap->inHitCntBufAry[bufIdx] != NULL) {
+          free(hitMap->inHitCntBufAry[bufIdx]);
+          hitMap->inHitCntBufAry[bufIdx] = NULL;
+        }
+      }
+
+      free(hitMap->inHitCntBufAry);
+      hitMap->inHitCntBufAry = NULL;
+      printf("del HitMap buffer In hit count array\n");
+    }
+
+    if(hitMap->outHitCntBufAry != NULL) {
+      for(bufIdx = 0; bufIdx < hitMap->hitMapBufCtxt->numOfBuf; bufIdx++) {
+        if(hitMap->outHitCntBufAry[bufIdx] != NULL) {
+          free(hitMap->outHitCntBufAry[bufIdx]);
+          hitMap->outHitCntBufAry[bufIdx] = NULL;
+        }
+      }
+
+      free(hitMap->outHitCntBufAry);
+      hitMap->outHitCntBufAry = NULL;
+      printf("del HitMap buffer Out hit count array\n");
+    }
+  }
+}
+
 
 static u32
 getHitMapTotalNode(HitMapContext *hitMap)
@@ -535,31 +580,6 @@ cmpHitMapBufHashNode(HitMapBufHash *l, HitMapBufHash *r)
   else { return 1; }
 }
 
-static void
-assignHitMapBufID(HitMapBufHash *headBuf)
-{
-  assert(headBuf != NULL);
-  HitMapBufHash *headBufHash = headBuf;
-
-  u32 bufID = 1;
-  for(; headBufHash != NULL; headBufHash = headBufHash->hh_hmBufHash.next) {
-    HitMapNode *headNode = headBufHash->headNode;
-    assert(headBufHash->baddr == headNode->addr);
-
-    do {
-      u32 ver = headNode->version;
-
-      do {
-        headNode->bufId = bufID;
-      } while (headNode->version != ver);
-      headNode = headNode->rightNBR;
-    } while (headNode->rightNBR != NULL);
-
-    assert( (headNode->addr + headNode->bytesz) == headBufHash->eaddr);
-    bufID++;
-  }
-}
-
 
 void
 delHitMap(HitMapContext *hitmap)
@@ -767,4 +787,66 @@ buildHitMapAddr(
     bufnodePropgt2HitMapNode(tpm, headNode, hitMap);
     headNode = headNode->nextVersion;
   } while (currVersion != headNode->version);
+}
+
+static void
+assignHitMapBufID(HitMapBufHash *headBuf)
+{
+  assert(headBuf != NULL);
+  HitMapBufHash *headBufHash = headBuf;
+
+  u32 bufID = 1;
+  for(; headBufHash != NULL; headBufHash = headBufHash->hh_hmBufHash.next) {
+    HitMapNode *headNode = headBufHash->headNode;
+    assert(headBufHash->baddr == headNode->addr);
+
+    do {
+      u32 ver = headNode->version;
+
+      do {
+        headNode->bufId = bufID;
+      } while (headNode->version != ver);
+      headNode = headNode->rightNBR;
+    } while (headNode->rightNBR != NULL);
+
+    assert( (headNode->addr + headNode->bytesz) == headBufHash->eaddr);
+    bufID++;
+  }
+}
+
+static int
+initHitMapBufHitCntAray(HitMapContext *hitMap)
+{
+  if(hitMap != NULL && hitMap->hitMapBufCtxt != NULL) {
+    u32 numOfBuf = hitMap->hitMapBufCtxt->numOfBuf;
+    hitMap->inHitCntBufAry = calloc(sizeof(u32 *), numOfBuf);
+    hitMap->outHitCntBufAry = calloc(sizeof(u32 *), numOfBuf);
+    if(hitMap->inHitCntBufAry != NULL && hitMap->outHitCntBufAry != NULL)
+      return 0;
+  }
+  fprintf(stderr, "initHitMapBufHitCntAray: fails init\n");
+  return -1;
+}
+
+static int
+createOneHitMapBufHitCntAry(
+    u32 bufIdx,
+    u32 numOfBuf,
+    HitMapBufHash *buf,
+    HitMapContext *hitMap)
+// Returns
+//  0: success
+//  <0: fail
+{
+  if(bufIdx < numOfBuf &&
+     buf != NULL && hitMap != NULL) {
+    u32 bufSz = buf->eaddr - buf->baddr;
+    hitMap->inHitCntBufAry[bufIdx] = calloc(sizeof(u32), bufSz);
+    hitMap->outHitCntBufAry[bufIdx] = calloc(sizeof(u32), bufSz);
+    assert(hitMap->inHitCntBufAry != NULL);
+    assert(hitMap->outHitCntBufAry != NULL);
+    return 0;
+  }
+  fprintf(stderr, "createOneHitMapBufHitCntAry: error\n");
+  return -1;
 }

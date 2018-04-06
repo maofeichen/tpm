@@ -11,9 +11,6 @@ initHitMap(TPMContext *tpm, TPMBufContext *tpmBufCtxt);
 HitMapContext *
 buildHitMap(TPMContext *tpm, TPMBufContext *tpmBufCtxt);
 
-// void
-// updateHitMapBuftHitCnt(HitMapContext *hitMap);
-
 void
 compHitMapStat(HitMapContext *hitMap);
 
@@ -30,6 +27,7 @@ initHitMapBufContext(HitMapContext *hitMap);
 void
 delHitMapBufContext(HitMapBufContext *hitMapBufCtxt);
 
+/* HitMap buffer hash */
 HitMapBufHash *
 analyzeHitMapBuf(HitMapContext *hitMap);
 
@@ -39,6 +37,13 @@ HitMapBufHash *get_hitmap_buf(
 
 void
 delHitHitMapBufHash(HitMapBufHash *hitMapBufHash);
+
+/* HitMap buffer hit count array */
+int
+createHitMapBuftHitCnt(HitMapContext *hitMap);
+
+void
+delHitMapBufHitCnt(HitMapContext *hitMap);
 
 void
 delHitMap(HitMapContext *hitmap);
