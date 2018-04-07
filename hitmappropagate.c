@@ -749,6 +749,9 @@ dfs3_HitMapNodePropagate(
         && popNode->lastUpdateTS >= dstMinSeqN && popNode->lastUpdateTS <= dstMaxSeqN) {
       // printHitMapNodeLit(popNode);
 
+      srcnode->hitcntOut += popNode->bytesz;    // updates both src & dst nodes' hit count
+      popNode->hitcntIn += srcnode->bytesz;
+
       HitMapAddr2NodeItem *find;
       HASH_FIND(hh_hmAddr2NodeItem, hmAddr2NodeItem->subHash, &popNode, 4, find);
       if(find == NULL) {

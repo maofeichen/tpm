@@ -189,6 +189,9 @@ void
 printHitMapNodeAllVersion(HitMapNode *node);
 
 void
+print_HM_all_buf_node(HitMapNode *bufhead);
+
+void
 printHitMapTransition(HitTransition *hTrans);
 
 #endif

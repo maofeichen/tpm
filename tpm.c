@@ -491,6 +491,9 @@ printTransAllChildren(Transition *transition)
 void 
 print1TPMBufHashTable(char *s, TPMBufHashTable *tpmBufHT)
 {
+  if(tpmBufHT == NULL)
+    return;
+
   TPMBufHashTable *buf = tpmBufHT;
   printf("%sstart:%-8x end:%-8x sz:%u minseq:%-d maxseq:%-d diffSeq:%-d bufID:%u\n",
       s, buf->baddr, buf->eaddr, buf->eaddr - buf->baddr,

@@ -51,7 +51,7 @@ int main(int argc, char const *argv[])
         BufType bufType = TPMBuf;
         if( (bufHitCntArray = buildBufHitCntArray(hitMap, bufType) ) != NULL) {
           compBufHitCntArrayStat(hitMap, bufType, bufHitCntArray, 64);      // 64 bytes
-          // detectHitMapAvalanche(hitMap, tpm, bufType, bufHitCntArray, 64);  // TODO: flag forward or reverse build
+          detectHitMapAvalanche(hitMap, tpm, bufType, bufHitCntArray, 64);  // TODO: flag forward or reverse build
           delBufHitCntArray(bufHitCntArray);
         }
         else { fprintf(stderr, "build buffer hit count array error\n"); }

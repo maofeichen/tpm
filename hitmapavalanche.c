@@ -39,11 +39,21 @@ detectHitMapAvalInOut(
     HitMapContext *hitMap,
     double *totalElapse);
 
+/* ----- -----  ----- ----- ----- ----- ----- ----- ----- ----- ----- -----*/
 static void
 searchHitMapPropgtInOut(
     HitMapAvalSearchCtxt *hitMapAvalSrchCtxt,
     HitMapContext *hitMap);
 
+static int
+search_HM_inoutbuf_propgt(
+    HitMapAvalSearchCtxt *avalanche_HM_ctxt,
+    HitMapContext *hitMap);
+
+static int
+init_HM_buf_hitcnt(HitMapNode *bufhead);
+
+/* ----- -----  ----- ----- ----- ----- ----- ----- ----- ----- ----- -----*/
 static u32
 srchHitMapPropgtInOutReverse(
     HitMapAvalSearchCtxt *hitMapAvalSrchCtxt,
@@ -290,11 +300,9 @@ detectHitMapAvalInOut(
   printf("total src buf node:%u - total dst buf node:%u\n", srcBufNodeTotal, dstBufNodeTotal);
 
   printTimeMicroStart();
-
   searchHitMapPropgtInOut(hitMapAvalSrchCtxt, hitMap);
-  search_bufpair_avalanche(hitMapAvalSrchCtxt);
+  // search_bufpair_avalanche(hitMapAvalSrchCtxt);
   // totalTraverse = srchHitMapPropgtInOutReverse(hitMapAvalSrchCtxt, hitMap);
-
   printTimeMicroEnd(totalElapse);
 
   // numOfTrans = 0;
@@ -314,18 +322,32 @@ searchHitMapPropgtInOut(HitMapAvalSearchCtxt *hitMapAvalSrchCtxt, HitMapContext 
 // For each version node of each addr of input buffer as source
 // 1.1 searches the source node propagations to destination buffers (within addr/seqNo range)
 {
-  u32 srcAddrIdx, srcBufID;
+  u32 srcAddrIdx;
+  u32 srcBufID, dstBufID;
 
   srcBufID = hitMapAvalSrchCtxt->srcBufID;
+  dstBufID = hitMapAvalSrchCtxt->dstBufID;
   if(hitMapAvalSrchCtxt->srcBufID >= hitMap->numOfBuf) {
     fprintf(stderr, "searchHitMapPropgtInOut error: invalid src buf ID\n");
     return;
   }
 
+  // init all version nodes's IN/OUT hit counts of src and dst buffer to 0
+  // printf("----- src buf:\n");
+  // print_HM_all_buf_node(hitMap->bufArray[srcBufID]->addrArray[0]);
+  // printf("----- dst buf:\n");
+  // print_HM_all_buf_node(hitMap->bufArray[dstBufID]->addrArray[0]);
+  init_HM_buf_hitcnt(hitMap->bufArray[srcBufID]->addrArray[0]);
+  init_HM_buf_hitcnt(hitMap->bufArray[dstBufID]->addrArray[0]);
+  // printf("----- src buf after init:\n");
+  // print_HM_all_buf_node(hitMap->bufArray[srcBufID]->addrArray[0]);
+  // printf("----- dst buf after init:\n");
+  // print_HM_all_buf_node(hitMap->bufArray[dstBufID]->addrArray[0]);
+
   for(srcAddrIdx = 0; srcAddrIdx < hitMap->bufArray[srcBufID]->numOfAddr; srcAddrIdx++) {
     HitMapNode *head = hitMap->bufArray[srcBufID]->addrArray[srcAddrIdx];
     if(head == NULL)
-      continue;   // TODO: Debug
+      continue;   // TODO: Debug: due to HitMap has less buffers than TPM.
 
     u32 ver = head->version;
 
@@ -344,6 +366,40 @@ searchHitMapPropgtInOut(HitMapAvalSearchCtxt *hitMapAvalSrchCtxt, HitMapContext 
     // printHitMap2LAddr2NodeItem(hitMapAvalSrchCtxt->hitMapAddr2NodeAry[srcAddrIdx]);
     // assert(head->leftNBR == NULL);
   }
+
+  // printf("----- src buf after building 2Level:\n");
+  // print_HM_all_buf_node(hitMap->bufArray[srcBufID]->addrArray[0]);
+  // printf("----- dst buf after building 2Level:\n");
+  // print_HM_all_buf_node(hitMap->bufArray[dstBufID]->addrArray[0]);
+}
+
+static int
+search_HM_inoutbuf_propgt(
+    HitMapAvalSearchCtxt *avalanche_HM_ctxt,
+    HitMapContext *hitMap)
+{
+
+}
+
+static int
+init_HM_buf_hitcnt(HitMapNode *bufhead)
+{
+  if(bufhead != NULL) {
+    while(bufhead != NULL) {
+      u32 ver = bufhead->version;
+
+      do {
+        bufhead->hitcntIn = 0;
+        bufhead->hitcntOut = 0;
+
+        bufhead = bufhead->nextVersion;
+      } while(ver != bufhead->version);
+      bufhead = bufhead->rightNBR;
+    }
+    return 0;
+  }
+  fprintf(stderr, "init_HM_buf_hitcnt: error\n");
+  return -1;
 }
 
 static u32

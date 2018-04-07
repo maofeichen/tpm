@@ -657,6 +657,22 @@ printHitMapNodeAllVersion(HitMapNode *node)
   } while (currVersion != node->version);
 }
 
+void
+print_HM_all_buf_node(HitMapNode *bufhead)
+{
+   if(bufhead != NULL) {
+    while(bufhead != NULL) {
+      u32 ver = bufhead->version;
+
+      do {
+        printHitMapNodeLit(bufhead);
+
+        bufhead = bufhead->nextVersion;
+      } while(ver != bufhead->version);
+      bufhead = bufhead->rightNBR;
+    }
+  }
+}
 
 void
 printHitMapTransition(HitTransition *hTrans)

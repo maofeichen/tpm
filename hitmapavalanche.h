@@ -15,9 +15,9 @@ typedef struct HitMapAvalSearchCtxt
   TPMBufHashTable *dstTPMBuf;
   u32 srcBufID;
   u32 dstBufID;
-  u32	srcAddrStart;	// starting addr of the potential source buffer
+  u32 srcAddrStart;	    // starting addr of the potential source buffer
   u32 srcAddrEnd;		// end addr of the potential source buffer. Should be >= srcAddrStart
-  u32	dstAddrStart;	// starting addr of the potential destination buffer
+  u32 dstAddrStart;	    // starting addr of the potential destination buffer
   u32 dstAddrEnd;		// end addr of the potential destination buffer. Should be >= dstAddrStart
   int srcMinSeqN;		// minimum seq# of the source buffer
   int srcMaxSeqN;		// maximum seq# of the source buffer
