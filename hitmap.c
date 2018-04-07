@@ -99,11 +99,25 @@ static int
 initHitMapBufHitCntAray(HitMapContext *hitMap);
 
 static int
-createOneHitMapBufHitCntAry(
+createOneHMBufHitCntAry(
     u32 bufIdx,
     u32 numOfBuf,
     HitMapBufHash *buf,
     HitMapContext *hitMap);
+
+static int
+updateHMNodeHitCnt(
+    HitMapNode *node,
+    u32 *inBufHitCntAry,
+    u32 *outBufHitCntAry,
+    u32 bufStart,
+    u32 bufEnd);
+
+static void
+printOneHMBufHitCntAry(
+    u32 *bufHitCntAry,
+    u32 bufStart,
+    u32 bufEnd);
 
 HitMapContext *
 initHitMap(TPMContext *tpm, TPMBufContext *tpmBufCtxt)
@@ -163,6 +177,7 @@ buildHitMap(TPMContext *tpm, TPMBufContext *tpmBufCtxt)
   printTime("Finish building HitMap");
   updateHitMapBufContext(hitMap);
   createHitMapBuftHitCnt(hitMap);   // Currently not used
+  printHitMapBufHitCntAry(hitMap);
   return hitMap;
 }
 
@@ -316,17 +331,18 @@ delHitHitMapBufHash(HitMapBufHash *hitMapBufHash)
 int
 createHitMapBuftHitCnt(HitMapContext *hitMap)
 {
-  HitMapBufHash *bufHead = NULL;
+  HitMapBufHash *buf = NULL;
   u32 bufIdx = 0;
 
   if(initHitMapBufHitCntAray(hitMap) >= 0) {
-    bufHead = hitMap->hitMapBufCtxt->hitMapBufHash;
-    for(; bufHead != NULL; bufHead = bufHead->hh_hmBufHash.next) {
-      if(createOneHitMapBufHitCntAry(bufIdx, hitMap->hitMapBufCtxt->numOfBuf, bufHead, hitMap) < 0 ) {
+    buf = hitMap->hitMapBufCtxt->hitMapBufHash;
+    for(; buf != NULL; buf = buf->hh_hmBufHash.next) {
+      if(createOneHMBufHitCntAry(bufIdx, hitMap->hitMapBufCtxt->numOfBuf, buf, hitMap) < 0 ) {
         goto error;
       }
       bufIdx++;
     }
+
     return 0;
   }
   else { goto error; }
@@ -369,6 +385,31 @@ delHitMapBufHitCnt(HitMapContext *hitMap)
   }
 }
 
+void
+printHitMapBufHitCntAry(HitMapContext *hitMap)
+{
+  u32 numOfBuf = 0;
+  u32 bufIdx = 0;
+  HitMapBufHash *bufHead;
+  if(hitMap != NULL && hitMap->hitMapBufCtxt != NULL) {
+    numOfBuf = hitMap->hitMapBufCtxt->numOfBuf;
+
+    for(bufHead = hitMap->hitMapBufCtxt->hitMapBufHash; bufHead != NULL; bufHead = bufHead->hh_hmBufHash.next) {
+      assert(bufIdx < numOfBuf);
+
+      printf("-----\n");
+      printOneHitMapBufHash(bufHead);
+      printf("In buffer hit count array:\n");
+      if(hitMap->inHitCntBufAry != NULL)
+        printOneHMBufHitCntAry(hitMap->inHitCntBufAry[bufIdx], bufHead->baddr, bufHead->eaddr);
+
+      printf("Out buffer hit count array:\n");
+      if(hitMap->outHitCntBufAry != NULL)
+        printOneHMBufHitCntAry(hitMap->outHitCntBufAry[bufIdx], bufHead->baddr, bufHead->eaddr);
+      bufIdx++;
+    }
+  }
+}
 
 static u32
 getHitMapTotalNode(HitMapContext *hitMap)
@@ -655,6 +696,18 @@ printHitMapBuf(BufContext *hitMapBuf)
 // }
 
 void
+printOneHitMapBufHash(HitMapBufHash *buf)
+{
+  if(buf != NULL) {
+    printf("begin:0x%-8x end:0x%-8x sz:%-4u numofaddr:%-4u minseq:%-7d maxseq:%-7d diffseq:%-7d bufID:%u total nodes:%u\n",
+        buf->baddr, buf->eaddr, buf->eaddr - buf->baddr,
+        buf->numOfAddr, buf->minseq, buf->maxseq, (buf->maxseq - buf->minseq),
+        buf->headNode->bufId, buf->totalNode);
+  }
+}
+
+
+void
 printHitMapBufHash(HitMapBufHash *hitMapBufHash)
 {
   HitMapBufHash *buf, *tmp;
@@ -829,7 +882,7 @@ initHitMapBufHitCntAray(HitMapContext *hitMap)
 }
 
 static int
-createOneHitMapBufHitCntAry(
+createOneHMBufHitCntAry(
     u32 bufIdx,
     u32 numOfBuf,
     HitMapBufHash *buf,
@@ -841,12 +894,94 @@ createOneHitMapBufHitCntAry(
   if(bufIdx < numOfBuf &&
      buf != NULL && hitMap != NULL) {
     u32 bufSz = buf->eaddr - buf->baddr;
+    HitMapNode *node;
+
     hitMap->inHitCntBufAry[bufIdx] = calloc(sizeof(u32), bufSz);
     hitMap->outHitCntBufAry[bufIdx] = calloc(sizeof(u32), bufSz);
     assert(hitMap->inHitCntBufAry != NULL);
     assert(hitMap->outHitCntBufAry != NULL);
+
+    // iterates each version of each address
+    node = buf->headNode;
+    assert(node->addr == buf->baddr);
+    while(node != NULL) {
+      u32 ver = node->version;
+      do {
+        // printHitMapNodeLit(node);
+        if(updateHMNodeHitCnt(node, hitMap->inHitCntBufAry[bufIdx], hitMap->outHitCntBufAry[bufIdx], buf->baddr, buf->eaddr) < 0)
+          goto error;
+
+        node = node->nextVersion;
+      } while(ver != node->version);
+
+      if(node->rightNBR == NULL)
+        assert(node->addr + node->bytesz == buf->eaddr);
+
+      node = node->rightNBR;
+    }
     return 0;
-  }
+  } else { goto error; }
+
+error:
   fprintf(stderr, "createOneHitMapBufHitCntAry: error\n");
   return -1;
+}
+
+static int
+updateHMNodeHitCnt(
+    HitMapNode *node,
+    u32 *inBufHitCntAry,
+    u32 *outBufHitCntAry,
+    u32 bufStart,
+    u32 bufEnd   )
+{
+  if(node != NULL && inBufHitCntAry != NULL && outBufHitCntAry != NULL) {
+    // printf("-----\nHitMap Buf: start:%x end:%x\n", bufStart, bufEnd);
+    // printf("HMNode: addr:%x version:%u byteSz:%u inHitCnt:%u outHitCnt:%u\n",
+    //        node->addr, node->version, node->bytesz, node->hitcntIn, node->hitcntOut);
+
+    assert(node->addr >= bufStart);
+    assert(node->addr + node->bytesz <= bufEnd);
+
+    u32 byteIdxStart = node->addr - bufStart;
+    for(u32 byteSz = 0; byteSz < node->bytesz; byteSz++ ) {
+      u32 byteIdx = byteIdxStart+byteSz;
+      assert(byteIdx < bufEnd - bufStart);
+
+      // u32 avgInHitCnt = node->hitcntIn / node->bytesz; // SUPRESS
+      // inBufHitCntAry[byteIdx] += avgInHitCnt;
+      inBufHitCntAry[byteIdx] += node->hitcntIn;  /* we don't use the avg hit count 
+      due to a 4-byte src node 's out hit count is 4, indicates all its 4 bytes can propagate 
+      to 4 other bytes. It's not correct to avg. */
+
+      // u32 avgOutHitCnt = node->hitcntOut / node->bytesz; // SUPRESS
+      // outBufHitCntAry[byteIdx] += avgOutHitCnt;
+      outBufHitCntAry[byteIdx] += node->hitcntOut;  // same reason here
+
+      // printf("avg IN hit count:%u avg Out hit count:%u\n", avgInHitCnt, avgOutHitCnt);
+      // printf("update HMNode of buf hit count array: in:%u out:%u\n", inBufHitCntAry[byteIdx], outBufHitCntAry[byteIdx]);
+    }
+    return 0;
+  }
+  else {
+    fprintf(stderr, "updateHMNodeHitCnt: error: node:%p inbBufHitCntAry:%p outBufHitCntAry:%p\n",
+            node, inBufHitCntAry, outBufHitCntAry);
+    return -1;
+  }
+}
+
+static void
+printOneHMBufHitCntAry(
+    u32 *bufHitCntAry,
+    u32 bufStart,
+    u32 bufEnd)
+{
+  if(bufHitCntAry != NULL && bufStart > 0 && bufEnd > 0) {
+    assert(bufEnd > bufStart);
+    u32 bufSz = bufEnd - bufStart;
+    u32 byteIdx = 0;
+    for(; byteIdx < bufSz; byteIdx++) {
+      printf("buf hit cnt: byteIdx:%u hitCnt:%u\n", byteIdx, bufHitCntAry[byteIdx]);
+    }
+  }
 }

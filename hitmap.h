@@ -46,6 +46,9 @@ void
 delHitMapBufHitCnt(HitMapContext *hitMap);
 
 void
+printHitMapBufHitCntAry(HitMapContext *hitMap);
+
+void
 delHitMap(HitMapContext *hitmap);
 
 void
@@ -59,6 +62,9 @@ printHitMapBuf(BufContext *hitMapBuf);
 
 // void
 // printHitMapBufHitCnt(BufHitcntCtxt *bufHitcntCtxt);
+
+void
+printOneHitMapBufHash(HitMapBufHash *buf);
 
 void
 printHitMapBufHash(HitMapBufHash *hitMapBufHash);
