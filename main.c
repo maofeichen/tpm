@@ -48,7 +48,7 @@ int main(int argc, char const *argv[])
         compHitMapStat(hitMap);
         // compReverseHitMapStat(hitMap);
 
-        BufType bufType = TPMBuf;
+        BufType bufType = HitMapBuf;
         if( (bufHitCntArray = buildBufHitCntArray(hitMap, bufType) ) != NULL) {
           compBufHitCntArrayStat(hitMap, bufType, bufHitCntArray, 64);      // 64 bytes
           detectHitMapAvalanche(hitMap, tpm, bufType, bufHitCntArray, 64);  // TODO: flag forward or reverse build

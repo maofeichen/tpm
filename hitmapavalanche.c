@@ -26,6 +26,14 @@ initHitMapAvalSearchCtxt(
     TPMBufHashTable *dstTPMBuf,
     u32 minBufSz);
 
+static HitMapAvalSearchCtxt *
+init_HM_avalnch_ctxt_HMBuf(
+    u32 srcbuf_idx,
+    HitMapBufHash *srcHitMapBuf,
+    u32 dstbuf_idx,
+    HitMapBufHash *dstHitMapbuf,
+    u32 min_bufsz);
+
 static void
 freeHitMapAvalSearchCtxt(HitMapAvalSearchCtxt *hitMapAvalSrchCtxt);
 
@@ -51,6 +59,13 @@ detectHitMapAvalInOut(
     HitMapContext *hitMap,
     double *totalElapse);
 
+static void
+detect_HM_inoutbuf_HMBuf(
+    HitMapAvalSearchCtxt *hitMapAvalSrchCtxt,
+    HitMapContext *hitMap,
+    double *totalElapse);
+// Same as detectHitMapAvalInOut(), but uses HitMap buffer instead of TPM buffer
+
 /* ----- -----  ----- ----- ----- ----- ----- ----- ----- ----- ----- -----*/
 static void
 searchHitMapPropgtInOut(
@@ -59,8 +74,9 @@ searchHitMapPropgtInOut(
 
 static int
 search_HM_inoutbuf_propgt(
-    HitMapAvalSearchCtxt *avalanche_HM_ctxt,
+    HitMapAvalSearchCtxt *avalnch_HM_ctxt,
     HitMapContext *hitMap);
+// Same as searchHitMapPropgtInOut(), but uses HitMap buffer instead of TPM buffer
 
 static int
 init_HM_buf_hitcnt(HitMapNode *bufhead);
@@ -238,6 +254,43 @@ initHitMapAvalSearchCtxt(
   return h;
 }
 
+static HitMapAvalSearchCtxt *
+init_HM_avalnch_ctxt_HMBuf(
+    u32 srcbuf_idx,
+    HitMapBufHash *srcHitMapBuf,
+    u32 dstbuf_idx,
+    HitMapBufHash *dstHitMapbuf,
+    u32 min_bufsz)
+{
+  HitMapAvalSearchCtxt *h = calloc(sizeof(HitMapAvalSearchCtxt), 1);
+  assert(h != NULL);
+
+  h->minBufferSz = min_bufsz;
+
+  h->srcHitMapBuf = srcHitMapBuf;
+  h->dstHitMapBuf = dstHitMapbuf;
+  h->srcBufID = srcbuf_idx;
+  h->dstBufID = dstbuf_idx;
+
+  h->srcAddrStart = srcHitMapBuf->baddr;
+  h->srcAddrEnd = srcHitMapBuf->eaddr;
+  h->dstAddrStart = dstHitMapbuf->baddr;
+  h->dstAddrEnd = dstHitMapbuf->eaddr;
+
+  h->srcMinSeqN = srcHitMapBuf->minseq;
+  h->srcMaxSeqN = srcHitMapBuf->maxseq;
+  h->dstMinSeqN = dstHitMapbuf->minseq;
+  h->dstMaxSeqN = dstHitMapbuf->maxseq;
+
+  h->numOfSrcAddr = srcHitMapBuf->numOfAddr;
+  h->numOfDstAddr = dstHitMapbuf->numOfAddr;
+
+  h->hitMapAddr2NodeAry = calloc(sizeof(HitMapAddr2NodeItem), srcHitMapBuf->numOfAddr);
+  assert(h->hitMapAddr2NodeAry != NULL);
+
+  return h;
+}
+
 static void
 freeHitMapAvalSearchCtxt(HitMapAvalSearchCtxt *hitMapAvalSrchCtxt)
 {
@@ -300,7 +353,6 @@ detect_HM_avalanche_hitmapbuf(
     BufType buf_type,
     u8 *buf_hitcnt_ary,
     u32 avalanche_threashold)
-// TODO: not finish
 {
   u32 numOfBuf;
   u32 srcBufIdx, dstBufIdx;
@@ -321,6 +373,13 @@ detect_HM_avalanche_hitmapbuf(
         dstBufIdx = c;
         src_HM_buf = get_hitmap_buf(hitMap->hitMapBufCtxt->hitMapBufHash, srcBufIdx);
         dst_HM_buf = get_hitmap_buf(hitMap->hitMapBufCtxt->hitMapBufHash, dstBufIdx);
+
+        assert(srcBufIdx+1 == src_HM_buf->headNode->bufId);
+        assert(dstBufIdx+1 == dst_HM_buf->headNode->bufId);
+
+        hitMapAvalSrchCtxt = init_HM_avalnch_ctxt_HMBuf(srcBufIdx, src_HM_buf, dstBufIdx, dst_HM_buf, tpm->minBufferSz);
+        detect_HM_inoutbuf_HMBuf(hitMapAvalSrchCtxt, hitMap, &totalElapse);
+        freeHitMapAvalSearchCtxt(hitMapAvalSrchCtxt);
 
         searchCnt++;
       }
@@ -372,6 +431,34 @@ detectHitMapAvalInOut(
   // }
   // printf("--------------------\nnumber of transition of 2-level hash table:%u\n", numOfTrans);
   // printf("total number of traverse steps:%u\n", totalTraverse);
+}
+
+static void
+detect_HM_inoutbuf_HMBuf(
+    HitMapAvalSearchCtxt *hitMapAvalSrchCtxt,
+    HitMapContext *hitMap,
+    double *totalElapse)
+{
+  u32 numOfTrans, srcAddrIdx, srcBufID;
+  u32 totalTraverse = 0;
+
+  printf("---------------------------------------- ----------------------------------------\n");
+  printOneHitMapBufHash(hitMapAvalSrchCtxt->srcHitMapBuf);
+  printOneHitMapBufHash(hitMapAvalSrchCtxt->dstHitMapBuf);
+  // printf("total src buf node:%u - total dst buf node:%u\n", srcBufNodeTotal, dstBufNodeTotal);
+
+  printTimeMicroStart();
+  if(search_HM_inoutbuf_propgt(hitMapAvalSrchCtxt, hitMap) > 0) {
+
+  }
+//  create_HMBuf_aggrgt_hitCntAry(hitMap->bufArray[hitMapAvalSrchCtxt->srcBufID]->addrArray[0], srcbuf,
+//                                hitMapAvalSrchCtxt->srcAddrStart, hitMapAvalSrchCtxt->srcAddrEnd, hitMapAvalSrchCtxt);
+//  create_HMBuf_aggrgt_hitCntAry(hitMap->bufArray[hitMapAvalSrchCtxt->dstBufID]->addrArray[0], dstbuf,
+//                                hitMapAvalSrchCtxt->dstAddrStart, hitMapAvalSrchCtxt->dstAddrEnd, hitMapAvalSrchCtxt);
+//
+//  search_inoutbuf_avalnch(hitMapAvalSrchCtxt);
+//  // totalTraverse = srchHitMapPropgtInOutReverse(hitMapAvalSrchCtxt, hitMap);
+  printTimeMicroEnd(totalElapse);
 }
 
 static void
@@ -435,10 +522,51 @@ searchHitMapPropgtInOut(HitMapAvalSearchCtxt *hitMapAvalSrchCtxt, HitMapContext 
 
 static int
 search_HM_inoutbuf_propgt(
-    HitMapAvalSearchCtxt *avalanche_HM_ctxt,
+    HitMapAvalSearchCtxt *avalnch_HM_ctxt,
     HitMapContext *hitMap)
 {
+  HitMapNode *srcbuf_head;
+  u32 srcbuf_baddr, srcbuf_eaddr;
 
+  if(avalnch_HM_ctxt != NULL && hitMap != NULL) {
+    init_HM_buf_hitcnt(avalnch_HM_ctxt->srcHitMapBuf->headNode);
+    init_HM_buf_hitcnt(avalnch_HM_ctxt->dstHitMapBuf->headNode);
+
+    srcbuf_baddr = avalnch_HM_ctxt->srcHitMapBuf->baddr;
+    srcbuf_eaddr = avalnch_HM_ctxt->srcHitMapBuf->eaddr;
+
+    srcbuf_head = avalnch_HM_ctxt->srcHitMapBuf->headNode;
+    assert(srcbuf_head->addr == srcbuf_baddr);
+
+    u32 srcAddrIdx = 0;
+    while(srcbuf_head != NULL) {
+      u32 ver = srcbuf_head->version;
+
+      do {
+        HitMapAddr2NodeItem *hmAddr2NodeItem = createHitMapAddr2NodeItem(srcbuf_head->addr, srcbuf_head, NULL, NULL);
+        HASH_ADD(hh_hmAddr2NodeItem, avalnch_HM_ctxt->hitMapAddr2NodeAry[srcAddrIdx], node, 4, hmAddr2NodeItem);
+
+        hitMapNodePropagate(srcbuf_head, hitMap, hmAddr2NodeItem,
+                            avalnch_HM_ctxt->dstAddrStart, avalnch_HM_ctxt->dstAddrEnd,
+                            avalnch_HM_ctxt->dstMinSeqN, avalnch_HM_ctxt->dstMaxSeqN);
+        // printHitMapAddr2NodeItemSubhash(hmAddr2NodeItem);
+
+        srcbuf_head = srcbuf_head->nextVersion;
+      } while(ver != srcbuf_head->version);
+
+      HASH_SRT(hh_hmAddr2NodeItem, avalnch_HM_ctxt->hitMapAddr2NodeAry[srcAddrIdx], cmpHitMapAddr2NodeItem);
+      printHitMap2LAddr2NodeItem(avalnch_HM_ctxt->hitMapAddr2NodeAry[srcAddrIdx]);
+
+      if(srcbuf_head->rightNBR == NULL)
+        assert(srcbuf_head->addr + srcbuf_head->bytesz == srcbuf_eaddr);
+
+      srcbuf_head = srcbuf_head->rightNBR;
+      srcAddrIdx++;
+    }
+    return 0;
+  }
+  fprintf(stderr, "search_HM_inoutbuf_propgt: error\n");
+  return -1;
 }
 
 static int

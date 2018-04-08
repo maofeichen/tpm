@@ -13,6 +13,8 @@ typedef struct HitMapAvalSearchCtxt
   // struct TPMNode2 *dstBuf;	// point to potential destination buffer
   TPMBufHashTable *srcTPMBuf;
   TPMBufHashTable *dstTPMBuf;
+  HitMapBufHash *srcHitMapBuf;
+  HitMapBufHash *dstHitMapBuf;
   u32 srcBufID;
   u32 dstBufID;
   u32 srcAddrStart;	    // starting addr of the potential source buffer
