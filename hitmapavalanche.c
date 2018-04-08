@@ -351,10 +351,10 @@ detectHitMapAvalInOut(
 
   printTimeMicroStart();
   searchHitMapPropgtInOut(hitMapAvalSrchCtxt, hitMap);
-//  create_HMBuf_aggrgt_hitCntAry(hitMap->bufArray[hitMapAvalSrchCtxt->srcBufID]->addrArray[0], srcbuf,
-//                                hitMapAvalSrchCtxt->srcAddrStart, hitMapAvalSrchCtxt->srcAddrEnd, hitMapAvalSrchCtxt);
-//  create_HMBuf_aggrgt_hitCntAry(hitMap->bufArray[hitMapAvalSrchCtxt->dstBufID]->addrArray[0], dstbuf,
-//                                hitMapAvalSrchCtxt->dstAddrStart, hitMapAvalSrchCtxt->dstAddrEnd, hitMapAvalSrchCtxt);
+  create_HMBuf_aggrgt_hitCntAry(hitMap->bufArray[hitMapAvalSrchCtxt->srcBufID]->addrArray[0], srcbuf,
+                                hitMapAvalSrchCtxt->srcAddrStart, hitMapAvalSrchCtxt->srcAddrEnd, hitMapAvalSrchCtxt);
+  create_HMBuf_aggrgt_hitCntAry(hitMap->bufArray[hitMapAvalSrchCtxt->dstBufID]->addrArray[0], dstbuf,
+                                hitMapAvalSrchCtxt->dstAddrStart, hitMapAvalSrchCtxt->dstAddrEnd, hitMapAvalSrchCtxt);
 
   // print_HMBuf_aggrgt_hitCntAry(srcbuf, hitMapAvalSrchCtxt->srcAddrOutHitCnt,
   //                              hitMapAvalSrchCtxt->srcAddrStart, hitMapAvalSrchCtxt->srcAddrEnd);
@@ -595,6 +595,8 @@ search_inoutbuf_avalnch(HitMapAvalSearchCtxt *hitMapAvalSrchCtxt)
   ContHitCntRange *lst_srcHitCntRange;
   ContHitCntRange *lst_dstHitCntRange;
 
+  assert(hitMapAvalSrchCtxt->minBufferSz >= 8);
+
   if(hitMapAvalSrchCtxt->srcAddrOutHitCnt != NULL &&
      hitMapAvalSrchCtxt->dstAddrINHitCnt != NULL) {
     search_inoutbuf_avalnch_subrange(hitMapAvalSrchCtxt);
@@ -640,6 +642,26 @@ search_inoutbuf_avalnch_subrange(HitMapAvalSearchCtxt *hitMapAvalSrchCtxt)
 
   if(!has_valid_range(lst_srcHitCntRange, lst_dstHitCntRange) )
     return;
+
+  for(; srcbuf_addridx < (hitMapAvalSrchCtxt->numOfSrcAddr-1); /* srcbuf_addridx++ */) {
+    // No need to search last addr
+    HitMapAddr2NodeItem *srcnode = hitMapAvalSrchCtxt->hitMapAddr2NodeAry[srcbuf_addridx];
+    u32 block_sz = 1;      // block sz s.t. continuous src nodes propagate to same destinations (considered blocks)
+    u32 max_block_sz = 1;  // max block sz found for all version nodes of same address
+
+    for(; srcnode != NULL; srcnode = srcnode->hh_hmAddr2NodeItem.next) {
+      if(has_enough_dstnode(srcnode, hitMapAvalSrchCtxt->minBufferSz) ) {
+        printf("-------------------- --------------------\n");
+        printf("detect avalanche: begin node: addr:%x - version:%u\n", srcnode->node->addr, srcnode->node->version);
+        // printTime("");
+        search_srcnode_avalanche(srcnode, srcbuf_addridx+1, &block_sz, hitMapAvalSrchCtxt);
+
+        if(block_sz > max_block_sz)
+          max_block_sz = block_sz;
+      }
+    }
+    srcbuf_addridx += max_block_sz;
+  }
 }
 
 
