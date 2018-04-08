@@ -91,6 +91,9 @@ print_HMBuf_aggrgt_hitCntAry(
 static void
 search_inoutbuf_avalnch(HitMapAvalSearchCtxt *hitMapAvalSrchCtxt);
 
+static void
+search_inoutbuf_avalnch_subrange(HitMapAvalSearchCtxt *hitMapAvalSrchCtxt);
+
 static ContHitCntRange *
 analyze_hitcnt_range(
     u8 *hitCntAry,
@@ -99,10 +102,15 @@ analyze_hitcnt_range(
     u32 min_bufsz);
 
 static void
-print_conthitcnt_range(ContHitCntRange *lst);
+print_conthitcnt_range(ContHitCntRange *lst, char *s);
 
 static bool
-has_enough_dstnode(HitMapAddr2NodeItem *srcnode);
+has_valid_range(ContHitCntRange *lst_src, ContHitCntRange *lst_dst);
+
+static bool
+has_enough_dstnode(
+    HitMapAddr2NodeItem *srcnode,
+    u32 min_bufsz);
 
 static void
 search_srcnode_avalanche(
@@ -116,7 +124,8 @@ store_addr2nodeitem_rightnbr(
     HitMapAddr2NodeItem *rightnbr_b,
     StackHitMapAddr2NodeItem **stackHitMapAddr2NodeItemTop,
     u32 *stackHitMapAddr2NodeItemCount,
-    int curnode_lastupdate_ts);
+    int curnode_lastupdate_ts,
+    u32 min_bufsz);
 
 static RangeArray *
 build_range_array(HitMapAddr2NodeItem *addrnodes);
@@ -342,10 +351,11 @@ detectHitMapAvalInOut(
 
   printTimeMicroStart();
   searchHitMapPropgtInOut(hitMapAvalSrchCtxt, hitMap);
-  create_HMBuf_aggrgt_hitCntAry(hitMap->bufArray[hitMapAvalSrchCtxt->srcBufID]->addrArray[0], srcbuf,
-                                hitMapAvalSrchCtxt->srcAddrStart, hitMapAvalSrchCtxt->srcAddrEnd, hitMapAvalSrchCtxt);
-  create_HMBuf_aggrgt_hitCntAry(hitMap->bufArray[hitMapAvalSrchCtxt->dstBufID]->addrArray[0], dstbuf,
-                                hitMapAvalSrchCtxt->dstAddrStart, hitMapAvalSrchCtxt->dstAddrEnd, hitMapAvalSrchCtxt);
+//  create_HMBuf_aggrgt_hitCntAry(hitMap->bufArray[hitMapAvalSrchCtxt->srcBufID]->addrArray[0], srcbuf,
+//                                hitMapAvalSrchCtxt->srcAddrStart, hitMapAvalSrchCtxt->srcAddrEnd, hitMapAvalSrchCtxt);
+//  create_HMBuf_aggrgt_hitCntAry(hitMap->bufArray[hitMapAvalSrchCtxt->dstBufID]->addrArray[0], dstbuf,
+//                                hitMapAvalSrchCtxt->dstAddrStart, hitMapAvalSrchCtxt->dstAddrEnd, hitMapAvalSrchCtxt);
+
   // print_HMBuf_aggrgt_hitCntAry(srcbuf, hitMapAvalSrchCtxt->srcAddrOutHitCnt,
   //                              hitMapAvalSrchCtxt->srcAddrStart, hitMapAvalSrchCtxt->srcAddrEnd);
   // print_HMBuf_aggrgt_hitCntAry(dstbuf, hitMapAvalSrchCtxt->dstAddrINHitCnt,
@@ -587,13 +597,7 @@ search_inoutbuf_avalnch(HitMapAvalSearchCtxt *hitMapAvalSrchCtxt)
 
   if(hitMapAvalSrchCtxt->srcAddrOutHitCnt != NULL &&
      hitMapAvalSrchCtxt->dstAddrINHitCnt != NULL) {
-    lst_srcHitCntRange = analyze_hitcnt_range(hitMapAvalSrchCtxt->srcAddrOutHitCnt,
-                  hitMapAvalSrchCtxt->srcAddrStart, hitMapAvalSrchCtxt->srcAddrEnd, hitMapAvalSrchCtxt->minBufferSz);
-    lst_dstHitCntRange = analyze_hitcnt_range(hitMapAvalSrchCtxt->dstAddrINHitCnt,
-                  hitMapAvalSrchCtxt->dstAddrStart, hitMapAvalSrchCtxt->dstAddrEnd, hitMapAvalSrchCtxt->minBufferSz);
-
-    // print_conthitcnt_range(lst_srcHitCntRange);
-    // print_conthitcnt_range(lst_dstHitCntRange);
+    search_inoutbuf_avalnch_subrange(hitMapAvalSrchCtxt);
   }
   else {
     for(; srcbuf_addridx < (hitMapAvalSrchCtxt->numOfSrcAddr-1); /* srcbuf_addridx++ */) {
@@ -603,7 +607,7 @@ search_inoutbuf_avalnch(HitMapAvalSearchCtxt *hitMapAvalSrchCtxt)
       u32 max_block_sz = 1;  // max block sz found for all version nodes of same address
 
       for(; srcnode != NULL; srcnode = srcnode->hh_hmAddr2NodeItem.next) {
-        if(has_enough_dstnode(srcnode) ) {
+        if(has_enough_dstnode(srcnode, hitMapAvalSrchCtxt->minBufferSz) ) {
           printf("-------------------- --------------------\n");
           printf("detect avalanche: begin node: addr:%x - version:%u\n", srcnode->node->addr, srcnode->node->version);
           // printTime("");
@@ -617,6 +621,27 @@ search_inoutbuf_avalnch(HitMapAvalSearchCtxt *hitMapAvalSrchCtxt)
     }
   }
 }
+
+static void
+search_inoutbuf_avalnch_subrange(HitMapAvalSearchCtxt *hitMapAvalSrchCtxt)
+{
+  u32 srcbuf_addridx = 0;
+
+  ContHitCntRange *lst_srcHitCntRange;
+  ContHitCntRange *lst_dstHitCntRange;
+
+  lst_srcHitCntRange = analyze_hitcnt_range(hitMapAvalSrchCtxt->srcAddrOutHitCnt,
+      hitMapAvalSrchCtxt->srcAddrStart, hitMapAvalSrchCtxt->srcAddrEnd, hitMapAvalSrchCtxt->minBufferSz);
+  lst_dstHitCntRange = analyze_hitcnt_range(hitMapAvalSrchCtxt->dstAddrINHitCnt,
+      hitMapAvalSrchCtxt->dstAddrStart, hitMapAvalSrchCtxt->dstAddrEnd, hitMapAvalSrchCtxt->minBufferSz);
+
+  print_conthitcnt_range(lst_srcHitCntRange, "src range:");
+  print_conthitcnt_range(lst_dstHitCntRange, "dst range:");
+
+  if(!has_valid_range(lst_srcHitCntRange, lst_dstHitCntRange) )
+    return;
+}
+
 
 static ContHitCntRange *
 analyze_hitcnt_range(
@@ -664,10 +689,11 @@ analyze_hitcnt_range(
 }
 
 static void
-print_conthitcnt_range(ContHitCntRange *lst)
+print_conthitcnt_range(ContHitCntRange *lst, char *s)
 {
   if(lst != NULL) {
     ContHitCntRange *temp;
+    printf("%s\n", s);
     LL_FOREACH(lst, temp) {
       printf("range: start:%x end:%x\n", temp->rstart, temp->rend);
     }
@@ -676,12 +702,31 @@ print_conthitcnt_range(ContHitCntRange *lst)
 }
 
 static bool
-has_enough_dstnode(HitMapAddr2NodeItem *srcnode)
+has_valid_range(ContHitCntRange *lst_src, ContHitCntRange *lst_dst)
+{
+  ContHitCntRange *tmp;
+  int srccnt = 0, dstcnt = 0;
+  LL_COUNT(lst_src, tmp, srccnt);
+  LL_COUNT(lst_dst, tmp, dstcnt);
+  if(srccnt > 0 && dstcnt > 0)
+    return true;
+  else{
+    printf("no valid ranges: src range cnt:%d dst range cnt:%d\n", srccnt, dstcnt);
+    return false;
+  }
+}
+
+static bool
+has_enough_dstnode(
+    HitMapAddr2NodeItem *srcnode,
+    u32 min_bufsz)
 {
   if(srcnode != NULL) {
-    HitMapAddr2NodeItem *propgt_to_dstnode = srcnode->subHash;
-    u32 num_of_dstnode = HASH_CNT(hh_hmAddr2NodeItem, propgt_to_dstnode);
-    if(num_of_dstnode > 1)
+    // HitMapAddr2NodeItem *propgt_to_dstnode = srcnode->subHash;
+    // u32 num_of_dstnode = HASH_CNT(hh_hmAddr2NodeItem, propgt_to_dstnode);
+    // if(num_of_dstnode > 1)
+    //   return true;
+    if(srcnode->node->hitcntOut >= min_bufsz)
       return true;
   }
   return false;
@@ -723,7 +768,7 @@ search_srcnode_avalanche(
   // printRangeArray(old_ra, "");
 
   store_addr2nodeitem_rightnbr(hitMapAvalSrchCtxt->hitMapAddr2NodeAry[srcbuf_addridx],
-      &stack_traverse_top, &stack_traverse_cnt, old_srcnode->node->lastUpdateTS);
+      &stack_traverse_top, &stack_traverse_cnt, old_srcnode->node->lastUpdateTS, hitMapAvalSrchCtxt->minBufferSz);
 
   while(!isHitMapAddr2NodeItemStackEmpty(stack_traverse_top, stack_traverse_cnt) ) {
     new_srcnode = hitMapAddr2NodeItemPop(&stack_traverse_top, &stack_traverse_cnt);
@@ -794,7 +839,7 @@ search_srcnode_avalanche(
       srcbuf_addridx++;
       if(srcbuf_addridx < hitMapAvalSrchCtxt->numOfSrcAddr) {
         store_addr2nodeitem_rightnbr(hitMapAvalSrchCtxt->hitMapAddr2NodeAry[srcbuf_addridx],
-            &stack_traverse_top, &stack_traverse_cnt, old_srcnode->node->lastUpdateTS);
+            &stack_traverse_top, &stack_traverse_cnt, old_srcnode->node->lastUpdateTS, hitMapAvalSrchCtxt->minBufferSz);
       }
     }
   }
@@ -807,12 +852,13 @@ store_addr2nodeitem_rightnbr(
     HitMapAddr2NodeItem *rightnbr_b,
     StackHitMapAddr2NodeItem **stackHitMapAddr2NodeItemTop,
     u32 *stackHitMapAddr2NodeItemCount,
-    int curnode_lastupdate_ts)
+    int curnode_lastupdate_ts,
+    u32 min_bufsz)
 // Enforces the increasing last update ts policy.
 {
   if(rightnbr_b != NULL) {
     for(; rightnbr_b != NULL; rightnbr_b = rightnbr_b->hh_hmAddr2NodeItem.next) {
-      if(has_enough_dstnode(rightnbr_b) ) { // TODO: uses minBufSz later
+      if(has_enough_dstnode(rightnbr_b, min_bufsz) ) { // TODO: uses minBufSz later
         if(curnode_lastupdate_ts < 0 && rightnbr_b->node->lastUpdateTS < 0) {
           // if both are negative, smaller is later
           if(rightnbr_b->node->lastUpdateTS < curnode_lastupdate_ts)
