@@ -448,16 +448,19 @@ detect_HM_inoutbuf_HMBuf(
   // printf("total src buf node:%u - total dst buf node:%u\n", srcBufNodeTotal, dstBufNodeTotal);
 
   printTimeMicroStart();
-  if(search_HM_inoutbuf_propgt(hitMapAvalSrchCtxt, hitMap) > 0) {
+  if(search_HM_inoutbuf_propgt(hitMapAvalSrchCtxt, hitMap) >= 0) {
+  create_HMBuf_aggrgt_hitCntAry(hitMapAvalSrchCtxt->srcHitMapBuf->headNode, srcbuf,
+                                hitMapAvalSrchCtxt->srcAddrStart, hitMapAvalSrchCtxt->srcAddrEnd, hitMapAvalSrchCtxt);
+  create_HMBuf_aggrgt_hitCntAry(hitMapAvalSrchCtxt->dstHitMapBuf->headNode, dstbuf,
+                                hitMapAvalSrchCtxt->dstAddrStart, hitMapAvalSrchCtxt->dstAddrEnd, hitMapAvalSrchCtxt);
+  // print_HMBuf_aggrgt_hitCntAry(srcbuf, hitMapAvalSrchCtxt->srcAddrOutHitCnt,
+  //                              hitMapAvalSrchCtxt->srcAddrStart, hitMapAvalSrchCtxt->srcAddrEnd);
+  // print_HMBuf_aggrgt_hitCntAry(dstbuf, hitMapAvalSrchCtxt->dstAddrINHitCnt,
+  //                              hitMapAvalSrchCtxt->dstAddrStart, hitMapAvalSrchCtxt->dstAddrEnd);
 
+  search_inoutbuf_avalnch(hitMapAvalSrchCtxt);
+  // totalTraverse = srchHitMapPropgtInOutReverse(hitMapAvalSrchCtxt, hitMap);
   }
-//  create_HMBuf_aggrgt_hitCntAry(hitMap->bufArray[hitMapAvalSrchCtxt->srcBufID]->addrArray[0], srcbuf,
-//                                hitMapAvalSrchCtxt->srcAddrStart, hitMapAvalSrchCtxt->srcAddrEnd, hitMapAvalSrchCtxt);
-//  create_HMBuf_aggrgt_hitCntAry(hitMap->bufArray[hitMapAvalSrchCtxt->dstBufID]->addrArray[0], dstbuf,
-//                                hitMapAvalSrchCtxt->dstAddrStart, hitMapAvalSrchCtxt->dstAddrEnd, hitMapAvalSrchCtxt);
-//
-//  search_inoutbuf_avalnch(hitMapAvalSrchCtxt);
-//  // totalTraverse = srchHitMapPropgtInOutReverse(hitMapAvalSrchCtxt, hitMap);
   printTimeMicroEnd(totalElapse);
 }
 
@@ -555,7 +558,7 @@ search_HM_inoutbuf_propgt(
       } while(ver != srcbuf_head->version);
 
       HASH_SRT(hh_hmAddr2NodeItem, avalnch_HM_ctxt->hitMapAddr2NodeAry[srcAddrIdx], cmpHitMapAddr2NodeItem);
-      printHitMap2LAddr2NodeItem(avalnch_HM_ctxt->hitMapAddr2NodeAry[srcAddrIdx]);
+      // printHitMap2LAddr2NodeItem(avalnch_HM_ctxt->hitMapAddr2NodeAry[srcAddrIdx]);
 
       if(srcbuf_head->rightNBR == NULL)
         assert(srcbuf_head->addr + srcbuf_head->bytesz == srcbuf_eaddr);
@@ -712,7 +715,7 @@ print_HMBuf_aggrgt_hitCntAry(
     for(u32 byteidx = 0; byteidx < bufsz; byteidx++) {
       printf("byteidx:%u hitcnt:%u\n", byteidx, hitCntAry[byteidx]);
     }
-  }
+  } else { printf("HitMap buffer hit count array:%p\n", hitCntAry); }
 }
 
 static void
