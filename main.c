@@ -50,6 +50,10 @@ int main(int argc, char const *argv[])
 
         BufType bufType = HitMapBuf;
         if( (bufHitCntArray = buildBufHitCntArray(hitMap, bufType) ) != NULL) {
+          createHitMapBuftHitCnt(hitMap);   // creates IN/OUT aggregate hit count array for each HitMap buffer
+          // printHitMapBufHitCntAry(hitMap);
+          analyze_aggrgt_hitcntary(hitMap, bufType, bufHitCntArray, 64);
+
           compBufHitCntArrayStat(hitMap, bufType, bufHitCntArray, 64);      // 64 bytes
           detectHitMapAvalanche(hitMap, tpm, bufType, bufHitCntArray, 64);  // TODO: flag forward or reverse build
           delBufHitCntArray(bufHitCntArray);

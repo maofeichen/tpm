@@ -28,6 +28,13 @@ void
 delBufHitCntArray(u8 *bufHitCntArray);
 
 void
+analyze_aggrgt_hitcntary(
+    HitMapContext *hitMap,
+    BufType bufType,
+    u8 *bufHitCntArray,
+    u32 byteThreashold);
+
+void
 compBufHitCntArrayStat(
     HitMapContext *hitMap,
     BufType bufType,

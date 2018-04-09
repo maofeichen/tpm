@@ -176,8 +176,6 @@ buildHitMap(TPMContext *tpm, TPMBufContext *tpmBufCtxt)
   }
   printTime("Finish building HitMap");
   updateHitMapBufContext(hitMap);
-  createHitMapBuftHitCnt(hitMap);   
-  // printHitMapBufHitCntAry(hitMap);
   return hitMap;
 }
 

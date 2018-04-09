@@ -1038,6 +1038,11 @@ updateBufHitCntArray(
           u8 currVal = bufHitCntAry[srcBufIdx*numOfBuf + dstBufIdx];
           // printf("before update: bufHitCntAry:%p plus offset:%p val:%u\n",
           //         bufHitCntAry, bufHitCntAry+(srcBufIdx*numOfBuf + dstBufIdx), currVal);
+
+          /* updates src & dst node's hit cout, including direct and indirect. */
+          stackHMNodeTop->hmNode->hitcntOut += dstNode->bytesz;
+          dstNode->hitcntIn += stackHMNodeTop->hmNode->bytesz;
+
           if(currVal + dstNode->bytesz <= 255) {
             bufHitCntAry[srcBufIdx * numOfBuf + dstBufIdx] += dstNode->bytesz;
             // printf("after update: bufHitCntAry:%p plus offset:%p val:%u\n",

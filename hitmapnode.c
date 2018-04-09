@@ -157,9 +157,10 @@ createHitMapRecord(
     t = createHitTransition(minSeqN, maxSeqN, dstHMNode);
     attachHitTransition(srcHMNode, t);
 
-    // updates hitcnt in, out
-    srcHMNode->hitcntOut += dstHMNode->bytesz;
-    dstHMNode->hitcntIn += srcHMNode->bytesz;
+    /* updates hitcnt in, out. Incorrect, due to it's direct hit count, missing the
+     * indirect ones. Comment out. */
+    // srcHMNode->hitcntOut += dstHMNode->bytesz;
+    // dstHMNode->hitcntIn += srcHMNode->bytesz;
 
   }
   // printf("---------------\nHitMap Node src:\n");

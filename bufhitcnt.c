@@ -2,6 +2,7 @@
 #include "hitmappropagate.h"
 #include "misc.h"
 #include <assert.h>
+#include <stdbool.h>
 
 static u8 *
 initBufHitCntArray(u32 numOfBuf);
@@ -31,6 +32,12 @@ buildHitMapBufHitCntAryOfOneBuf(
     u8 *bufHitCntAry,
     u32 numOfBuf,
     HitMapBufHash *hitMapBuf);
+
+static bool
+hasContAddrRange(
+    u32 *hitCntAry,
+    u32 bufsz,
+    u32 min_bufsz);
 
 /* -------------------------------------------------------------------------- */
 u8 *
@@ -109,6 +116,43 @@ delBufHitCntArray(u8 *bufHitCntArray)
 }
 
 void
+analyze_aggrgt_hitcntary(
+    HitMapContext *hitMap,
+    BufType bufType,
+    u8 *bufHitCntArray,
+    u32 byteThreashold)
+//  analyzes:
+//      if src buf's out hit count array meets the continuous address range requirment
+//      if dst buf's in hit count array meets...
+{
+  u32 numOfBuf;
+
+  if(bufType == TPMBuf)
+    numOfBuf = hitMap->tpmBufCtxt->numOfBuf;
+  else
+    numOfBuf = hitMap->hitMapBufCtxt->numOfBuf;
+
+  for(size_t r = 0; r < numOfBuf; r++) {
+    for (size_t c = 0; c < numOfBuf; c++) {
+      u8 val = bufHitCntArray[r*numOfBuf + c];
+      if(val >= byteThreashold) {
+        u32 srcbufidx = r;
+        u32 dstbufidx = c;
+
+        HitMapBufHash *src = get_hitmap_buf(hitMap->hitMapBufCtxt->hitMapBufHash, srcbufidx);
+        HitMapBufHash *dst = get_hitmap_buf(hitMap->hitMapBufCtxt->hitMapBufHash, dstbufidx);
+        // printOneHitMapBufHash(src);
+        // printOneHitMapBufHash(dst);
+        if(!hasContAddrRange(hitMap->outHitCntBufAry[srcbufidx], src->eaddr-src->baddr, hitMap->minBufSz) ||
+           !hasContAddrRange(hitMap->inHitCntBufAry[dstbufidx], dst->eaddr-dst->baddr, hitMap->minBufSz) ) {
+          bufHitCntArray[r*numOfBuf + c] = 0;   // invalid the buf pair
+        }
+      }
+    }
+  }
+}
+
+void
 compBufHitCntArrayStat(
     HitMapContext *hitMap,
     BufType bufType,
@@ -129,6 +173,7 @@ compBufHitCntArrayStat(
     for (size_t c = 0; c < numOfBuf; c++) {
       u8 val = bufHitCntArray[r*numOfBuf + c];
       if(val >= byteThreashold) {
+        // printf("hit count array: srcbuf id:%u dstbuf id:%u hit count:%u\n", r+1, c+1, val);
         hitThreash++;
       }
     }
@@ -251,3 +296,37 @@ buildHitMapBufHitCntAryOfOneBuf(
   } while (head != NULL);
 }
 
+static bool
+hasContAddrRange(
+    u32 *hitCntAry,
+    u32 bufsz,
+    u32 min_bufsz)
+{
+  int rstart = -1, rend = -1;
+  if(hitCntAry != NULL) {
+    for(u32 byteidx = 0; byteidx < bufsz; byteidx++) {
+      if(hitCntAry[byteidx] >= min_bufsz) {
+          if(rstart == -1) {
+            rstart = byteidx;
+            rend = byteidx;
+          } else {
+            rend = byteidx + 1;
+          }
+      }
+      else {
+        if(rstart != -1) {
+          if(rend - rstart >= min_bufsz)
+            return true;
+          else {
+            rstart = -1;
+            rend = -1;
+          }
+        }
+      }
+    }
+
+    if(rstart != -1 && (rend - rstart) >= min_bufsz)
+      return true;
+  }
+  return false;
+}
