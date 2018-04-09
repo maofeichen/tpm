@@ -117,6 +117,15 @@ analyze_hitcnt_range(
     u32 bufend,
     u32 min_bufsz);
 
+static void
+compt_addridx_range(
+    u32 *addridx_start,
+    u32 *addridx_end,
+    u32 rangestart,
+    u32 rangeend,
+    HitMapAddr2NodeItem **hitMapAddr2NodeAry,
+    u32 numOfAddr);
+
 static bool
 isSameContRange(ContHitCntRange *l, ContHitCntRange *r);
 
@@ -159,7 +168,8 @@ static void
 display_avalanche(
     StackHitMapAddr2NodeItem *stack_srcbuf_top,
     RangeArray *new_dst_ra,
-    ContHitCntRange **lst_oldsrc_avalnch,
+    u32 *srcbuf_oldstart,
+    u32 *srcbuf_oldend,
     ContHitCntRange **lst_olddst_avalnch,
     u32 min_bufsz);
 
@@ -167,6 +177,13 @@ static ContHitCntRange *
 compt_avalnch_srcbuf_range(
     StackHitMapAddr2NodeItem *stack_srcbuf_top,
     u32 min_bufsz);
+
+static void
+compt_avalnch_srcbuf(
+    StackHitMapAddr2NodeItem *stack_srcbuf_top,
+    u32 min_bufsz,
+    u32 *bufstart,
+    u32 *bufend);
 
 static ContHitCntRange *
 compt_avalnch_dstbuf_range(
@@ -777,8 +794,14 @@ search_inoutbuf_avalnch_subrange(HitMapAvalSearchCtxt *hitMapAvalSrchCtxt)
     return;
 
   LL_FOREACH(lst_srcHitCntRange, elt) {
-    u32 srcbuf_addridx = elt->rstart - hitMapAvalSrchCtxt->srcAddrStart;
-    for(; srcbuf_addridx < (hitMapAvalSrchCtxt->numOfSrcAddr-1); /* srcbuf_addridx++ */) {
+    u32 addridx_start, addridx_end;
+    compt_addridx_range(&addridx_start, &addridx_end, elt->rstart, elt->rend,
+                        hitMapAvalSrchCtxt->hitMapAddr2NodeAry, hitMapAvalSrchCtxt->numOfSrcAddr);
+    // printf("addridx start:%u end:%u - range: start:%x end:%x\n", addridx_start, addridx_end, elt->rstart, elt->rend);
+    assert(addridx_end >= addridx_start && addridx_end < hitMapAvalSrchCtxt->numOfSrcAddr);
+
+    u32 srcbuf_addridx = addridx_start;
+    for(; srcbuf_addridx <= addridx_end; /* srcbuf_addridx++ */) {
       // No need to search last addr
       HitMapAddr2NodeItem *srcnode = hitMapAvalSrchCtxt->hitMapAddr2NodeAry[srcbuf_addridx];
       u32 block_sz = 1;      // block sz s.t. continuous src nodes propagate to same destinations (considered blocks)
@@ -787,8 +810,8 @@ search_inoutbuf_avalnch_subrange(HitMapAvalSearchCtxt *hitMapAvalSrchCtxt)
       for(; srcnode != NULL; srcnode = srcnode->hh_hmAddr2NodeItem.next) {
         if(has_enough_dstnode(srcnode, hitMapAvalSrchCtxt->minBufferSz) ) {
           printf("-------------------- --------------------\n");
-          printf("detect avalanche: begin node: addr:%x - version:%u\n", srcnode->node->addr, srcnode->node->version);
-          // printTime("");
+          printf("detect avalanche: begin node: addr:%x - version:%u\n",
+                 srcnode->node->addr, srcnode->node->version);
           search_srcnode_avalanche(srcnode, srcbuf_addridx+1, &block_sz, hitMapAvalSrchCtxt);
 
           if(block_sz > max_block_sz)
@@ -846,6 +869,38 @@ analyze_hitcnt_range(
   return lst_head;
 }
 
+static void
+compt_addridx_range(
+    u32 *addridx_start,
+    u32 *addridx_end,
+    u32 rangestart,
+    u32 rangeend,
+    HitMapAddr2NodeItem **hitMapAddr2NodeAry,
+    u32 numOfAddr)
+{
+  u32 addridx = 0;
+  *addridx_start = 0;
+  *addridx_end = 0;
+  int flagset = 0;
+  if(hitMapAddr2NodeAry != NULL) {
+    // printf("range: start:%x end:%x\n", rangestart, rangeend);
+    for(; addridx < numOfAddr; addridx++) {
+      HitMapAddr2NodeItem *itm = hitMapAddr2NodeAry[addridx];
+      // printf("item address:%x\n", itm->addr);
+      if(itm->addr >= rangestart && flagset == 0) {
+        *addridx_start = addridx;
+        flagset = 1;
+      }
+
+      if(itm->node->addr + itm->node->bytesz >= rangeend) {
+        *addridx_end = addridx;
+        break;
+      }
+    }
+  }
+}
+
+
 static bool
 isSameContRange(ContHitCntRange *l, ContHitCntRange *r)
 {
@@ -891,7 +946,7 @@ print_conthitcnt_range(ContHitCntRange *lst, char *s)
     ContHitCntRange *temp;
     printf("%s\n", s);
     LL_FOREACH(lst, temp) {
-      printf("range: start:%x end:%x sz:%u\n", 
+      printf("start:%x end:%x sz:%u\n",
              temp->rstart, temp->rend, temp->rend - temp->rstart);
     }
   }
@@ -949,6 +1004,7 @@ search_srcnode_avalanche(
   bool has_print_rslt = false;
 
   // saves the old avalanche src and dst buffer ranges
+  u32 srcbuf_oldstart, srcbuf_oldend;
   ContHitCntRange *lst_oldsrc_avalnch = NULL;
   ContHitCntRange *lst_olddst_avalnch = NULL;
 
@@ -973,7 +1029,7 @@ search_srcnode_avalanche(
       if(!has_print_rslt){
         if(stack_srcnode_cnt >= 2 && stack_srcnode_cnt >= *block_sz_detect) {
           display_avalanche(stack_srcnode_top, oldintersect_ra,
-                            &lst_oldsrc_avalnch, &lst_olddst_avalnch, hitMapAvalSrchCtxt->minBufferSz);
+                            &srcbuf_oldstart, &srcbuf_oldend, &lst_olddst_avalnch, hitMapAvalSrchCtxt->minBufferSz);
           *block_sz_detect = stack_srcnode_cnt;  // set to max num src node has avalanche
         }
       }
@@ -1017,7 +1073,7 @@ search_srcnode_avalanche(
       if(!has_print_rslt){
         if(stack_srcnode_cnt >= 2 && stack_srcnode_cnt >= *block_sz_detect) {
           display_avalanche(stack_srcnode_top, oldintersect_ra,
-                            &lst_olddst_avalnch, &lst_olddst_avalnch, hitMapAvalSrchCtxt->minBufferSz);
+                            &srcbuf_oldstart, &srcbuf_oldend, &lst_olddst_avalnch, hitMapAvalSrchCtxt->minBufferSz);
           *block_sz_detect = stack_srcnode_cnt;  // set to max num src node has avalanche
         }
         has_print_rslt = true;
@@ -1127,36 +1183,38 @@ static void
 display_avalanche(
     StackHitMapAddr2NodeItem *stack_srcbuf_top,
     RangeArray *new_dst_ra,
-    ContHitCntRange **lst_oldsrc_avalnch,
+    u32 *srcbuf_oldstart,
+    u32 *srcbuf_oldend,
     ContHitCntRange **lst_olddst_avalnch,
     u32 min_bufsz)
 {
   ContHitCntRange *lst_newsrc = NULL, *lst_newdst = NULL;
 
-  u32 new_srcbuf_start, new_srcbuf_end;
+  u32 srcbuf_newstart, srcbuf_newend;
   u32 new_dstbuf_start, new_dstbuf_end;
 
-  lst_newsrc = compt_avalnch_srcbuf_range(stack_srcbuf_top, min_bufsz);
+  compt_avalnch_srcbuf(stack_srcbuf_top, min_bufsz, &srcbuf_newstart, &srcbuf_newend);
   lst_newdst = compt_avalnch_dstbuf_range(new_dst_ra, min_bufsz);
 
   // avoid duplicate printing out avalanche results
-  if(lst_newsrc != NULL && lst_newdst != NULL) {
-    if(!isSameContRange(*lst_oldsrc_avalnch, lst_newsrc) ||
-       !isSameContRange(*lst_olddst_avalnch, lst_newdst) ) {
-       printf("--------------------\n");
-       print_conthitcnt_range(lst_newsrc, "src buf:");
-       print_conthitcnt_range(lst_newdst, "dst buf:");
+  if(srcbuf_newend - srcbuf_newstart >= min_bufsz &&
+     lst_newdst != NULL) {
+    if(*srcbuf_oldstart == srcbuf_newstart &&
+       *srcbuf_oldend == srcbuf_newend &&
+       isSameContRange(*lst_olddst_avalnch, lst_newdst) ) {
+    }
+    else {
+      printf("--------------------\navalanche found:\n");
+      printf("src buf:\nstart:%x end:%x sz:%u\n",
+          srcbuf_newstart, srcbuf_newend, srcbuf_newend-srcbuf_newstart);
+      print_conthitcnt_range(lst_newdst, "dst buf:");
     }
   }
-  delContRange(lst_oldsrc_avalnch);
   delContRange(lst_olddst_avalnch);
 
-  // printf("lst_oldsrc_avalnch:%p - lst_newsrc:%p\n", *lst_oldsrc_avalnch, lst_newsrc);
-  // printf("lst_olddst_avalnch:%p - lst_newdst:%p\n", *lst_olddst_avalnch, lst_newdst);
-  (*lst_oldsrc_avalnch) = lst_newsrc;
+  *srcbuf_oldstart = srcbuf_newstart;
+  *srcbuf_oldend = srcbuf_newend;
   (*lst_olddst_avalnch) = lst_newdst;
-  // printf("lst_oldsrc_avalnch:%p - lst_newsrc:%p\n", *lst_oldsrc_avalnch, lst_newsrc);
-  // printf("lst_olddst_avalnch:%p - lst_newdst:%p\n", *lst_olddst_avalnch, lst_newdst);
 
   // printf("--------------------\n");
   // hitMapAddr2NodeItemDispRange(stack_srcbuf_top, "avalanche found:\nsrc buf:");
@@ -1191,6 +1249,27 @@ compt_avalnch_srcbuf_range(
     }
   }
   return lst;
+}
+
+static void
+compt_avalnch_srcbuf(
+    StackHitMapAddr2NodeItem *stack_srcbuf_top,
+    u32 min_bufsz,
+    u32 *bufstart,
+    u32 *bufend)
+{
+  StackHitMapAddr2NodeItem *t;
+  HitMapNode *n;
+
+  if(stack_srcbuf_top != NULL) {
+    t = stack_srcbuf_top;
+    n = t->hitMapAddr2NodeItem->node;
+    *bufend = n->addr + n->bytesz;
+
+    while(t != NULL && t->next != NULL) { t = t->next; }
+    n = t->hitMapAddr2NodeItem->node; // gets last node
+    *bufstart = n->addr;
+  }
 }
 
 static ContHitCntRange *
