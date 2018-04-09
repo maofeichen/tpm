@@ -940,8 +940,10 @@ updateHMNodeHitCnt(
     // printf("HMNode: addr:%x version:%u byteSz:%u inHitCnt:%u outHitCnt:%u\n",
     //        node->addr, node->version, node->bytesz, node->hitcntIn, node->hitcntOut);
 
-    assert(node->addr >= bufStart);
-    assert(node->addr + node->bytesz <= bufEnd);
+    // assert(node->addr >= bufStart);
+    // assert(node->addr + node->bytesz <= bufEnd);
+    if(node->addr < bufStart || node->addr + node->bytesz > bufEnd)
+      return 0;
 
     u32 byteIdxStart = node->addr - bufStart;
     for(u32 byteSz = 0; byteSz < node->bytesz; byteSz++ ) {
