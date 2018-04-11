@@ -406,7 +406,7 @@ detect_HM_avalanche_hitmapbuf(
   }
 
   if(searchCnt > 0)
-    printf("---------------\navg build 2-level hash table time:%.1f microseconds\n", totalElapse/searchCnt);
+    printf("---------------\navg avalanche detection time:%.1f microseconds\n", totalElapse/searchCnt);
 }
 
 static void
@@ -468,17 +468,18 @@ detect_HM_inoutbuf_HMBuf(
 
   printTimeMicroStart();
   if(search_HM_inoutbuf_propgt(hitMapAvalSrchCtxt, hitMap) >= 0) {
-  create_HMBuf_aggrgt_hitCntAry(hitMapAvalSrchCtxt->srcHitMapBuf->headNode, srcbuf,
-                                hitMapAvalSrchCtxt->srcAddrStart, hitMapAvalSrchCtxt->srcAddrEnd, hitMapAvalSrchCtxt);
-  create_HMBuf_aggrgt_hitCntAry(hitMapAvalSrchCtxt->dstHitMapBuf->headNode, dstbuf,
-                                hitMapAvalSrchCtxt->dstAddrStart, hitMapAvalSrchCtxt->dstAddrEnd, hitMapAvalSrchCtxt);
-  // print_HMBuf_aggrgt_hitCntAry(srcbuf, hitMapAvalSrchCtxt->srcAddrOutHitCnt,
-  //                              hitMapAvalSrchCtxt->srcAddrStart, hitMapAvalSrchCtxt->srcAddrEnd);
-  // print_HMBuf_aggrgt_hitCntAry(dstbuf, hitMapAvalSrchCtxt->dstAddrINHitCnt,
-  //                              hitMapAvalSrchCtxt->dstAddrStart, hitMapAvalSrchCtxt->dstAddrEnd);
-
-  search_inoutbuf_avalnch(hitMapAvalSrchCtxt);
-  // totalTraverse = srchHitMapPropgtInOutReverse(hitMapAvalSrchCtxt, hitMap);
+    printTime("Finish building 2Level hash table");
+    create_HMBuf_aggrgt_hitCntAry(hitMapAvalSrchCtxt->srcHitMapBuf->headNode, srcbuf,
+        hitMapAvalSrchCtxt->srcAddrStart, hitMapAvalSrchCtxt->srcAddrEnd, hitMapAvalSrchCtxt);
+    create_HMBuf_aggrgt_hitCntAry(hitMapAvalSrchCtxt->dstHitMapBuf->headNode, dstbuf,
+        hitMapAvalSrchCtxt->dstAddrStart, hitMapAvalSrchCtxt->dstAddrEnd, hitMapAvalSrchCtxt);
+    // print_HMBuf_aggrgt_hitCntAry(srcbuf, hitMapAvalSrchCtxt->srcAddrOutHitCnt,
+    //                              hitMapAvalSrchCtxt->srcAddrStart, hitMapAvalSrchCtxt->srcAddrEnd);
+    // print_HMBuf_aggrgt_hitCntAry(dstbuf, hitMapAvalSrchCtxt->dstAddrINHitCnt,
+    //                              hitMapAvalSrchCtxt->dstAddrStart, hitMapAvalSrchCtxt->dstAddrEnd);
+    printTime("Finish creating aggregate hit count array");
+    search_inoutbuf_avalnch(hitMapAvalSrchCtxt);
+    // totalTraverse = srchHitMapPropgtInOutReverse(hitMapAvalSrchCtxt, hitMap);
   }
   printTimeMicroEnd(totalElapse);
 }
@@ -579,8 +580,8 @@ search_HM_inoutbuf_propgt(
       HASH_SRT(hh_hmAddr2NodeItem, avalnch_HM_ctxt->hitMapAddr2NodeAry[srcAddrIdx], cmpHitMapAddr2NodeItem);
       // printHitMap2LAddr2NodeItem(avalnch_HM_ctxt->hitMapAddr2NodeAry[srcAddrIdx]);
 
-      if(srcbuf_head->rightNBR == NULL)
-        assert(srcbuf_head->addr + srcbuf_head->bytesz == srcbuf_eaddr);
+      // if(srcbuf_head->rightNBR == NULL)
+      //   assert(srcbuf_head->addr + srcbuf_head->bytesz == srcbuf_eaddr);
 
       srcbuf_head = srcbuf_head->rightNBR;
       srcAddrIdx++;
@@ -792,35 +793,36 @@ search_inoutbuf_avalnch_subrange(HitMapAvalSearchCtxt *hitMapAvalSrchCtxt)
 
   if(!has_valid_range(lst_srcHitCntRange, lst_dstHitCntRange) )
     return;
+  printTime("Finish analyzing aggregate hit count array");
+  // LL_FOREACH(lst_srcHitCntRange, elt) {
+  //   u32 addridx_start, addridx_end;
+  //   compt_addridx_range(&addridx_start, &addridx_end, elt->rstart, elt->rend,
+  //                       hitMapAvalSrchCtxt->hitMapAddr2NodeAry, hitMapAvalSrchCtxt->numOfSrcAddr);
+  //   // printf("addridx start:%u end:%u - range: start:%x end:%x\n", addridx_start, addridx_end, elt->rstart, elt->rend);
+  //   assert(addridx_end >= addridx_start && addridx_end < hitMapAvalSrchCtxt->numOfSrcAddr);
 
-  LL_FOREACH(lst_srcHitCntRange, elt) {
-    u32 addridx_start, addridx_end;
-    compt_addridx_range(&addridx_start, &addridx_end, elt->rstart, elt->rend,
-                        hitMapAvalSrchCtxt->hitMapAddr2NodeAry, hitMapAvalSrchCtxt->numOfSrcAddr);
-    // printf("addridx start:%u end:%u - range: start:%x end:%x\n", addridx_start, addridx_end, elt->rstart, elt->rend);
-    assert(addridx_end >= addridx_start && addridx_end < hitMapAvalSrchCtxt->numOfSrcAddr);
+  //   u32 srcbuf_addridx = addridx_start;
+  //   for(; srcbuf_addridx <= addridx_end; /* srcbuf_addridx++ */) {
+  //     // No need to search last addr
+  //     HitMapAddr2NodeItem *srcnode = hitMapAvalSrchCtxt->hitMapAddr2NodeAry[srcbuf_addridx];
+  //     u32 block_sz = 1;      // block sz s.t. continuous src nodes propagate to same destinations (considered blocks)
+  //     u32 max_block_sz = 1;  // max block sz found for all version nodes of same address
 
-    u32 srcbuf_addridx = addridx_start;
-    for(; srcbuf_addridx <= addridx_end; /* srcbuf_addridx++ */) {
-      // No need to search last addr
-      HitMapAddr2NodeItem *srcnode = hitMapAvalSrchCtxt->hitMapAddr2NodeAry[srcbuf_addridx];
-      u32 block_sz = 1;      // block sz s.t. continuous src nodes propagate to same destinations (considered blocks)
-      u32 max_block_sz = 1;  // max block sz found for all version nodes of same address
+  //     for(; srcnode != NULL; srcnode = srcnode->hh_hmAddr2NodeItem.next) {
+  //       if(has_enough_dstnode(srcnode, hitMapAvalSrchCtxt->minBufferSz) ) {
+  //         printf("-------------------- --------------------\n");
+  //         printf("detect avalanche: begin node: addr:%x - version:%u\n",
+  //                srcnode->node->addr, srcnode->node->version);
+  //         search_srcnode_avalanche(srcnode, srcbuf_addridx+1, &block_sz, hitMapAvalSrchCtxt);
 
-      for(; srcnode != NULL; srcnode = srcnode->hh_hmAddr2NodeItem.next) {
-        if(has_enough_dstnode(srcnode, hitMapAvalSrchCtxt->minBufferSz) ) {
-          printf("-------------------- --------------------\n");
-          printf("detect avalanche: begin node: addr:%x - version:%u\n",
-                 srcnode->node->addr, srcnode->node->version);
-          search_srcnode_avalanche(srcnode, srcbuf_addridx+1, &block_sz, hitMapAvalSrchCtxt);
-
-          if(block_sz > max_block_sz)
-            max_block_sz = block_sz;
-        }
-      }
-      srcbuf_addridx += max_block_sz;
-    }
-  }
+  //         if(block_sz > max_block_sz)
+  //           max_block_sz = block_sz;
+  //       }
+  //     }
+  //     srcbuf_addridx += max_block_sz;
+  //   }
+  // }
+  printTime("Finish detect avalanche");
 }
 
 
@@ -912,8 +914,8 @@ isSameContRange(ContHitCntRange *l, ContHitCntRange *r)
     if(l_cnt == r_cnt) {
       while(l != NULL && r != NULL) {
         if(l->rstart != r->rstart || l->rend != r->rend) {
-          printf("l: start:%x end:%x -r: start:%x end:%x\n",
-                 l->rstart, l->rend, r->rstart, r->rend);
+          // printf("l: start:%x end:%x -r: start:%x end:%x\n",
+          //        l->rstart, l->rend, r->rstart, r->rend);
           return false;
         }
         l = l->next;

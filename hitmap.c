@@ -175,7 +175,7 @@ buildHitMap(TPMContext *tpm, TPMBufContext *tpmBufCtxt)
     i++;
   }
   printTime("Finish building HitMap");
-  updateHitMapBufContext(hitMap);
+  updateHitMapBufContext(hitMap);   // create HitMap buffer hash
   return hitMap;
 }
 
@@ -285,6 +285,7 @@ analyzeHitMapBuf(HitMapContext *hitMap)
     if(bufFound != NULL)
       continue;
 
+    // printf("-----\n");
     compHitMapBufStat(hitMapNode, &baddr, &eaddr, &minseq, &maxseq,
         &numOfAddr, &hitMapHeadNode, &totalNode);
     if(eaddr - baddr >= 8) { // TODO: add 8 to hitMap context
@@ -292,8 +293,10 @@ analyzeHitMapBuf(HitMapContext *hitMap)
           numOfAddr, hitMapHeadNode, totalNode);
       HASH_FIND(hh_hmBufHash, hitMapBufHash, &baddr, 4, bufFound);
       if(bufFound == NULL) {
+        // printOneHitMapBufHash(bufHash);
         HASH_ADD(hh_hmBufHash, hitMapBufHash, baddr, 4, bufHash);
-      } else { free(bufHash); bufHash = NULL; }
+      }
+      else { free(bufHash); bufHash = NULL; }
     }
   }
   HASH_SRT(hh_hmBufHash, hitMapBufHash, cmpHitMapBufHashNode);
@@ -497,7 +500,7 @@ compHitMapBufStat(
     u32 *totalNode)
 {
   HitMapNode *b, *e, *lastend;
-
+  u32 maxEndAddr;
   assert(hmNode != NULL);
 
   *totalNode = 0;
@@ -507,6 +510,7 @@ compHitMapBufStat(
   // while(b->leftNBR != NULL) { b = b->leftNBR; }; // traverse to left most
   b = getLeftMost(hmNode);
   *baddr = b->addr;
+  maxEndAddr = b->addr;
   *firstnode = b;
   getFirstVerNode(firstnode);
 
@@ -518,12 +522,16 @@ compHitMapBufStat(
     u32 ver = e->version;
     int seqN = 0;
     do {
+      // printHitMapNodeLit(e);
       seqN = e->lastUpdateTS;
       if(*minseq > seqN)
         *minseq = seqN;
 
       if(*maxseq < seqN)
         *maxseq = seqN;
+
+      if(e->addr + e->bytesz > maxEndAddr)
+        maxEndAddr = e->addr + e->bytesz;
 
       *totalNode += 1;
       e = e->nextVersion;
@@ -533,7 +541,12 @@ compHitMapBufStat(
     e = e->rightNBR;
     (*numOfAddr)++;
   }
-  *eaddr = lastend->addr + lastend->bytesz;
+  if(lastend->addr + lastend->bytesz > maxEndAddr)
+    maxEndAddr = lastend->addr + lastend->bytesz;
+
+  *eaddr = maxEndAddr;
+  // *eaddr = lastend->addr + lastend->bytesz;
+  // printHitMapNodeLit(lastend);
 }
 
 static HitMapNode *
@@ -858,9 +871,9 @@ assignHitMapBufID(HitMapBufHash *headBuf)
         headNode->bufId = bufID;
       } while (headNode->version != ver);
       headNode = headNode->rightNBR;
-    } while (headNode->rightNBR != NULL);
+    } while (headNode != NULL);
 
-    assert( (headNode->addr + headNode->bytesz) == headBufHash->eaddr);
+    // assert( (headNode->addr + headNode->bytesz) == headBufHash->eaddr);
     bufID++;
   }
 }
@@ -899,21 +912,24 @@ createOneHMBufHitCntAry(
     assert(hitMap->inHitCntBufAry != NULL);
     assert(hitMap->outHitCntBufAry != NULL);
 
+    // printf("-----\n");
+    // printOneHitMapBufHash(buf);
     // iterates each version of each address
     node = buf->headNode;
     assert(node->addr == buf->baddr);
     while(node != NULL) {
       u32 ver = node->version;
       do {
-        // printHitMapNodeLit(node);
+        /// printHitMapNodeLit(node);
+        assert(node->addr >= buf->baddr && node->addr + node->bytesz <= buf->eaddr);
         if(updateHMNodeHitCnt(node, hitMap->inHitCntBufAry[bufIdx], hitMap->outHitCntBufAry[bufIdx], buf->baddr, buf->eaddr) < 0)
           goto error;
 
         node = node->nextVersion;
       } while(ver != node->version);
 
-      if(node->rightNBR == NULL)
-        assert(node->addr + node->bytesz == buf->eaddr);
+      // if(node->rightNBR == NULL)
+      //   assert(node->addr + node->bytesz == buf->eaddr);
 
       node = node->rightNBR;
     }
@@ -938,8 +954,6 @@ updateHMNodeHitCnt(
     // printf("HMNode: addr:%x version:%u byteSz:%u inHitCnt:%u outHitCnt:%u\n",
     //        node->addr, node->version, node->bytesz, node->hitcntIn, node->hitcntOut);
 
-    // assert(node->addr >= bufStart);
-    // assert(node->addr + node->bytesz <= bufEnd);
     if(node->addr < bufStart || node->addr + node->bytesz > bufEnd)
       return 0;
 
