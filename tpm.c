@@ -1138,8 +1138,6 @@ update_adjacent(struct TPMContext *tpm, union TPMNode *n, struct Mem2NodeHT **l,
         else { return -1; }
       }
       else { return -1; }
-
-
     }
 
     if(*r != NULL){

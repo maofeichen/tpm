@@ -733,10 +733,12 @@ printHitMapBufHash(HitMapBufHash *hitMapBufHash)
   maxNode = hitMapBufHash->totalNode;
 
   HASH_ITER(hh_hmBufHash, hitMapBufHash, buf, tmp) {
-    printf("begin:0x%-8x end:0x%-8x sz:%-4u numofaddr:%-4u minseq:%-7d maxseq:%-7d diffseq:%-7d bufID:%u total nodes:%u\n",
+    printf("-----\nbegin:0x%-8x end:0x%-8x sz:%-4u numofaddr:%-4u minseq:%-7d maxseq:%-7d diffseq:%-7d bufID:%u total nodes:%u\n",
         buf->baddr, buf->eaddr, buf->eaddr - buf->baddr,
         buf->numOfAddr, buf->minseq, buf->maxseq, (buf->maxseq - buf->minseq),
         buf->headNode->bufId, buf->totalNode);
+    assert(isAllHMNodeSameBufID(buf->headNode->bufId, buf->headNode) == true);
+    print_HM_all_buf_node(buf->headNode);
 
     if(buf->totalNode < minNode)
       minNode = buf->totalNode;
@@ -864,15 +866,15 @@ assignHitMapBufID(HitMapBufHash *headBuf)
     HitMapNode *headNode = headBufHash->headNode;
     assert(headBufHash->baddr == headNode->addr);
 
-    do {
+    while(headNode != NULL) {
       u32 ver = headNode->version;
-
       do {
         headNode->bufId = bufID;
-      } while (headNode->version != ver);
-      headNode = headNode->rightNBR;
-    } while (headNode != NULL);
+        headNode = headNode->nextVersion;
+      } while(ver != headNode->version);
 
+      headNode = headNode->rightNBR;
+    }
     // assert( (headNode->addr + headNode->bytesz) == headBufHash->eaddr);
     bufID++;
   }

@@ -179,6 +179,9 @@ createHitMapBufNode2NodeHT(TPMNode2 *srcnode, HitMapNode *hitMapNode);
 IntrtmdtNode2HitMapNodeHashTalbe *
 createIntermediateHitMapNode2HT(TPMNode1 *srcnode, HitMapNode *hitMapNode);
 
+bool
+isAllHMNodeSameBufID(u32 bufID, HitMapNode *headNode);
+
 void
 printHitMapNode(HitMapNode *node);
 

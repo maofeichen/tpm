@@ -619,6 +619,24 @@ attachReverseHitTransition(HitMapNode *dstHitMapNode, HitTransition *htrans)
 }
 
 
+bool
+isAllHMNodeSameBufID(u32 bufID, HitMapNode *headNode)
+{
+  while(headNode != NULL) {
+    u32 ver = headNode->version;
+
+    do {
+      if(headNode->bufId != bufID) {
+        printHitMapNodeLit(headNode);
+        return false;
+      }
+      headNode = headNode->nextVersion;
+    } while(ver != headNode->version);
+    headNode = headNode->rightNBR;
+  }
+  return true;
+}
+
 void
 printHitMapNode(HitMapNode *node)
 {
