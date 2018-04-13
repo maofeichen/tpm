@@ -733,12 +733,12 @@ printHitMapBufHash(HitMapBufHash *hitMapBufHash)
   maxNode = hitMapBufHash->totalNode;
 
   HASH_ITER(hh_hmBufHash, hitMapBufHash, buf, tmp) {
-    printf("-----\nbegin:0x%-8x end:0x%-8x sz:%-4u numofaddr:%-4u minseq:%-7d maxseq:%-7d diffseq:%-7d bufID:%u total nodes:%u\n",
+    printf("begin:0x%-8x end:0x%-8x sz:%-4u numofaddr:%-4u minseq:%-7d maxseq:%-7d diffseq:%-7d bufID:%u total nodes:%u\n",
         buf->baddr, buf->eaddr, buf->eaddr - buf->baddr,
         buf->numOfAddr, buf->minseq, buf->maxseq, (buf->maxseq - buf->minseq),
         buf->headNode->bufId, buf->totalNode);
     assert(isAllHMNodeSameBufID(buf->headNode->bufId, buf->headNode) == true);
-    print_HM_all_buf_node(buf->headNode);
+    // print_HM_all_buf_node(buf->headNode);
 
     if(buf->totalNode < minNode)
       minNode = buf->totalNode;

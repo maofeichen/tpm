@@ -55,7 +55,7 @@ int main(int argc, char const *argv[])
           analyze_aggrgt_hitcntary(hitMap, bufType, bufHitCntArray, 64);
 
           compBufHitCntArrayStat(hitMap, bufType, bufHitCntArray, 64);      // 64 bytes
-          detectHitMapAvalanche(hitMap, tpm, bufType, bufHitCntArray, 64);  // TODO: flag forward or reverse build
+          // detectHitMapAvalanche(hitMap, tpm, bufType, bufHitCntArray, 64);  // TODO: flag forward or reverse build
           delBufHitCntArray(bufHitCntArray);
         }
         else { fprintf(stderr, "build buffer hit count array error\n"); }
