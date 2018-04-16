@@ -21,7 +21,7 @@ int main(int argc, char const *argv[])
   HitMapContext *hitMap;
   int numOfTPMNode;
   TPMBufContext *tpmBufCtxt;
-  u8 *bufHitCntArray;
+  u8 *bufHitCntArray = NULL;
 
   if(argc <= 1){
     usage();
@@ -49,16 +49,17 @@ int main(int argc, char const *argv[])
         // compReverseHitMapStat(hitMap);
 
         BufType bufType = HitMapBuf;
-        if( (bufHitCntArray = buildBufHitCntArray(hitMap, bufType) ) != NULL) {
-          createHitMapBuftHitCnt(hitMap);   // creates IN/OUT aggregate hit count array for each HitMap buffer
-          // printHitMapBufHitCntAry(hitMap);
-          analyze_aggrgt_hitcntary(hitMap, bufType, bufHitCntArray, 64);
+        detectHitMapAvalanche(hitMap, tpm, bufType, bufHitCntArray, 64);  // TODO: flag forward or reverse build
+        // if( (bufHitCntArray = buildBufHitCntArray(hitMap, bufType) ) != NULL) {
+        //   createHitMapBuftHitCnt(hitMap);   // creates IN/OUT aggregate hit count array for each HitMap buffer
+        //   // printHitMapBufHitCntAry(hitMap);
+        //   analyze_aggrgt_hitcntary(hitMap, bufType, bufHitCntArray, 64);
 
-          compBufHitCntArrayStat(hitMap, bufType, bufHitCntArray, 64);      // 64 bytes
-          // detectHitMapAvalanche(hitMap, tpm, bufType, bufHitCntArray, 64);  // TODO: flag forward or reverse build
-          delBufHitCntArray(bufHitCntArray);
-        }
-        else { fprintf(stderr, "build buffer hit count array error\n"); }
+        //   compBufHitCntArrayStat(hitMap, bufType, bufHitCntArray, 64);      // 64 bytes
+        //   detectHitMapAvalanche(hitMap, tpm, bufType, bufHitCntArray, 64);  // TODO: flag forward or reverse build
+        //   delBufHitCntArray(bufHitCntArray);
+        // }
+        // else { fprintf(stderr, "build buffer hit count array error\n"); }
 
         delTPMBufContext(hitMap->tpmBufCtxt);
         delHitMapBufHitCnt(hitMap);

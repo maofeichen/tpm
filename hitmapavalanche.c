@@ -54,6 +54,12 @@ detect_HM_avalanche_hitmapbuf(
     u32 avalanche_threashold);
 
 static void
+detect_HM_avalnch_HMBuf_noHitCntAry(
+    HitMapContext *hitMap,
+    TPMContext *tpm,
+    BufType bufType);
+
+static void
 detectHitMapAvalInOut(
     HitMapAvalSearchCtxt *hitMapAvalSrchCtxt,
     HitMapContext *hitMap,
@@ -214,23 +220,24 @@ detectHitMapAvalanche(
       detect_HM_avalanche_hitmapbuf(hitMap, tpm, buf_type, buf_hitcnt_ary, avalanche_threashold);
   }
   else {
-    numOfBuf = hitMap->numOfBuf;
-    for(srcBufIdx = 0; srcBufIdx < numOfBuf-1; srcBufIdx++) {
-      for(dstBufIdx = srcBufIdx + 1; dstBufIdx < numOfBuf; dstBufIdx++) {
-        srcTPMBuf = getTPMBuf(hitMap->tpmBuf, srcBufIdx);
-        dstTPMBuf = getTPMBuf(hitMap->tpmBuf, dstBufIdx);
+    detect_HM_avalnch_HMBuf_noHitCntAry(hitMap, tpm, buf_type);
+    // numOfBuf = hitMap->numOfBuf;
+    // for(srcBufIdx = 0; srcBufIdx < numOfBuf-1; srcBufIdx++) {
+    //   for(dstBufIdx = srcBufIdx + 1; dstBufIdx < numOfBuf; dstBufIdx++) {
+    //     srcTPMBuf = getTPMBuf(hitMap->tpmBuf, srcBufIdx);
+    //     dstTPMBuf = getTPMBuf(hitMap->tpmBuf, dstBufIdx);
 
-        hitMapAvalSrchCtxt = initHitMapAvalSearchCtxt(srcBufIdx, srcTPMBuf, dstBufIdx, dstTPMBuf, tpm->minBufferSz);
-        detectHitMapAvalInOut(hitMapAvalSrchCtxt, hitMap, &totalElapse);
-        freeHitMapAvalSearchCtxt(hitMapAvalSrchCtxt);
+    //     hitMapAvalSrchCtxt = initHitMapAvalSearchCtxt(srcBufIdx, srcTPMBuf, dstBufIdx, dstTPMBuf, tpm->minBufferSz);
+    //     detectHitMapAvalInOut(hitMapAvalSrchCtxt, hitMap, &totalElapse);
+    //     freeHitMapAvalSearchCtxt(hitMapAvalSrchCtxt);
 
-        searchCnt++;
-      }
-      break;  // Detects first buffer to all other buffers
-    }
+    //     searchCnt++;
+    //   }
+    //   break;  // Detects first buffer to all other buffers
+    // }
 
-    if(searchCnt > 0)
-      printf("---------------\navg build 2-level hash table time:%.1f microseconds\n", totalElapse/searchCnt);
+    // if(searchCnt > 0)
+    //   printf("---------------\navg build 2-level hash table time:%.1f microseconds\n", totalElapse/searchCnt);
   }
 }
 
@@ -407,6 +414,70 @@ detect_HM_avalanche_hitmapbuf(
 
   if(searchCnt > 0)
     printf("---------------\navg avalanche detection time:%.1f microseconds\n", totalElapse/searchCnt);
+}
+
+static void
+detect_HM_avalnch_HMBuf_noHitCntAry(
+    HitMapContext *hitMap,
+    TPMContext *tpm,
+    BufType bufType)
+// Temporary avalanche detect function. Based on the ground truth of large size
+// log, the 2D hit count array misses legitimate buffer pairs. So uses this function
+// to detect avalanche without 2D hit count array.
+// We know the dst buffer, so we brute-force each buffer as potential src buffer.
+{
+  u32 srcIdx, dstIdx1, dstIdx2;
+  HitMapAvalSearchCtxt *hitMapAvalSrchCtxt;
+
+  double totalElapse = 0;
+  u32 searchCnt = 0;
+
+  HitMapBufHash *src;
+  HitMapBufHash *dst;
+
+  // search 1st dst buffer
+  dstIdx1 = 6-1;
+  dst = get_hitmap_buf(hitMap->hitMapBufCtxt->hitMapBufHash, dstIdx1);
+  for(src = hitMap->hitMapBufCtxt->hitMapBufHash; src != NULL; src = src->hh_hmBufHash.next) {
+    u32 srcID = src->headNode->bufId;
+    u32 dstID = dst->headNode->bufId;
+    srcIdx = srcID - 1;
+    assert(dstID == 6);
+    if(srcID != dstID && 
+       src->minseq < dst->maxseq && 
+       (src->eaddr - src->baddr) >= 16) { /* 1. no need to search by it
+    self. 2. src buf seqN range must be smaller or overlap with dst seqN range. */
+      hitMapAvalSrchCtxt = init_HM_avalnch_ctxt_HMBuf(srcIdx, src, dstIdx1, dst, tpm->minBufferSz);
+      detect_HM_inoutbuf_HMBuf(hitMapAvalSrchCtxt, hitMap, &totalElapse);
+      freeHitMapAvalSearchCtxt(hitMapAvalSrchCtxt);
+
+      searchCnt++;
+    }
+  }
+
+  // searches 2nd dst buffer
+  dstIdx1 = 7-1;
+  dst = get_hitmap_buf(hitMap->hitMapBufCtxt->hitMapBufHash, dstIdx1);
+  for(src = hitMap->hitMapBufCtxt->hitMapBufHash; src != NULL; src = src->hh_hmBufHash.next) {
+    u32 srcID = src->headNode->bufId;
+    u32 dstID = dst->headNode->bufId;
+    srcIdx = srcID - 1;
+    assert(dstID == 7);
+    if(srcID != dstID &&
+       src->minseq < dst->maxseq &&
+       (src->eaddr - src->baddr) >= 16) { /* 1. no need to search by it
+    self. 2. src buf seqN range must be smaller or overlap with dst seqN range. */
+      hitMapAvalSrchCtxt = init_HM_avalnch_ctxt_HMBuf(srcIdx, src, dstIdx1, dst, tpm->minBufferSz);
+      detect_HM_inoutbuf_HMBuf(hitMapAvalSrchCtxt, hitMap, &totalElapse);
+      freeHitMapAvalSearchCtxt(hitMapAvalSrchCtxt);
+
+      searchCnt++;
+    }
+  }
+
+  if(searchCnt > 0)
+    printf("---------------\ntotal search pairs:%u - avg avalanche detection time:%.1f microseconds\n", 
+      searchCnt, totalElapse/searchCnt);
 }
 
 static void
@@ -753,25 +824,25 @@ search_inoutbuf_avalnch(HitMapAvalSearchCtxt *hitMapAvalSrchCtxt)
     search_inoutbuf_avalnch_subrange(hitMapAvalSrchCtxt);
   }
   else {
-    for(; srcbuf_addridx < (hitMapAvalSrchCtxt->numOfSrcAddr-1); /* srcbuf_addridx++ */) {
-      // No need to search last addr
-      HitMapAddr2NodeItem *srcnode = hitMapAvalSrchCtxt->hitMapAddr2NodeAry[srcbuf_addridx];
-      u32 block_sz = 1;      // block sz s.t. continuous src nodes propagate to same destinations (considered blocks)
-      u32 max_block_sz = 1;  // max block sz found for all version nodes of same address
+    // for(; srcbuf_addridx < (hitMapAvalSrchCtxt->numOfSrcAddr-1); /* srcbuf_addridx++ */) {
+    //   // No need to search last addr
+    //   HitMapAddr2NodeItem *srcnode = hitMapAvalSrchCtxt->hitMapAddr2NodeAry[srcbuf_addridx];
+    //   u32 block_sz = 1;      // block sz s.t. continuous src nodes propagate to same destinations (considered blocks)
+    //   u32 max_block_sz = 1;  // max block sz found for all version nodes of same address
 
-      for(; srcnode != NULL; srcnode = srcnode->hh_hmAddr2NodeItem.next) {
-        if(has_enough_dstnode(srcnode, hitMapAvalSrchCtxt->minBufferSz) ) {
-          printf("-------------------- --------------------\n");
-          printf("detect avalanche: begin node: addr:%x - version:%u\n", srcnode->node->addr, srcnode->node->version);
-          // printTime("");
-          search_srcnode_avalanche(srcnode, srcbuf_addridx+1, &block_sz, hitMapAvalSrchCtxt);
+    //   for(; srcnode != NULL; srcnode = srcnode->hh_hmAddr2NodeItem.next) {
+    //     if(has_enough_dstnode(srcnode, hitMapAvalSrchCtxt->minBufferSz) ) {
+    //       printf("-------------------- --------------------\n");
+    //       printf("detect avalanche: begin node: addr:%x - version:%u\n", srcnode->node->addr, srcnode->node->version);
+    //       // printTime("");
+    //       search_srcnode_avalanche(srcnode, srcbuf_addridx+1, &block_sz, hitMapAvalSrchCtxt);
 
-          if(block_sz > max_block_sz)
-            max_block_sz = block_sz;
-        }
-      }
-      srcbuf_addridx += max_block_sz;
-    }
+    //       if(block_sz > max_block_sz)
+    //         max_block_sz = block_sz;
+    //     }
+    //   }
+    //   srcbuf_addridx += max_block_sz;
+    // }
   }
 }
 
@@ -794,34 +865,36 @@ search_inoutbuf_avalnch_subrange(HitMapAvalSearchCtxt *hitMapAvalSrchCtxt)
   if(!has_valid_range(lst_srcHitCntRange, lst_dstHitCntRange) )
     return;
   printTime("Finish analyzing aggregate hit count array");
-  // LL_FOREACH(lst_srcHitCntRange, elt) {
-  //   u32 addridx_start, addridx_end;
-  //   compt_addridx_range(&addridx_start, &addridx_end, elt->rstart, elt->rend,
-  //                       hitMapAvalSrchCtxt->hitMapAddr2NodeAry, hitMapAvalSrchCtxt->numOfSrcAddr);
-  //   // printf("addridx start:%u end:%u - range: start:%x end:%x\n", addridx_start, addridx_end, elt->rstart, elt->rend);
-  //   assert(addridx_end >= addridx_start && addridx_end < hitMapAvalSrchCtxt->numOfSrcAddr);
 
-  //   u32 srcbuf_addridx = addridx_start;
-  //   for(; srcbuf_addridx <= addridx_end; /* srcbuf_addridx++ */) {
-  //     // No need to search last addr
-  //     HitMapAddr2NodeItem *srcnode = hitMapAvalSrchCtxt->hitMapAddr2NodeAry[srcbuf_addridx];
-  //     u32 block_sz = 1;      // block sz s.t. continuous src nodes propagate to same destinations (considered blocks)
-  //     u32 max_block_sz = 1;  // max block sz found for all version nodes of same address
+  LL_FOREACH(lst_srcHitCntRange, elt) {
+    u32 addridx_start, addridx_end;
+    compt_addridx_range(&addridx_start, &addridx_end, elt->rstart, elt->rend,
+                        hitMapAvalSrchCtxt->hitMapAddr2NodeAry, hitMapAvalSrchCtxt->numOfSrcAddr);
+    // printf("addridx start:%u end:%u - range: start:%x end:%x\n", addridx_start, addridx_end, elt->rstart, elt->rend);
+    assert(addridx_end >= addridx_start && addridx_end < hitMapAvalSrchCtxt->numOfSrcAddr);
 
-  //     for(; srcnode != NULL; srcnode = srcnode->hh_hmAddr2NodeItem.next) {
-  //       if(has_enough_dstnode(srcnode, hitMapAvalSrchCtxt->minBufferSz) ) {
-  //         printf("-------------------- --------------------\n");
-  //         printf("detect avalanche: begin node: addr:%x - version:%u\n",
-  //                srcnode->node->addr, srcnode->node->version);
-  //         search_srcnode_avalanche(srcnode, srcbuf_addridx+1, &block_sz, hitMapAvalSrchCtxt);
+    u32 srcbuf_addridx = addridx_start;
+    for(; srcbuf_addridx <= addridx_end; /* srcbuf_addridx++ */) {
+      // No need to search last addr
+      HitMapAddr2NodeItem *srcnode = hitMapAvalSrchCtxt->hitMapAddr2NodeAry[srcbuf_addridx];
+      u32 block_sz = 1;      // block sz s.t. continuous src nodes propagate to same destinations (considered blocks)
+      u32 max_block_sz = 1;  // max block sz found for all version nodes of same address
 
-  //         if(block_sz > max_block_sz)
-  //           max_block_sz = block_sz;
-  //       }
-  //     }
-  //     srcbuf_addridx += max_block_sz;
-  //   }
-  // }
+      for(; srcnode != NULL; srcnode = srcnode->hh_hmAddr2NodeItem.next) {
+        if(has_enough_dstnode(srcnode, hitMapAvalSrchCtxt->minBufferSz) ) {
+          printf("-------------------- --------------------\n");
+          printf("detect avalanche: begin node: addr:%x - version:%u\n",
+                 srcnode->node->addr, srcnode->node->version);
+          search_srcnode_avalanche(srcnode, srcbuf_addridx+1, &block_sz, hitMapAvalSrchCtxt);
+
+          if(block_sz > max_block_sz)
+            max_block_sz = block_sz;
+        }
+      }
+      srcbuf_addridx += max_block_sz;
+    }
+  }
+
   printTime("Finish detect avalanche");
 }
 
