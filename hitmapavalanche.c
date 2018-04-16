@@ -450,7 +450,7 @@ detect_HM_avalnch_HMBuf_noHitCntAry(
       hitMapAvalSrchCtxt = init_HM_avalnch_ctxt_HMBuf(srcIdx, src, dstIdx1, dst, tpm->minBufferSz);
       detect_HM_inoutbuf_HMBuf(hitMapAvalSrchCtxt, hitMap, &totalElapse);
       freeHitMapAvalSearchCtxt(hitMapAvalSrchCtxt);
-
+      printf("Finish searching %uth buf pair.\n", searchCnt);
       searchCnt++;
     }
   }
@@ -470,7 +470,7 @@ detect_HM_avalnch_HMBuf_noHitCntAry(
       hitMapAvalSrchCtxt = init_HM_avalnch_ctxt_HMBuf(srcIdx, src, dstIdx1, dst, tpm->minBufferSz);
       detect_HM_inoutbuf_HMBuf(hitMapAvalSrchCtxt, hitMap, &totalElapse);
       freeHitMapAvalSearchCtxt(hitMapAvalSrchCtxt);
-
+      printf("Finish searching %uth buf pair.\n", searchCnt);
       searchCnt++;
     }
   }
