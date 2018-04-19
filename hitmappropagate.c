@@ -1043,6 +1043,11 @@ updateBufHitCntArray(
           stackHMNodeTop->hmNode->hitcntOut += dstNode->bytesz;
           dstNode->hitcntIn += stackHMNodeTop->hmNode->bytesz;
 
+          /* Dbg: print out update hit count for a specific <src,dst> pair */
+          if(srcBufID == 6 && dstBufID == 7)
+            printf("update 2D hit count array: src id:%-4u - dst id:%-4u - val:%u\n",
+                   srcBufID, dstBufID, dstNode->bytesz);
+
           if(currVal + dstNode->bytesz <= 255) {
             bufHitCntAry[srcBufIdx * numOfBuf + dstBufIdx] += dstNode->bytesz;
             // printf("after update: bufHitCntAry:%p plus offset:%p val:%u\n",
