@@ -1,4 +1,5 @@
 #include <stdlib.h>
+
 #include "avalanche.h"
 #include "bufhitcnt.h"
 #include "env.h"
@@ -8,8 +9,7 @@
 #include "stat.h"
 #include "tpm.h"
 
-void
-usage()
+void usage()
 {
   printf("usage:\ttpm <log file path>\n");
 }
@@ -30,7 +30,7 @@ int main(int argc, char const *argv[])
 
   if((log = fopen(argv[1], "r") ) != NULL) {
     printf("open log: %s\n", argv[1]);
-    if((tpm = calloc(1, sizeof(struct TPMContext) ) ) != NULL) {
+    if((tpm = calloc(sizeof(struct TPMContext), 1) ) != NULL) {
       printf("alloc TPMContext: %zu MB\n", sizeof(struct TPMContext) / (1024*1024) );
       printTime("Before build TPM");
 
@@ -43,7 +43,6 @@ int main(int argc, char const *argv[])
         // benchTPMDFS(tpm);
 #endif
         tpmBufCtxt = initTPMBufContext(tpm);
-
         hitMap = buildHitMap(tpm, tpmBufCtxt);   // TODO: flag forward or reverse build
         compHitMapStat(hitMap);
         // compReverseHitMapStat(hitMap);
