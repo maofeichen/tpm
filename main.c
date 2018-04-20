@@ -53,8 +53,8 @@ int main(int argc, char const *argv[])
          * not include all legitimate pairs. Thus call detectHitMapAvalanche()
          * for temporary work around. */
         if( (bufHitCntArray = buildBufHitCntArray(hitMap, bufType) ) != NULL) {
-          // createHitMapBuftHitCnt(hitMap);   // creates IN/OUT aggregate hit count array for each HitMap buffer
-          // analyze_aggrgt_hitcntary(hitMap, bufType, bufHitCntArray, 64);
+          createHitMapBuftHitCnt(hitMap);   // creates IN/OUT aggregate hit count array for each HitMap buffer
+          analyze_aggrgt_hitcntary(hitMap, bufType, bufHitCntArray, 64);
           // printHitMapBufHitCntAry(hitMap);
 
           compBufHitCntArrayStat(hitMap, bufType, bufHitCntArray, 64);      // 64 bytes

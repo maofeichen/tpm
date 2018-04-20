@@ -173,7 +173,7 @@ compBufHitCntArrayStat(
     for (size_t c = 0; c < numOfBuf; c++) {
       u8 val = bufHitCntArray[r*numOfBuf + c];
       if(val >= byteThreashold) {
-        printf("2D hit count array: src id:%-4u - dst id:%-4u - hit count:%u\n", r+1, c+1, val);
+        // printf("2D hit count array: src id:%-4u - dst id:%-4u - hit count:%u\n", r+1, c+1, val);
         hitThreash++;
       }
     }
