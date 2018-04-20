@@ -60,6 +60,12 @@ detect_HM_avalnch_HMBuf_noHitCntAry(
     BufType bufType);
 
 static void
+detect_HM_avalnch_HMBuf_bruteforce(
+    HitMapContext *hitMap,
+    TPMContext *tpm,
+    BufType bufType);
+
+static void
 detectHitMapAvalInOut(
     HitMapAvalSearchCtxt *hitMapAvalSrchCtxt,
     HitMapContext *hitMap,
@@ -220,24 +226,29 @@ detectHitMapAvalanche(
       detect_HM_avalanche_hitmapbuf(hitMap, tpm, buf_type, buf_hitcnt_ary, avalanche_threashold);
   }
   else {
-    detect_HM_avalnch_HMBuf_noHitCntAry(hitMap, tpm, buf_type);
-    // numOfBuf = hitMap->numOfBuf;
-    // for(srcBufIdx = 0; srcBufIdx < numOfBuf-1; srcBufIdx++) {
-    //   for(dstBufIdx = srcBufIdx + 1; dstBufIdx < numOfBuf; dstBufIdx++) {
-    //     srcTPMBuf = getTPMBuf(hitMap->tpmBuf, srcBufIdx);
-    //     dstTPMBuf = getTPMBuf(hitMap->tpmBuf, dstBufIdx);
+    /* uses to detect avalanche for specific <src,dst> pairs. Hardcodes src and/or dst buffers. */
+    // detect_HM_avalnch_HMBuf_noHitCntAry(hitMap, tpm, buf_type); 
+    detect_HM_avalnch_HMBuf_bruteforce(hitMap, tpm, buf_type);
 
-    //     hitMapAvalSrchCtxt = initHitMapAvalSearchCtxt(srcBufIdx, srcTPMBuf, dstBufIdx, dstTPMBuf, tpm->minBufferSz);
-    //     detectHitMapAvalInOut(hitMapAvalSrchCtxt, hitMap, &totalElapse);
-    //     freeHitMapAvalSearchCtxt(hitMapAvalSrchCtxt);
+    /*
+    numOfBuf = hitMap->numOfBuf;
+    for(srcBufIdx = 0; srcBufIdx < numOfBuf-1; srcBufIdx++) {
+      for(dstBufIdx = srcBufIdx + 1; dstBufIdx < numOfBuf; dstBufIdx++) {
+        srcTPMBuf = getTPMBuf(hitMap->tpmBuf, srcBufIdx);
+        dstTPMBuf = getTPMBuf(hitMap->tpmBuf, dstBufIdx);
 
-    //     searchCnt++;
-    //   }
-    //   break;  // Detects first buffer to all other buffers
-    // }
+        hitMapAvalSrchCtxt = initHitMapAvalSearchCtxt(srcBufIdx, srcTPMBuf, dstBufIdx, dstTPMBuf, tpm->minBufferSz);
+        detectHitMapAvalInOut(hitMapAvalSrchCtxt, hitMap, &totalElapse);
+        freeHitMapAvalSearchCtxt(hitMapAvalSrchCtxt);
 
-    // if(searchCnt > 0)
-    //   printf("---------------\navg build 2-level hash table time:%.1f microseconds\n", totalElapse/searchCnt);
+        searchCnt++;
+      }
+      break;  // Detects first buffer to all other buffers
+    }
+
+    if(searchCnt > 0)
+      printf("---------------\navg build 2-level hash table time:%.1f microseconds\n", totalElapse/searchCnt);
+    */
   }
 }
 
@@ -478,6 +489,46 @@ detect_HM_avalnch_HMBuf_noHitCntAry(
   if(searchCnt > 0)
     printf("---------------\ntotal search pairs:%u - avg avalanche detection time:%.1f microseconds\n", 
       searchCnt, totalElapse/searchCnt);
+}
+
+/* Brute fource avalanche detection: begin with 1st HitMap buffer, detects if it
+ * has avalanche to all following buffers; then with the 2nd HitMap, etc.
+ * Only works for small size log, otherwise, it takes too long to finish.
+ */
+static void
+detect_HM_avalnch_HMBuf_bruteforce(
+    HitMapContext *hitMap,
+    TPMContext *tpm,
+    BufType bufType)
+{
+  HitMapAvalSearchCtxt *hitMapAvalSrchCtxt;
+
+  double totalElapse = 0;
+  u32 searchCnt = 0;
+
+  HitMapBufHash *src;
+  HitMapBufHash *dst;
+
+
+  if(bufType == HitMapBuf) {
+    for(src = hitMap->hitMapBufCtxt->hitMapBufHash;
+        src->hh_hmBufHash.next != NULL; src = src->hh_hmBufHash.next) {
+      for(dst = src->hh_hmBufHash.next; dst != NULL; dst = dst->hh_hmBufHash.next) {
+        u32 srcIdx = src->headNode->bufId - 1;
+        u32 dstIdx = dst->headNode->bufId - 1;
+        hitMapAvalSrchCtxt = init_HM_avalnch_ctxt_HMBuf(srcIdx, src, dstIdx, dst, tpm->minBufferSz);
+        detect_HM_inoutbuf_HMBuf(hitMapAvalSrchCtxt, hitMap, &totalElapse);
+        freeHitMapAvalSearchCtxt(hitMapAvalSrchCtxt);
+        searchCnt++;
+      }
+    }
+
+    if(searchCnt > 0)
+      printf("---------------\ntotal search pairs:%u - avg avalanche detection time:%.1f microseconds\n",
+             searchCnt, totalElapse/searchCnt);
+  } else {
+    printf("detect_HM_avalnch_HMBuf_bruteforce: buf type is not HitMapBuf, skip.\n");
+  }
 }
 
 static void
