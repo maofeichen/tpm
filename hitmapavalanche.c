@@ -921,7 +921,8 @@ search_inoutbuf_avalnch_subrange(HitMapAvalSearchCtxt *hitMapAvalSrchCtxt)
     u32 addridx_start, addridx_end;
     compt_addridx_range(&addridx_start, &addridx_end, elt->rstart, elt->rend,
                         hitMapAvalSrchCtxt->hitMapAddr2NodeAry, hitMapAvalSrchCtxt->numOfSrcAddr);
-    // printf("addridx start:%u end:%u - range: start:%x end:%x\n", addridx_start, addridx_end, elt->rstart, elt->rend);
+    // printf("addridx start:%u end:%u - nAddr:%u - range: start:%x end:%x\n",
+    //        addridx_start, addridx_end, hitMapAvalSrchCtxt->numOfSrcAddr, elt->rstart, elt->rend);
     assert(addridx_end >= addridx_start && addridx_end < hitMapAvalSrchCtxt->numOfSrcAddr);
 
     u32 srcbuf_addridx = addridx_start;
@@ -995,6 +996,7 @@ analyze_hitcnt_range(
   return lst_head;
 }
 
+/* Computes addr idx range given address range. */
 static void
 compt_addridx_range(
     u32 *addridx_start,
@@ -1023,6 +1025,8 @@ compt_addridx_range(
         break;
       }
     }
+    // addr idx doesn't exceed range end
+    *addridx_end = addridx-1;
   }
 }
 
