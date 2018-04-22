@@ -673,6 +673,11 @@ search_HM_inoutbuf_propgt(
   HitMapNode *srcbuf_head;
   u32 srcbuf_baddr, srcbuf_eaddr;
 
+  /* dbg */
+  u32 printFlag = 0;
+  // if(avalnch_HM_ctxt->srcBufID == 0 && avalnch_HM_ctxt->dstBufID == 3)
+  //   printFlag = 1;
+
   if(avalnch_HM_ctxt != NULL && hitMap != NULL) {
     init_HM_buf_hitcnt(avalnch_HM_ctxt->srcHitMapBuf->headNode);
     init_HM_buf_hitcnt(avalnch_HM_ctxt->dstHitMapBuf->headNode);
@@ -701,6 +706,8 @@ search_HM_inoutbuf_propgt(
 
       HASH_SRT(hh_hmAddr2NodeItem, avalnch_HM_ctxt->hitMapAddr2NodeAry[srcAddrIdx], cmpHitMapAddr2NodeItem);
       // printHitMap2LAddr2NodeItem(avalnch_HM_ctxt->hitMapAddr2NodeAry[srcAddrIdx]);
+      // if(printFlag)
+      //   printHitMap2LAddr2NodeItem(avalnch_HM_ctxt->hitMapAddr2NodeAry[srcAddrIdx]);
 
       // if(srcbuf_head->rightNBR == NULL)
       //   assert(srcbuf_head->addr + srcbuf_head->bytesz == srcbuf_eaddr);
@@ -946,7 +953,6 @@ search_inoutbuf_avalnch_subrange(HitMapAvalSearchCtxt *hitMapAvalSrchCtxt)
       srcbuf_addridx += max_block_sz;
     }
   }
-
   printTime("Finish detect avalanche");
 }
 
@@ -1010,11 +1016,12 @@ compt_addridx_range(
   *addridx_start = 0;
   *addridx_end = 0;
   int flagset = 0;
+
   if(hitMapAddr2NodeAry != NULL) {
     // printf("range: start:%x end:%x\n", rangestart, rangeend);
     for(; addridx < numOfAddr; addridx++) {
       HitMapAddr2NodeItem *itm = hitMapAddr2NodeAry[addridx];
-      // printf("item address:%x\n", itm->addr);
+      // printf("addr idx:%u - item address:%x\n", addridx, itm->addr);
       if(itm->addr >= rangestart && flagset == 0) {
         *addridx_start = addridx;
         flagset = 1;
@@ -1022,7 +1029,7 @@ compt_addridx_range(
 
       if(itm->node->addr + itm->node->bytesz >= rangeend) {
         *addridx_end = addridx;
-        break;
+        return;
       }
     }
     // addr idx doesn't exceed range end
@@ -1173,6 +1180,7 @@ search_srcnode_avalanche(
       delOldNewRangeArray(&old_ra, &new_ra);
       delOldNewRangeArray(&oldintersect_ra, &newintersect_ra);
 
+
       old_srcnode = stack_srcnode_top->hitMapAddr2NodeItem;
       old_ra = build_range_array(old_srcnode->subHash);
       // printRangeArray(old_ra, "");
@@ -1182,6 +1190,7 @@ search_srcnode_avalanche(
     // if delete newra, then oldra will be deleted also. Now I set new to NULL if the case.
     new_ra = build_range_array(new_srcnode->subHash);
     newintersect_ra = get_common_rangearray(old_srcnode, old_ra, new_srcnode, new_ra);
+    // printRangeArray(new_ra, "");
     // printRangeArray(newintersect_ra, "");
 
     if(newintersect_ra->rangeAryUsed > 0) { // valid intersection range array
@@ -1193,6 +1202,7 @@ search_srcnode_avalanche(
 
       old_ra = new_ra;
       oldintersect_ra = newintersect_ra;
+      // printRangeArray(oldintersect_ra, "");
 
       new_ra = NULL;    // since newra assigns to oldra, set it to NULL after
       newintersect_ra = NULL;
@@ -1324,6 +1334,7 @@ display_avalanche(
   u32 new_dstbuf_start, new_dstbuf_end;
 
   compt_avalnch_srcbuf(stack_srcbuf_top, min_bufsz, &srcbuf_newstart, &srcbuf_newend);
+  // printRangeArray(new_dst_ra, "");
   lst_newdst = compt_avalnch_dstbuf_range(new_dst_ra, min_bufsz);
 
   // avoid duplicate printing out avalanche results

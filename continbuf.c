@@ -447,10 +447,10 @@ get_common_range(
     if(lnode->node == rnode->node){
       if(intersectStart == 0){
         intersectStart = lnode->node->addr;
-        intersectEnd = intersectStart + lnode->node->bytesz;
+        // intersectEnd = intersectStart + lnode->node->bytesz;
       }
       else {
-        intersectEnd = intersectEnd + lnode->node->bytesz;
+        // intersectEnd = intersectEnd + lnode->node->bytesz;
       }
     }
 
@@ -470,6 +470,7 @@ get_common_range(
       currend = lend;
     }
   }
+  intersectEnd = currend;
 
   // printf("common start:%x end:%x\n", intersectStart, intersectEnd);
   if(intersectStart != 0){
