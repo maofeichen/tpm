@@ -60,6 +60,12 @@ detect_HM_avalnch_HMBuf_noHitCntAry(
     BufType bufType);
 
 static void
+detect_HM_avalnch_HMBuf_bruteforce(
+    HitMapContext *hitMap,
+    TPMContext *tpm,
+    BufType bufType);
+
+static void
 detectHitMapAvalInOut(
     HitMapAvalSearchCtxt *hitMapAvalSrchCtxt,
     HitMapContext *hitMap,
@@ -220,24 +226,29 @@ detectHitMapAvalanche(
       detect_HM_avalanche_hitmapbuf(hitMap, tpm, buf_type, buf_hitcnt_ary, avalanche_threashold);
   }
   else {
-    detect_HM_avalnch_HMBuf_noHitCntAry(hitMap, tpm, buf_type);
-    // numOfBuf = hitMap->numOfBuf;
-    // for(srcBufIdx = 0; srcBufIdx < numOfBuf-1; srcBufIdx++) {
-    //   for(dstBufIdx = srcBufIdx + 1; dstBufIdx < numOfBuf; dstBufIdx++) {
-    //     srcTPMBuf = getTPMBuf(hitMap->tpmBuf, srcBufIdx);
-    //     dstTPMBuf = getTPMBuf(hitMap->tpmBuf, dstBufIdx);
+    /* uses to detect avalanche for specific <src,dst> pairs. Hardcodes src and/or dst buffers. */
+    // detect_HM_avalnch_HMBuf_noHitCntAry(hitMap, tpm, buf_type); 
+    detect_HM_avalnch_HMBuf_bruteforce(hitMap, tpm, buf_type);
 
-    //     hitMapAvalSrchCtxt = initHitMapAvalSearchCtxt(srcBufIdx, srcTPMBuf, dstBufIdx, dstTPMBuf, tpm->minBufferSz);
-    //     detectHitMapAvalInOut(hitMapAvalSrchCtxt, hitMap, &totalElapse);
-    //     freeHitMapAvalSearchCtxt(hitMapAvalSrchCtxt);
+    /*
+    numOfBuf = hitMap->numOfBuf;
+    for(srcBufIdx = 0; srcBufIdx < numOfBuf-1; srcBufIdx++) {
+      for(dstBufIdx = srcBufIdx + 1; dstBufIdx < numOfBuf; dstBufIdx++) {
+        srcTPMBuf = getTPMBuf(hitMap->tpmBuf, srcBufIdx);
+        dstTPMBuf = getTPMBuf(hitMap->tpmBuf, dstBufIdx);
 
-    //     searchCnt++;
-    //   }
-    //   break;  // Detects first buffer to all other buffers
-    // }
+        hitMapAvalSrchCtxt = initHitMapAvalSearchCtxt(srcBufIdx, srcTPMBuf, dstBufIdx, dstTPMBuf, tpm->minBufferSz);
+        detectHitMapAvalInOut(hitMapAvalSrchCtxt, hitMap, &totalElapse);
+        freeHitMapAvalSearchCtxt(hitMapAvalSrchCtxt);
 
-    // if(searchCnt > 0)
-    //   printf("---------------\navg build 2-level hash table time:%.1f microseconds\n", totalElapse/searchCnt);
+        searchCnt++;
+      }
+      break;  // Detects first buffer to all other buffers
+    }
+
+    if(searchCnt > 0)
+      printf("---------------\navg build 2-level hash table time:%.1f microseconds\n", totalElapse/searchCnt);
+    */
   }
 }
 
@@ -480,6 +491,46 @@ detect_HM_avalnch_HMBuf_noHitCntAry(
       searchCnt, totalElapse/searchCnt);
 }
 
+/* Brute fource avalanche detection: begin with 1st HitMap buffer, detects if it
+ * has avalanche to all following buffers; then with the 2nd HitMap, etc.
+ * Only works for small size log, otherwise, it takes too long to finish.
+ */
+static void
+detect_HM_avalnch_HMBuf_bruteforce(
+    HitMapContext *hitMap,
+    TPMContext *tpm,
+    BufType bufType)
+{
+  HitMapAvalSearchCtxt *hitMapAvalSrchCtxt;
+
+  double totalElapse = 0;
+  u32 searchCnt = 0;
+
+  HitMapBufHash *src;
+  HitMapBufHash *dst;
+
+
+  if(bufType == HitMapBuf) {
+    for(src = hitMap->hitMapBufCtxt->hitMapBufHash;
+        src->hh_hmBufHash.next != NULL; src = src->hh_hmBufHash.next) {
+      for(dst = src->hh_hmBufHash.next; dst != NULL; dst = dst->hh_hmBufHash.next) {
+        u32 srcIdx = src->headNode->bufId - 1;
+        u32 dstIdx = dst->headNode->bufId - 1;
+        hitMapAvalSrchCtxt = init_HM_avalnch_ctxt_HMBuf(srcIdx, src, dstIdx, dst, tpm->minBufferSz);
+        detect_HM_inoutbuf_HMBuf(hitMapAvalSrchCtxt, hitMap, &totalElapse);
+        freeHitMapAvalSearchCtxt(hitMapAvalSrchCtxt);
+        searchCnt++;
+      }
+    }
+
+    if(searchCnt > 0)
+      printf("---------------\ntotal search pairs:%u - avg avalanche detection time:%.1f microseconds\n",
+             searchCnt, totalElapse/searchCnt);
+  } else {
+    printf("detect_HM_avalnch_HMBuf_bruteforce: buf type is not HitMapBuf, skip.\n");
+  }
+}
+
 static void
 detectHitMapAvalInOut(
     HitMapAvalSearchCtxt *hitMapAvalSrchCtxt,
@@ -622,6 +673,11 @@ search_HM_inoutbuf_propgt(
   HitMapNode *srcbuf_head;
   u32 srcbuf_baddr, srcbuf_eaddr;
 
+  /* dbg */
+  u32 printFlag = 0;
+  // if(avalnch_HM_ctxt->srcBufID == 0 && avalnch_HM_ctxt->dstBufID == 3)
+  //   printFlag = 1;
+
   if(avalnch_HM_ctxt != NULL && hitMap != NULL) {
     init_HM_buf_hitcnt(avalnch_HM_ctxt->srcHitMapBuf->headNode);
     init_HM_buf_hitcnt(avalnch_HM_ctxt->dstHitMapBuf->headNode);
@@ -650,6 +706,8 @@ search_HM_inoutbuf_propgt(
 
       HASH_SRT(hh_hmAddr2NodeItem, avalnch_HM_ctxt->hitMapAddr2NodeAry[srcAddrIdx], cmpHitMapAddr2NodeItem);
       // printHitMap2LAddr2NodeItem(avalnch_HM_ctxt->hitMapAddr2NodeAry[srcAddrIdx]);
+      // if(printFlag)
+      //   printHitMap2LAddr2NodeItem(avalnch_HM_ctxt->hitMapAddr2NodeAry[srcAddrIdx]);
 
       // if(srcbuf_head->rightNBR == NULL)
       //   assert(srcbuf_head->addr + srcbuf_head->bytesz == srcbuf_eaddr);
@@ -870,7 +928,8 @@ search_inoutbuf_avalnch_subrange(HitMapAvalSearchCtxt *hitMapAvalSrchCtxt)
     u32 addridx_start, addridx_end;
     compt_addridx_range(&addridx_start, &addridx_end, elt->rstart, elt->rend,
                         hitMapAvalSrchCtxt->hitMapAddr2NodeAry, hitMapAvalSrchCtxt->numOfSrcAddr);
-    // printf("addridx start:%u end:%u - range: start:%x end:%x\n", addridx_start, addridx_end, elt->rstart, elt->rend);
+    // printf("addridx start:%u end:%u - nAddr:%u - range: start:%x end:%x\n",
+    //        addridx_start, addridx_end, hitMapAvalSrchCtxt->numOfSrcAddr, elt->rstart, elt->rend);
     assert(addridx_end >= addridx_start && addridx_end < hitMapAvalSrchCtxt->numOfSrcAddr);
 
     u32 srcbuf_addridx = addridx_start;
@@ -894,7 +953,6 @@ search_inoutbuf_avalnch_subrange(HitMapAvalSearchCtxt *hitMapAvalSrchCtxt)
       srcbuf_addridx += max_block_sz;
     }
   }
-
   printTime("Finish detect avalanche");
 }
 
@@ -944,6 +1002,7 @@ analyze_hitcnt_range(
   return lst_head;
 }
 
+/* Computes addr idx range given address range. */
 static void
 compt_addridx_range(
     u32 *addridx_start,
@@ -957,11 +1016,12 @@ compt_addridx_range(
   *addridx_start = 0;
   *addridx_end = 0;
   int flagset = 0;
+
   if(hitMapAddr2NodeAry != NULL) {
     // printf("range: start:%x end:%x\n", rangestart, rangeend);
     for(; addridx < numOfAddr; addridx++) {
       HitMapAddr2NodeItem *itm = hitMapAddr2NodeAry[addridx];
-      // printf("item address:%x\n", itm->addr);
+      // printf("addr idx:%u - item address:%x\n", addridx, itm->addr);
       if(itm->addr >= rangestart && flagset == 0) {
         *addridx_start = addridx;
         flagset = 1;
@@ -969,9 +1029,11 @@ compt_addridx_range(
 
       if(itm->node->addr + itm->node->bytesz >= rangeend) {
         *addridx_end = addridx;
-        break;
+        return;
       }
     }
+    // addr idx doesn't exceed range end
+    *addridx_end = addridx-1;
   }
 }
 
@@ -1118,6 +1180,7 @@ search_srcnode_avalanche(
       delOldNewRangeArray(&old_ra, &new_ra);
       delOldNewRangeArray(&oldintersect_ra, &newintersect_ra);
 
+
       old_srcnode = stack_srcnode_top->hitMapAddr2NodeItem;
       old_ra = build_range_array(old_srcnode->subHash);
       // printRangeArray(old_ra, "");
@@ -1127,6 +1190,7 @@ search_srcnode_avalanche(
     // if delete newra, then oldra will be deleted also. Now I set new to NULL if the case.
     new_ra = build_range_array(new_srcnode->subHash);
     newintersect_ra = get_common_rangearray(old_srcnode, old_ra, new_srcnode, new_ra);
+    // printRangeArray(new_ra, "");
     // printRangeArray(newintersect_ra, "");
 
     if(newintersect_ra->rangeAryUsed > 0) { // valid intersection range array
@@ -1138,6 +1202,7 @@ search_srcnode_avalanche(
 
       old_ra = new_ra;
       oldintersect_ra = newintersect_ra;
+      // printRangeArray(oldintersect_ra, "");
 
       new_ra = NULL;    // since newra assigns to oldra, set it to NULL after
       newintersect_ra = NULL;
@@ -1269,6 +1334,7 @@ display_avalanche(
   u32 new_dstbuf_start, new_dstbuf_end;
 
   compt_avalnch_srcbuf(stack_srcbuf_top, min_bufsz, &srcbuf_newstart, &srcbuf_newend);
+  // printRangeArray(new_dst_ra, "");
   lst_newdst = compt_avalnch_dstbuf_range(new_dst_ra, min_bufsz);
 
   // avoid duplicate printing out avalanche results

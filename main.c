@@ -48,10 +48,12 @@ int main(int argc, char const *argv[])
         // compReverseHitMapStat(hitMap);
 
         BufType bufType = HitMapBuf;
-        // detectHitMapAvalanche(hitMap, tpm, bufType, bufHitCntArray, 64); 
+        detectHitMapAvalanche(hitMap, tpm, bufType, bufHitCntArray, 64); 
         /* Due to bugs in 2D hit count array, the buffer pair given by it does
          * not include all legitimate pairs. Thus call detectHitMapAvalanche()
-         * for temporary work around. */
+         * for temporary work around. 
+         */
+        /*
         if( (bufHitCntArray = buildBufHitCntArray(hitMap, bufType) ) != NULL) {
           createHitMapBuftHitCnt(hitMap);   // creates IN/OUT aggregate hit count array for each HitMap buffer
           analyze_aggrgt_hitcntary(hitMap, bufType, bufHitCntArray, 64);
@@ -62,6 +64,7 @@ int main(int argc, char const *argv[])
           delBufHitCntArray(bufHitCntArray);
         }
         else { fprintf(stderr, "build buffer hit count array error\n"); }
+        */
 
         delTPMBufContext(hitMap->tpmBufCtxt);
         delHitMapBufHitCnt(hitMap);
