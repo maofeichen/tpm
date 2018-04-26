@@ -751,6 +751,20 @@ printHitMapBufHash(HitMapBufHash *hitMapBufHash)
       minNode, maxNode, totalNode, bufCnt, totalNode / bufCnt);
 }
 
+void print_hitmap_source(HitMapContext *hitmap)
+{
+  HitMapBufNodePtr2NodeHashTable *nodeHash;
+  HitMapNode *node;
+
+  nodeHash = hitmap->hitMapNodeHT;
+  printf("--------------------\nHitMap Source\n");
+  for(; nodeHash != NULL; nodeHash = nodeHash->hh_hitMapBufNode2NodeHT.next) {
+    node = nodeHash->toHitMapNode;
+    if(node->lastUpdateTS < 0)
+      printHitMapNodeLit(node);
+  }
+}
+
 static BufContext *
 initBufContext(
     TPMContext *tpm,

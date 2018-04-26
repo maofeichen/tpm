@@ -554,6 +554,7 @@ void printTPMSource(TPMContext *tpm)
               HASH_ADD(hh_tpmBufHT, tpmMemNodeHash, headNode, 4, tpmMemNode);
             }
           }
+          head = head->nextVersion;
         } while(head != ptr);
         head = head->rightNBR;
       }
