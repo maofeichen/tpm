@@ -534,7 +534,39 @@ printTPMBufHashTable(TPMBufHashTable *tpmBufHT)
 
 void printTPMSource(TPMContext *tpm)
 {
+  Mem2NodeHT *memNodeHash;
+  TPMNode2 *head;
+  TPMBufHashTable *tpmMemNodeHash = NULL, *tpmMemNode, *tpmMemNodeFound;
 
+  if(tpm != NULL) {
+    printf("--------------------\nTPM source node\n");
+    for(memNodeHash = tpm->mem2NodeHT; memNodeHash != NULL; memNodeHash = memNodeHash->hh_mem.next) {
+      head = memNodeHash->toMem;
+
+      while(head != NULL) {
+        TPMNode2 *ptr = head;
+        do {
+          if(head->lastUpdateTS < 0) {
+            HASH_FIND(hh_tpmBufHT, tpmMemNodeHash, &head, 4, tpmMemNodeFound);
+            if(tpmMemNodeFound == NULL) {
+              tpmMemNode = initTPMBufHTNode(head->addr, head->addr+head->bytesz,
+                                            head->lastUpdateTS, head->lastUpdateTS, 1, head, 1);
+              HASH_ADD(hh_tpmBufHT, tpmMemNodeHash, headNode, 4, tpmMemNode);
+            }
+          }
+        } while(head != ptr);
+        head = head->rightNBR;
+      }
+    }
+
+    HASH_ITER(hh_tpmBufHT, tpmMemNodeHash, tpmMemNode, tpmMemNodeFound) {
+      head = tpmMemNode->headNode;
+      printMemNodeLit(head);
+
+      HASH_DELETE(hh_tpmBufHT, tpmMemNodeHash,tpmMemNode);
+      free(tpmMemNodeHash);
+    }
+  }
 }
 
 static void 
