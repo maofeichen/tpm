@@ -21,6 +21,10 @@ createTPMNode(u32 type, u32 addr, u32 val, int TS, u32 bytesz)
     tpmnode->tpmnode2.bytesz = bytesz;
     tpmnode->tpmnode2.bufid = 0;
     tpmnode->tpmnode2.hitcntHT = NULL;
+    tpmnode->tpmnode2.firstChild = NULL;
+#if TPM_RE_TRANSITON
+    tpmnode->tpmnode2.first_farther = NULL;
+#endif
   }
   else if ((type & TPM_Type_Register) || (type & TPM_Type_Temprary))
   {
@@ -31,6 +35,9 @@ createTPMNode(u32 type, u32 addr, u32 val, int TS, u32 bytesz)
     tpmnode->tpmnode1.lastUpdateTS = TS;
     tpmnode->tpmnode1.hasVisit = 0;
     tpmnode->tpmnode1.firstChild = NULL;
+#if TPM_RE_TRANSITON
+    tpmnode->tpmnode1.first_farther = NULL;
+#endif
   }
   else return NULL;
 
