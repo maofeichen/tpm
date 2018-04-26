@@ -532,6 +532,11 @@ printTPMBufHashTable(TPMBufHashTable *tpmBufHT)
       minNode, maxNode, totalNode, bufcnt, totalNode / bufcnt);
 }
 
+void printTPMSource(TPMContext *tpm)
+{
+
+}
+
 static void 
 init_tpmcontext(struct TPMContext *tpm)
 {

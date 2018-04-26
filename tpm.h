@@ -170,4 +170,6 @@ print1TPMBufHashTable(char *s, TPMBufHashTable *tpmBufHT);
 
 void
 printTPMBufHashTable(TPMBufHashTable *tpmBufHT);
+
+void printTPMSource(TPMContext *tpm);
 #endif
