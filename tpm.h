@@ -171,5 +171,5 @@ print1TPMBufHashTable(char *s, TPMBufHashTable *tpmBufHT);
 void
 printTPMBufHashTable(TPMBufHashTable *tpmBufHT);
 
-void printTPMSource(TPMContext *tpm);
+void print_tpm_source(TPMContext *tpm);
 #endif

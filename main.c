@@ -39,7 +39,7 @@ int main(int argc, char const *argv[])
         printf("build TPM successful, total number nodes:%d\n", numOfTPMNode);
         printTime("Finish building TPM");
 
-        printTPMSource(tpm);
+        print_tpm_source(tpm);
         tpmBufCtxt = initTPMBufContext(tpm);
 #ifdef STAT
         stat(tpm);
