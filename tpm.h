@@ -124,9 +124,7 @@ initTPMBufContext(TPMContext *tpm);
 void
 delTPMBufContext(TPMBufContext *tpmBufCtxt);
 
-/*
- * Computes all the bufs in tpm.
- */
+/* Computes all the bufs in tpm. */
 TPMBufHashTable *
 analyzeTPMBuf(TPMContext *tpm);
 
@@ -155,6 +153,12 @@ getTPMBufAddrIdx(
 void
 delAllTPMBuf(TPMBufHashTable *tpmBuf);
 
+void
+disp_tpm_buf_source(
+    TPMContext *tpm,
+    TPMBufContext *tpm_bufctxt,
+    u32 bufid);
+
 /* print function */
 void 
 printTrans1stChild(union TPMNode *head);
@@ -171,5 +175,6 @@ print1TPMBufHashTable(char *s, TPMBufHashTable *tpmBufHT);
 void
 printTPMBufHashTable(TPMBufHashTable *tpmBufHT);
 
-void print_tpm_source(TPMContext *tpm);
+void
+print_tpm_source(TPMContext *tpm);
 #endif
