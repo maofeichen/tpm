@@ -392,6 +392,7 @@ disp_tpm_buf_source(
 
   if(tpm != NULL && tpm_bufctxt != NULL && bufid > 0)
   {
+    printf("----- ----- ----- -----\nBufID:%u is propagated by sources:\n", bufid);
     bufidx = bufid - 1;
     if( (buf = getTPMBuf(tpm_bufctxt->tpmBufHash, bufidx) ) != NULL )
     {
@@ -399,6 +400,7 @@ disp_tpm_buf_source(
       while(head != NULL) {
         TPMNode2 *head_ptr = head;
         do {
+          disp_reverse_propgt(tpm, head);
           head = head->nextVersion;
         } while(head_ptr != head);
 

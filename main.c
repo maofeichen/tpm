@@ -39,15 +39,16 @@ int main(int argc, char const *argv[])
         printf("build TPM successful, total number nodes:%d\n", numOfTPMNode);
         printTime("Finish building TPM");
 
-        print_tpm_source(tpm);
+        // print_tpm_source(tpm);
         tpmBufCtxt = initTPMBufContext(tpm);
+        disp_tpm_buf_source(tpm, tpmBufCtxt, 89);
 #ifdef STAT
         stat(tpm);
         // benchTPMDFS(tpm);
 #endif
 
         hitMap = buildHitMap(tpm, tpmBufCtxt);   // TODO: flag forward or reverse build
-        print_hitmap_source(hitMap);
+        // print_hitmap_source(hitMap);
 
         compHitMapStat(hitMap);
         // compReverseHitMapStat(hitMap);

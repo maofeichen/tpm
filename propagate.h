@@ -3,6 +3,7 @@
 
 #include "uthash.h"
 #include "avalanchetype.h"
+#include "env.h"
 #include "hitmapnode.h"
 #include "tpmnode.h"
 #include "tpm.h"
@@ -100,4 +101,6 @@ bufnodePropgt2HitMapNode(
 int
 printMemNodePropagate(TPMContext *tpm, TPMNode2 *s);
 
+int
+disp_reverse_propgt(TPMContext *tpm, TPMNode2 *s);
 #endif

@@ -303,7 +303,17 @@ tpmNodePopAll(StackTPMNode **stackTPMNodeTop, u32 *stackTPMNodeCnt);
 static bool
 isTPMNodeStackEmpty(StackTPMNode *stackTPMNodeTop);
 
-/* functions */
+static int
+dfs_disp_reverse_propgt(TPMContext *tpm, TPMNode2 *src);
+
+static void
+push_unvisitnode_children_reverse(
+    TPMNodeHash **visit_nodehash,
+    TPMNode *child,
+    StackTPMNode **stack_nodetop,
+    u32 *stack_nodecnt);
+
+/* non static functions */
 
 int 
 cmpAddr2NodeItem(Addr2NodeItem *l, Addr2NodeItem *r)
@@ -373,6 +383,12 @@ int
 printMemNodePropagate(TPMContext *tpm, TPMNode2 *s)
 {
   return dfsPrintResult(tpm, s);
+}
+
+int
+disp_reverse_propgt(TPMContext *tpm, TPMNode2 *s)
+{
+  return dfs_disp_reverse_propgt(tpm, s);
 }
 
 static int
@@ -1830,3 +1846,66 @@ isTPMNodeStackEmpty(StackTPMNode *stackTPMNodeTop)
   else
     return true;
 }
+
+#if TPM_RE_TRANSITON
+/*
+ * dfs search propagate reversely.
+ * Returns:
+ *  0: success
+ *  <0: error
+ */
+static int
+dfs_disp_reverse_propgt(TPMContext *tpm, TPMNode2 *src)
+{
+  TPMNodeHash *visit_nodehash = NULL;
+
+  StackTPMNode *stack_nodetop = NULL;
+  u32 stack_nodecnt = 0;
+
+  if(tpm != NULL && src != NULL)
+  {
+    printf("--------------------\ndfs source: ");
+    printMemNodeLit(src);
+
+    stackTPMNodePush((TPMNode *)src, NULL, NULL, &stack_nodetop, &stack_nodecnt);
+    while(!isStackTPMNodeEmpty(stack_nodetop) ) {
+      TPMNode *topnode = stackTPMNodePop(&stack_nodetop, &stack_nodecnt);
+      markVisitTPMNode(&visit_nodehash, topnode);
+
+      if(topnode->tpmnode1.type == TPM_Type_Memory &&
+         topnode->tpmnode2.lastUpdateTS < 0)
+      {
+        printMemNodeLit((TPMNode2 *)topnode);
+      }
+      push_unvisitnode_children_reverse(&visit_nodehash, topnode,
+                                        &stack_nodetop, &stack_nodecnt);
+    }
+  }
+  else
+  {
+    fprintf(stderr, "error: dfs: tpm:%p src:%p\n", tpm, src);
+    return -1;
+  }
+
+  delTPMNodeHash(&visit_nodehash);
+  return 0;
+}
+
+static void
+push_unvisitnode_children_reverse(
+    TPMNodeHash **visit_nodehash,
+    TPMNode *child,
+    StackTPMNode **stack_nodetop,
+    u32 *stack_nodecnt)
+{
+  Transition *first_farther = child->tpmnode1.first_farther;
+  while(first_farther != NULL) {
+    TPMNode *farther_node = first_farther->child;
+    if(!isTPMNodeVisited(*visit_nodehash, farther_node) )
+    {
+      stackTPMNodePush(farther_node, child, first_farther, stack_nodetop, stack_nodecnt);
+    }
+    first_farther = first_farther->next;
+  }
+}
+#endif
