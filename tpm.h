@@ -153,12 +153,6 @@ getTPMBufAddrIdx(
 void
 delAllTPMBuf(TPMBufHashTable *tpmBuf);
 
-void
-disp_tpm_buf_source(
-    TPMContext *tpm,
-    TPMBufContext *tpm_bufctxt,
-    u32 bufid);
-
 /* print function */
 void 
 printTrans1stChild(union TPMNode *head);

@@ -377,6 +377,43 @@ searchAvalancheInOutBuf(TPMContext *tpm, AvalancheSearchCtxt *avalsctxt, Propaga
   return 0;
 }
 
+/*
+ * Displays the buffer's taint sources, that is, the source node (seqN < 0) can
+ * propagate to the buffer.
+ */
+void
+disp_tpm_buf_source(
+    TPMContext *tpm,
+    TPMBufContext *tpm_bufctxt,
+    u32 bufid)
+{
+  u32 bufidx = 0;
+  TPMBufHashTable *buf = NULL;
+
+  if(tpm != NULL && tpm_bufctxt != NULL && bufid > 0)
+  {
+    bufidx = bufid - 1;
+    if( (buf = getTPMBuf(tpm_bufctxt->tpmBufHash, bufidx) ) != NULL )
+    {
+      TPMNode2 *head = buf->headNode;
+      while(head != NULL) {
+        TPMNode2 *head_ptr = head;
+        do {
+          head = head->nextVersion;
+        } while(head_ptr != head);
+
+        head = head->rightNBR;
+      }
+    }
+    else { fprintf(stderr, "disp_tpm_buf_source: invalid buf:%p\n", buf); }
+  }
+  else
+  { fprintf(stderr, "disp_tpm_buf_source: error: tpm:%p bufctxt:%p bufid:%u\n",
+            tpm, tpm_bufctxt, bufid);
+  }
+}
+
+
 static void 
 setSeqNo(AvalancheSearchCtxt *avalsctxt, int srcMinSeqN, int srcMaxSeqN, int dstMinSeqN, int dstMaxSeqN)
 {
