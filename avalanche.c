@@ -257,29 +257,23 @@ searchAllAvalancheInTPM(TPMContext *tpm)
 
   tpmBufHT = analyzeTPMBuf(tpm);
   assignTPMBufID(tpmBufHT);
-  printTPMBufHashTable(tpmBufHT);
-
-  //	buildTPMPropagate(tpmBufHT, &tpmPropagateRes);
-  //	delTPMPropagate(tpmPropagateRes);
-  //	return;
+  // printTPMBufHashTable(tpmBufHT);
 
   int searchcnt = 1;
   for(srcBuf = tpmBufHT; srcBuf != NULL; srcBuf = srcBuf->hh_tpmBufHT.next) {
     for(dstBuf = srcBuf->hh_tpmBufHT.next; dstBuf != NULL; dstBuf = dstBuf->hh_tpmBufHT.next) {
 
-#if 0
-      // if(srcBuf->baddr == 0xc3fb7d80 && dstBuf->baddr == 0xc3fb7d40){ // test signle buf
-      if(srcBuf->baddr == 0xde911000 && dstBuf->baddr == 0x804c170){ // test signle buf
+      if(srcBuf->baddr == 0x804a080 && dstBuf->baddr == 0x804a860){ // test signle buf
         init_AvalancheSearchCtxt(&avalsctxt, tpm->minBufferSz,
             srcBuf->headNode, dstBuf->headNode, srcBuf->baddr, srcBuf->eaddr,
             dstBuf->baddr, dstBuf->eaddr, srcBuf->numOfAddr, dstBuf->numOfAddr);
         setSeqNo(avalsctxt, srcBuf->minseq, srcBuf->maxseq, dstBuf->minseq, dstBuf->maxseq);
         searchAvalancheInOutBuf(tpm, avalsctxt, &propaStat);
         free_AvalancheSearchCtxt(avalsctxt);
-        // goto OUTLOOP;
+        goto OUTLOOP;
       }
 
-#endif
+#if 0
       init_AvalancheSearchCtxt(&avalsctxt, tpm->minBufferSz,
           srcBuf->headNode, dstBuf->headNode, srcBuf->baddr, srcBuf->eaddr,
           dstBuf->baddr, dstBuf->eaddr, srcBuf->numOfAddr, dstBuf->numOfAddr);
@@ -291,8 +285,9 @@ searchAllAvalancheInTPM(TPMContext *tpm)
       free_AvalancheSearchCtxt(avalsctxt);
 
       searchcnt++;
+#endif
     }
-    break;
+    // break;
   }
   OUTLOOP:
 #ifdef DEBUG
@@ -345,7 +340,10 @@ free_AvalancheSearchCtxt(struct AvalancheSearchCtxt *avalsctxt)
 }
 
 int 
-searchAvalancheInOutBuf(TPMContext *tpm, AvalancheSearchCtxt *avalsctxt, PropagateStat *propaStat)
+searchAvalancheInOutBuf(
+    TPMContext *tpm,
+    AvalancheSearchCtxt *avalsctxt,
+    PropagateStat *propaStat)
 {
   printf("----------------------------------------\n");
   printf("src buf: start:%-8x end:%-8x sz:%u minseq:%d maxseq:%d diffSeq:%d bufID:%u\n",
@@ -371,12 +369,12 @@ searchAvalancheInOutBuf(TPMContext *tpm, AvalancheSearchCtxt *avalsctxt, Propaga
   printDstMemNodesHTTotal(avalsctxt->addr2Node);
   printDstMemNodesHT(avalsctxt->addr2Node);
 #endif
-  // print2LevelHashTable(avalsctxt->addr2NodeAry, avalsctxt->numOfSrcAddr);
-  // detectAvalancheInOutBuf(tpm, avalsctxt);   // SUPRESS
-  detectAvalancheInOutBufFast(tpm, avalsctxt); // CURRENT USE
+  print2LevelHashTable(avalsctxt->addr2NodeAry, avalsctxt->numOfSrcAddr);
+  // detectAvalancheInOutBufFast(tpm, avalsctxt); // CURRENT USE
   return 0;
 }
 
+#if TPM_RE_TRANSITON
 /*
  * Displays the buffer's taint sources, that is, the source node (seqN < 0) can
  * propagate to the buffer.
@@ -414,7 +412,7 @@ disp_tpm_buf_source(
             tpm, tpm_bufctxt, bufid);
   }
 }
-
+#endif
 
 static void 
 setSeqNo(AvalancheSearchCtxt *avalsctxt, int srcMinSeqN, int srcMaxSeqN, int dstMinSeqN, int dstMaxSeqN)

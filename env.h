@@ -11,5 +11,5 @@
 /* TPM reverse transition
  *  TPM propagates forward by default, with enable this flag. During building
  *  TPM, it'll also create reverse transitions: dest --> src. */
-#define TPM_RE_TRANSITON    1
+#define TPM_RE_TRANSITON    0
 #endif /* ENV_H_ */

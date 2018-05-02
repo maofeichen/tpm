@@ -385,11 +385,13 @@ printMemNodePropagate(TPMContext *tpm, TPMNode2 *s)
   return dfsPrintResult(tpm, s);
 }
 
+#if TPM_RE_TRANSITON
 int
 disp_reverse_propgt(TPMContext *tpm, TPMNode2 *s)
 {
   return dfs_disp_reverse_propgt(tpm, s);
 }
+#endif
 
 static int
 dfs(TPMContext *tpm,
