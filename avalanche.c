@@ -263,7 +263,7 @@ searchAllAvalancheInTPM(TPMContext *tpm)
   for(srcBuf = tpmBufHT; srcBuf != NULL; srcBuf = srcBuf->hh_tpmBufHT.next) {
     for(dstBuf = srcBuf->hh_tpmBufHT.next; dstBuf != NULL; dstBuf = dstBuf->hh_tpmBufHT.next) {
 
-      if(srcBuf->baddr == 0x804a080 && dstBuf->baddr == 0x804a860){ // test signle buf
+      if(srcBuf->baddr == 0x804b810 && dstBuf->baddr == 0x804a860){ // test signle buf
         init_AvalancheSearchCtxt(&avalsctxt, tpm->minBufferSz,
             srcBuf->headNode, dstBuf->headNode, srcBuf->baddr, srcBuf->eaddr,
             dstBuf->baddr, dstBuf->eaddr, srcBuf->numOfAddr, dstBuf->numOfAddr);
@@ -370,7 +370,7 @@ searchAvalancheInOutBuf(
   printDstMemNodesHT(avalsctxt->addr2Node);
 #endif
   print2LevelHashTable(avalsctxt->addr2NodeAry, avalsctxt->numOfSrcAddr);
-  // detectAvalancheInOutBufFast(tpm, avalsctxt); // CURRENT USE
+  detectAvalancheInOutBufFast(tpm, avalsctxt); // CURRENT USE
   return 0;
 }
 
@@ -716,12 +716,12 @@ detectAvalancheInOutBufFast(TPMContext *tpm, AvalancheSearchCtxt *avalsctxt)
 
   lst_srcHitcntRange = analyzeHitCntRange(avalsctxt->numOfSrcAddr, avalsctxt->srcAddrHitCnt, avalsctxt->minBufferSz);
   lst_dstHitcntRange = analyzeHitCntRange(avalsctxt->numOfDstAddr, avalsctxt->dstAddrHitCnt, avalsctxt->minBufferSz);
-#ifdef DEBUG
+// #ifdef DEBUG
   printHitcntRangeTotal(lst_srcHitcntRange);
   printHitcntRange(lst_srcHitcntRange);
   printHitcntRangeTotal(lst_dstHitcntRange);
   printHitcntRange(lst_dstHitcntRange);
-#endif
+// #endif
   if(!hasValidSubRange(lst_srcHitcntRange, lst_dstHitcntRange))
     return;
 
@@ -786,7 +786,7 @@ detectAvalancheInOutBufFast(TPMContext *tpm, AvalancheSearchCtxt *avalsctxt)
   }
 #endif
   OUTLOOP:
-  printf("DEBUG\n");
+  printf("");
 }
 
 static bool
@@ -955,7 +955,7 @@ detectAvalancheOfSourceFast(
   oldsrcnode = srcnode;
   addr2NodeItemStackPush(&stckSrcTop, &stckSrcCnt, oldsrcnode);
   oldra = buildRangeArray(oldsrcnode->subHash);
-  // printRangeArray(oldra);
+  // printRangeArray(oldra, "old ra");
 
   storeAllAddrHashChildrenFast(avalsctxt->addr2NodeAry[addrIdxStartSearch],
       &stckTravrsTop, &stckTravrsCnt,
@@ -991,13 +991,15 @@ detectAvalancheOfSourceFast(
       oldsrcnode = stckSrcTop->addr2NodeItem;
       oldra = buildRangeArray(oldsrcnode->subHash);
       // printMemNode(oldsrcnode->node);
-      // printRangeArray(oldra);
+      // printRangeArray(oldra, "old ra");
     }
 
     // can't delete here, due to in the yes case below, newra is assigned to oldra,
     // if delete newra, then oldra will be deleted also. Now I set new to NULL if the case.
     newra = buildRangeArray(newsrcnode->subHash);
     newintersct_ra = getIntersectRangeArray(oldsrcnode, oldra, newsrcnode, newra);
+    // printRangeArray(newra, "newra");
+    // printRangeArray(newintersct_ra, "new intersect ra");
 
     if(newintersct_ra->rangeAryUsed > 0) { // valid intersection range array
       oldsrcnode = newsrcnode;
@@ -1008,6 +1010,8 @@ detectAvalancheOfSourceFast(
 
       oldra = newra;
       oldintersct_ra = newintersct_ra;
+      // printRangeArray(oldra, "old ra");
+      // printRangeArray(oldintersct_ra, "old intersect ra");
 
       newra = NULL;   // since newra assigns to oldra, set it to NULL after
       newintersct_ra = NULL;
@@ -1041,6 +1045,18 @@ detectAvalancheOfSourceFast(
             avalsctxt->minBufferSz, oldsrcnode->node->lastUpdateTS);
     }
 
+  }
+
+  // handle last case
+  if(!hasPrint){
+    if(stckSrcCnt >= 2 && stckSrcCnt >= *addrIdxInterval) {
+      printf("--------------------\n");
+      addr2NodeItemStackDispRange(stckSrcTop, "avalanche found:\nsrc buf:");
+      printf("-> dst buf:\n");
+      printRangeArray(oldintersct_ra, "\t");
+
+      *addrIdxInterval = stckSrcCnt;  // set to max num src node has avalanche
+    }
   }
 
   delOldNewRangeArray(&oldra, &newra);
