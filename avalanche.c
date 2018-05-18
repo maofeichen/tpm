@@ -263,7 +263,7 @@ searchAllAvalancheInTPM(TPMContext *tpm)
   for(srcBuf = tpmBufHT; srcBuf != NULL; srcBuf = srcBuf->hh_tpmBufHT.next) {
     for(dstBuf = srcBuf->hh_tpmBufHT.next; dstBuf != NULL; dstBuf = dstBuf->hh_tpmBufHT.next) {
 
-      if(srcBuf->baddr == 0x804b810 && dstBuf->baddr == 0x804a860){ // test signle buf
+      if(srcBuf->baddr == 0x804a080 && dstBuf->baddr == 0x804a860){ // test signle buf
         init_AvalancheSearchCtxt(&avalsctxt, tpm->minBufferSz,
             srcBuf->headNode, dstBuf->headNode, srcBuf->baddr, srcBuf->eaddr,
             dstBuf->baddr, dstBuf->eaddr, srcBuf->numOfAddr, dstBuf->numOfAddr);
@@ -716,12 +716,12 @@ detectAvalancheInOutBufFast(TPMContext *tpm, AvalancheSearchCtxt *avalsctxt)
 
   lst_srcHitcntRange = analyzeHitCntRange(avalsctxt->numOfSrcAddr, avalsctxt->srcAddrHitCnt, avalsctxt->minBufferSz);
   lst_dstHitcntRange = analyzeHitCntRange(avalsctxt->numOfDstAddr, avalsctxt->dstAddrHitCnt, avalsctxt->minBufferSz);
-// #ifdef DEBUG
+#ifdef DEBUG
   printHitcntRangeTotal(lst_srcHitcntRange);
   printHitcntRange(lst_srcHitcntRange);
   printHitcntRangeTotal(lst_dstHitcntRange);
   printHitcntRange(lst_dstHitcntRange);
-// #endif
+#endif
   if(!hasValidSubRange(lst_srcHitcntRange, lst_dstHitcntRange))
     return;
 
