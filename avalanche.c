@@ -369,7 +369,7 @@ searchAvalancheInOutBuf(
   printDstMemNodesHTTotal(avalsctxt->addr2Node);
   printDstMemNodesHT(avalsctxt->addr2Node);
 #endif
-  print2LevelHashTable(avalsctxt->addr2NodeAry, avalsctxt->numOfSrcAddr);
+  // print2LevelHashTable(avalsctxt->addr2NodeAry, avalsctxt->numOfSrcAddr);
   detectAvalancheInOutBufFast(tpm, avalsctxt); // CURRENT USE
   return 0;
 }
@@ -1002,6 +1002,11 @@ detectAvalancheOfSourceFast(
     // printRangeArray(newintersct_ra, "new intersect ra");
 
     if(newintersct_ra->rangeAryUsed > 0) { // valid intersection range array
+      if(oldintersct_ra != NULL &&
+         !is_rangearray_same(oldintersct_ra, newintersct_ra) ) {
+        goto NEW_BLOCK;
+      }
+
       oldsrcnode = newsrcnode;
       addr2NodeItemStackPush(&stckSrcTop, &stckSrcCnt, oldsrcnode);
 
@@ -1019,6 +1024,7 @@ detectAvalancheOfSourceFast(
       hasPrint = false;   // only has new src aval node, indicating new aval
     }
     else {
+NEW_BLOCK:
       if(!hasPrint){
         if(stckSrcCnt >= 2 && stckSrcCnt >= *addrIdxInterval) {
           printf("--------------------\n");
