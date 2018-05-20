@@ -55,6 +55,13 @@ decreaseInitSeqNoByOne();
 static struct Transition *
 create_trans_node(u32 ts, u32 s_type, union TPMNode* src, union TPMNode* dst);
 
+static struct Transition *
+create_reverse_trans(
+    u32 ts,
+    u32 dsttype,
+    union TPMNode* src,
+    union TPMNode* dst);
+
 /* validate taint propagation */
 static bool 
 is_equal_value(u32 val, union TPMNode *store);
@@ -162,8 +169,7 @@ buildTPM(FILE *taintfp, struct TPMContext *tpm)
       if(isControlRecord(flag) ) { // contol record, simply skip except for insn mark
         if(equalRecordMark(flag, INSN_MARK) ) {
           clear_tempcontext(tempCntxt); /* clear current context of temp, due to temp are
-                                                    only alive within instruction, if encounter an insn mark  
-                                                    it crosses insn boundary */ 
+          only alive within instruction, if encounter an insn mark it crosses insn boundary */
         } 
       }
       else { // data record, creates nodes
@@ -412,7 +418,6 @@ delAllTPMBuf(TPMBufHashTable *tpmBuf)
   // printf("del tpm buffers\n");
 }
 
-
 void delTPM(struct TPMContext *tpm)
 {
   del_mem_ht(&(tpm->mem2NodeHT) ); // clear mem addr hash table
@@ -467,7 +472,6 @@ print1Trans(Transition *transition)
 {
   if(transition == NULL)
     return;
-
   printf("Transition: seqN:%u hasVisit:%d\n", transition->seqNo, transition->hasVisit);
 }
 
@@ -532,13 +536,14 @@ printTPMBufHashTable(TPMBufHashTable *tpmBufHT)
       minNode, maxNode, totalNode, bufcnt, totalNode / bufcnt);
 }
 
-void printTPMSource(TPMContext *tpm)
+void print_tpm_source(TPMContext *tpm)
 {
   Mem2NodeHT *memNodeHash;
   TPMNode2 *head;
   TPMBufHashTable *tpmMemNodeHash = NULL, *tpmMemNode, *tpmMemNodeFound;
 
-  if(tpm != NULL) {
+  if(tpm != NULL)
+  {
     printf("--------------------\nTPM source node\n");
     for(memNodeHash = tpm->mem2NodeHT; memNodeHash != NULL; memNodeHash = memNodeHash->hh_mem.next) {
       head = memNodeHash->toMem;
@@ -546,19 +551,22 @@ void printTPMSource(TPMContext *tpm)
       while(head != NULL) {
         TPMNode2 *ptr = head;
         do {
-          if(head->lastUpdateTS < 0) {
+          if(head->lastUpdateTS < 0)
+          {
             HASH_FIND(hh_tpmBufHT, tpmMemNodeHash, &head, 4, tpmMemNodeFound);
-            if(tpmMemNodeFound == NULL) {
+            if(tpmMemNodeFound == NULL)
+            {
               tpmMemNode = initTPMBufHTNode(head->addr, head->addr+head->bytesz,
                                             head->lastUpdateTS, head->lastUpdateTS, 1, head, 1);
               HASH_ADD(hh_tpmBufHT, tpmMemNodeHash, headNode, 4, tpmMemNode);
             }
           }
+          head = head->nextVersion;
         } while(head != ptr);
         head = head->rightNBR;
       }
     }
-
+    HASH_SRT(hh_tpmBufHT, tpmMemNodeHash, cmpTPMBufHTNode);
     HASH_ITER(hh_tpmBufHT, tpmMemNodeHash, tpmMemNode, tpmMemNodeFound) {
       head = tpmMemNode->headNode;
       printMemNodeLit(head);
@@ -592,7 +600,8 @@ processOneXTaintRecord(struct TPMContext *tpm, struct Record *rec, struct TPMNod
  *  3. creates transition between source to destination
  */
 {
-  int type, srctype, newsrc = 0, newdst = 0;
+  int type, srctype, dsttype;
+  int newsrc = 0, newdst = 0;
   union TPMNode *src = NULL, *dst = NULL;
 
 #ifdef DEBUG
@@ -625,23 +634,33 @@ processOneXTaintRecord(struct TPMContext *tpm, struct Record *rec, struct TPMNod
   if(rec->is_store || rec->is_storeptr) { // dst is mem addr (include store ptr)
     if((newdst =  handle_dst_mem(tpm, rec, &dst) ) >= 0) {}
     else { return -1; }
+    dsttype = TPM_Type_Memory;
   }
   else { // dst is either reg or temp
     type = getNodeType(rec->d_addr);
+
     if(type == TPM_Type_Register) {
       if((newdst = handle_dst_reg(tpm, rec, regCntxt, &dst) ) >= 0) {}
       else { return -1; }
+      dsttype = type;
     }
     else if(type == TPM_Type_Temprary) {
       if((newdst = handle_dst_temp(tpm, rec, tempCntxt, &dst) ) >= 0) {}
       else { return -1; }
+      dsttype = type;
     }
     else { return -1; }
   }
 
   //  creates transition node, binds the transition node pointer to src
-  if( (create_trans_node(rec->ts, srctype, src, dst) ) != NULL) {}
-  else { return -1; }
+  if( (create_trans_node(rec->ts, srctype, src, dst) ) == NULL) {
+    return -1;
+  }
+
+#if TPM_RE_TRANSITON
+  if(create_reverse_trans(rec->ts, dsttype, src, dst) == NULL)
+    return -1;
+#endif
 
   return newsrc+newdst;
 }
@@ -1130,6 +1149,67 @@ create_trans_node(u32 ts, u32 s_type, union TPMNode *src, union TPMNode *dst)
 
   return t;
 }
+
+#if TPM_RE_TRANSITON
+static struct Transition *
+create_reverse_trans(
+    u32 ts,
+    u32 dsttype,
+    union TPMNode* src,
+    union TPMNode* dst)
+// Returns:
+//  pointer of the created reversed transition node
+//  NULL: error
+{
+  struct Transition *t, *tmp = NULL;
+
+  if(src != NULL && dst != NULL)
+  {
+    t = calloc(sizeof(struct Transition), 1);
+    assert(t != NULL);
+
+    t->seqNo = ts;
+    t->next = NULL;
+    t->hasVisit = 0;
+    t->child = src; // reverse: points to father (src)
+
+    if(dsttype & TPM_Type_Memory)
+    {
+      if(dst->tpmnode2.first_farther == NULL)
+      {
+        dst->tpmnode2.first_farther = t;
+        return t;
+      }
+      else { tmp = dst->tpmnode2.first_farther; }
+    }
+    else if((dsttype & TPM_Type_Register) || (dsttype & TPM_Type_Temprary) )
+    {
+      if(dst->tpmnode1.first_farther == NULL)
+      {
+        dst->tpmnode1.first_farther = t;
+        return t;
+      }
+      else { tmp = dst->tpmnode1.first_farther; }
+    }
+    else
+    {
+      fprintf(stderr, "error: create reverse transition: unknown dst type\n");
+      return NULL;
+    }
+  }
+  else
+  {
+    fprintf(stderr, "error: create reverse transition: src: %p - dst: %p\n", src, dst);
+    return NULL;
+  }
+
+  /* if dst already has a Non-NULL father transition, store in tmp */
+  while(tmp->next != NULL) { tmp = tmp->next; }
+  tmp->next = t;    // links t at the end
+
+  return t;
+}
+#endif
 
 static bool 
 is_equal_value(u32 val, union TPMNode *store)

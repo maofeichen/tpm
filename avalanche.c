@@ -257,29 +257,23 @@ searchAllAvalancheInTPM(TPMContext *tpm)
 
   tpmBufHT = analyzeTPMBuf(tpm);
   assignTPMBufID(tpmBufHT);
-  printTPMBufHashTable(tpmBufHT);
-
-  //	buildTPMPropagate(tpmBufHT, &tpmPropagateRes);
-  //	delTPMPropagate(tpmPropagateRes);
-  //	return;
+  // printTPMBufHashTable(tpmBufHT);
 
   int searchcnt = 1;
   for(srcBuf = tpmBufHT; srcBuf != NULL; srcBuf = srcBuf->hh_tpmBufHT.next) {
     for(dstBuf = srcBuf->hh_tpmBufHT.next; dstBuf != NULL; dstBuf = dstBuf->hh_tpmBufHT.next) {
 
-#if 0
-      // if(srcBuf->baddr == 0xc3fb7d80 && dstBuf->baddr == 0xc3fb7d40){ // test signle buf
-      if(srcBuf->baddr == 0xde911000 && dstBuf->baddr == 0x804c170){ // test signle buf
+      if(srcBuf->baddr == 0x804a080 && dstBuf->baddr == 0x804a860){ // test signle buf
         init_AvalancheSearchCtxt(&avalsctxt, tpm->minBufferSz,
             srcBuf->headNode, dstBuf->headNode, srcBuf->baddr, srcBuf->eaddr,
             dstBuf->baddr, dstBuf->eaddr, srcBuf->numOfAddr, dstBuf->numOfAddr);
         setSeqNo(avalsctxt, srcBuf->minseq, srcBuf->maxseq, dstBuf->minseq, dstBuf->maxseq);
         searchAvalancheInOutBuf(tpm, avalsctxt, &propaStat);
         free_AvalancheSearchCtxt(avalsctxt);
-        // goto OUTLOOP;
+        goto OUTLOOP;
       }
 
-#endif
+#if 0
       init_AvalancheSearchCtxt(&avalsctxt, tpm->minBufferSz,
           srcBuf->headNode, dstBuf->headNode, srcBuf->baddr, srcBuf->eaddr,
           dstBuf->baddr, dstBuf->eaddr, srcBuf->numOfAddr, dstBuf->numOfAddr);
@@ -291,8 +285,9 @@ searchAllAvalancheInTPM(TPMContext *tpm)
       free_AvalancheSearchCtxt(avalsctxt);
 
       searchcnt++;
+#endif
     }
-    break;
+    // break;
   }
   OUTLOOP:
 #ifdef DEBUG
@@ -345,7 +340,10 @@ free_AvalancheSearchCtxt(struct AvalancheSearchCtxt *avalsctxt)
 }
 
 int 
-searchAvalancheInOutBuf(TPMContext *tpm, AvalancheSearchCtxt *avalsctxt, PropagateStat *propaStat)
+searchAvalancheInOutBuf(
+    TPMContext *tpm,
+    AvalancheSearchCtxt *avalsctxt,
+    PropagateStat *propaStat)
 {
   printf("----------------------------------------\n");
   printf("src buf: start:%-8x end:%-8x sz:%u minseq:%d maxseq:%d diffSeq:%d bufID:%u\n",
@@ -372,10 +370,49 @@ searchAvalancheInOutBuf(TPMContext *tpm, AvalancheSearchCtxt *avalsctxt, Propaga
   printDstMemNodesHT(avalsctxt->addr2Node);
 #endif
   // print2LevelHashTable(avalsctxt->addr2NodeAry, avalsctxt->numOfSrcAddr);
-  // detectAvalancheInOutBuf(tpm, avalsctxt);   // SUPRESS
   detectAvalancheInOutBufFast(tpm, avalsctxt); // CURRENT USE
   return 0;
 }
+
+#if TPM_RE_TRANSITON
+/*
+ * Displays the buffer's taint sources, that is, the source node (seqN < 0) can
+ * propagate to the buffer.
+ */
+void
+disp_tpm_buf_source(
+    TPMContext *tpm,
+    TPMBufContext *tpm_bufctxt,
+    u32 bufid)
+{
+  u32 bufidx = 0;
+  TPMBufHashTable *buf = NULL;
+
+  if(tpm != NULL && tpm_bufctxt != NULL && bufid > 0)
+  {
+    printf("----- ----- ----- -----\nBufID:%u is propagated by sources:\n", bufid);
+    bufidx = bufid - 1;
+    if( (buf = getTPMBuf(tpm_bufctxt->tpmBufHash, bufidx) ) != NULL )
+    {
+      TPMNode2 *head = buf->headNode;
+      while(head != NULL) {
+        TPMNode2 *head_ptr = head;
+        do {
+          disp_reverse_propgt(tpm, head);
+          head = head->nextVersion;
+        } while(head_ptr != head);
+
+        head = head->rightNBR;
+      }
+    }
+    else { fprintf(stderr, "disp_tpm_buf_source: invalid buf:%p\n", buf); }
+  }
+  else
+  { fprintf(stderr, "disp_tpm_buf_source: error: tpm:%p bufctxt:%p bufid:%u\n",
+            tpm, tpm_bufctxt, bufid);
+  }
+}
+#endif
 
 static void 
 setSeqNo(AvalancheSearchCtxt *avalsctxt, int srcMinSeqN, int srcMaxSeqN, int dstMinSeqN, int dstMaxSeqN)
@@ -749,7 +786,7 @@ detectAvalancheInOutBufFast(TPMContext *tpm, AvalancheSearchCtxt *avalsctxt)
   }
 #endif
   OUTLOOP:
-  printf("DEBUG\n");
+  printf("");
 }
 
 static bool
@@ -918,7 +955,7 @@ detectAvalancheOfSourceFast(
   oldsrcnode = srcnode;
   addr2NodeItemStackPush(&stckSrcTop, &stckSrcCnt, oldsrcnode);
   oldra = buildRangeArray(oldsrcnode->subHash);
-  // printRangeArray(oldra);
+  // printRangeArray(oldra, "old ra");
 
   storeAllAddrHashChildrenFast(avalsctxt->addr2NodeAry[addrIdxStartSearch],
       &stckTravrsTop, &stckTravrsCnt,
@@ -954,15 +991,22 @@ detectAvalancheOfSourceFast(
       oldsrcnode = stckSrcTop->addr2NodeItem;
       oldra = buildRangeArray(oldsrcnode->subHash);
       // printMemNode(oldsrcnode->node);
-      // printRangeArray(oldra);
+      // printRangeArray(oldra, "old ra");
     }
 
     // can't delete here, due to in the yes case below, newra is assigned to oldra,
     // if delete newra, then oldra will be deleted also. Now I set new to NULL if the case.
     newra = buildRangeArray(newsrcnode->subHash);
     newintersct_ra = getIntersectRangeArray(oldsrcnode, oldra, newsrcnode, newra);
+    // printRangeArray(newra, "newra");
+    // printRangeArray(newintersct_ra, "new intersect ra");
 
     if(newintersct_ra->rangeAryUsed > 0) { // valid intersection range array
+      if(oldintersct_ra != NULL &&
+         !is_rangearray_same(oldintersct_ra, newintersct_ra) ) {
+        goto NEW_BLOCK;
+      }
+
       oldsrcnode = newsrcnode;
       addr2NodeItemStackPush(&stckSrcTop, &stckSrcCnt, oldsrcnode);
 
@@ -971,6 +1015,8 @@ detectAvalancheOfSourceFast(
 
       oldra = newra;
       oldintersct_ra = newintersct_ra;
+      // printRangeArray(oldra, "old ra");
+      // printRangeArray(oldintersct_ra, "old intersect ra");
 
       newra = NULL;   // since newra assigns to oldra, set it to NULL after
       newintersct_ra = NULL;
@@ -978,6 +1024,7 @@ detectAvalancheOfSourceFast(
       hasPrint = false;   // only has new src aval node, indicating new aval
     }
     else {
+NEW_BLOCK:
       if(!hasPrint){
         if(stckSrcCnt >= 2 && stckSrcCnt >= *addrIdxInterval) {
           printf("--------------------\n");
@@ -1004,6 +1051,18 @@ detectAvalancheOfSourceFast(
             avalsctxt->minBufferSz, oldsrcnode->node->lastUpdateTS);
     }
 
+  }
+
+  // handle last case
+  if(!hasPrint){
+    if(stckSrcCnt >= 2 && stckSrcCnt >= *addrIdxInterval) {
+      printf("--------------------\n");
+      addr2NodeItemStackDispRange(stckSrcTop, "avalanche found:\nsrc buf:");
+      printf("-> dst buf:\n");
+      printRangeArray(oldintersct_ra, "\t");
+
+      *addrIdxInterval = stckSrcCnt;  // set to max num src node has avalanche
+    }
   }
 
   delOldNewRangeArray(&oldra, &newra);

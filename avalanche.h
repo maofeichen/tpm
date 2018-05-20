@@ -110,4 +110,11 @@ searchAvalancheInOutBuf(
 //	0: success
 //	<0: error
 
+/* TPM buffer related. */
+void
+disp_tpm_buf_source(
+    TPMContext *tpm,
+    TPMBufContext *tpm_bufctxt,
+    u32 bufid);
+
 #endif

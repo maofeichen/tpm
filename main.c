@@ -39,24 +39,29 @@ int main(int argc, char const *argv[])
         printf("build TPM successful, total number nodes:%d\n", numOfTPMNode);
         printTime("Finish building TPM");
 
-        printTPMSource(tpm);
-        tpmBufCtxt = initTPMBufContext(tpm);
+        // print_tpm_source(tpm);
+        // tpmBufCtxt = initTPMBufContext(tpm);
+#if TPM_RE_TRANSITON
+        // disp_tpm_buf_source(tpm, tpmBufCtxt, 89);
+#endif
 #ifdef STAT
         stat(tpm);
         // benchTPMDFS(tpm);
 #endif
-
+        /*
         hitMap = buildHitMap(tpm, tpmBufCtxt);   // TODO: flag forward or reverse build
+        // print_hitmap_source(hitMap);
+
         compHitMapStat(hitMap);
         // compReverseHitMapStat(hitMap);
 
         BufType bufType = HitMapBuf;
-        detectHitMapAvalanche(hitMap, tpm, bufType, bufHitCntArray, 64);
-        /* Due to bugs in 2D hit count array, the buffer pair given by it does
-         * not include all legitimate pairs. Thus call detectHitMapAvalanche()
-         * for temporary work around. 
-         */
-        /*
+        // detectHitMapAvalanche(hitMap, tpm, bufType, bufHitCntArray, 64);
+        // Due to bugs in 2D hit count array, the buffer pair given by it does
+        // not include all legitimate pairs. Thus call detectHitMapAvalanche()
+        // for temporary work around. 
+        
+
         if( (bufHitCntArray = buildBufHitCntArray(hitMap, bufType) ) != NULL) {
           createHitMapBuftHitCnt(hitMap);   // creates IN/OUT aggregate hit count array for each HitMap buffer
           analyze_aggrgt_hitcntary(hitMap, bufType, bufHitCntArray, 64);
@@ -67,16 +72,15 @@ int main(int argc, char const *argv[])
           delBufHitCntArray(bufHitCntArray);
         }
         else { fprintf(stderr, "build buffer hit count array error\n"); }
-        */
 
         delTPMBufContext(hitMap->tpmBufCtxt);
         delHitMapBufHitCnt(hitMap);
         delHitMapBufContext(hitMap->hitMapBufCtxt);
         delHitMap(hitMap);
         // delTPM(tpm);
+        */
 
-        // searchAllAvalancheInTPM(tpm);
-        // searchTPMAvalancheFast(tpm); // SUPRESS
+        searchAllAvalancheInTPM(tpm);
         delTPM(tpm);
       }
       else { fprintf(stderr, "error build TPM\n"); }

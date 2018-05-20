@@ -68,4 +68,6 @@ printOneHitMapBufHash(HitMapBufHash *buf);
 
 void
 printHitMapBufHash(HitMapBufHash *hitMapBufHash);
+
+void print_hitmap_source(HitMapContext *hitmap);
 #endif

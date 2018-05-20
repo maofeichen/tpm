@@ -1,6 +1,7 @@
 #ifndef TPMNODE_H
 #define TPMNODE_H 
 
+#include "env.h"
 #include "type.h"
 #include "uthash.h"
 #include <stdbool.h>
@@ -12,29 +13,35 @@
 struct Transition;
 struct HitcntHashTable;
 
-struct TPMNode1		// for temp, register addresses
+struct TPMNode1		  // for temp, register addresses
 {
   u32	type;		  // indicating the type of the node
   u32	addr;		  // mem addr, id of temp or register
-  u32 val;
-  int lastUpdateTS;	// the TS (seq#) of last update of the node
-  struct Transition *firstChild;  // points to structure that points to the first child
+  u32   val;
+  int   lastUpdateTS; // the TS (seq#) of last update of the node
+  struct Transition *firstChild;    // points to structure that points to the first child
+#if TPM_RE_TRANSITON
+  struct Transition *first_farther; // points to its first father
+#endif
   char hasVisit;  // determines if the node had been visited during building HitMap
 };
 typedef struct TPMNode1 TPMNode1;
 
-struct TPMNode2		// for memory address
+struct TPMNode2		  // for memory address
 {
   u32	type;		  // indicating the type of the node
   u32	addr;		  // mem addr, id of temp or register
-  u32 val;
-  int lastUpdateTS;	// the TS (seq#) of last update of the node
-  struct Transition *firstChild;  // points to structure that points to the first child
+  u32   val;
+  int lastUpdateTS;	  // the TS (seq#) of last update of the node
+  struct Transition *firstChild;    // points to structure that points to the first child
+#if TPM_RE_TRANSITON
+  struct Transition *first_farther; // points to its first father
+#endif
   char hasVisit;  // determines if the node had been visited during building HitMap
   /* the following fields are only for TPMNode for memory */
   u32 bytesz;                   // byte sz
-  struct TPMNode2 *leftNBR;	  // point to node of adjacent, smaller memory address
-  struct TPMNode2 *rightNBR;	  // point to node of adjacent, bigger memory address
+  struct TPMNode2 *leftNBR;	    // point to node of adjacent, smaller memory address
+  struct TPMNode2 *rightNBR;	// point to node of adjacent, bigger memory address
   struct TPMNode2 *nextVersion; // point to node of the same addr buf of different version or age. Forms circular link
   u32 version;	// the version of current node, monotonically increasing from 0.
   u32	hitcnt;		/* as source, the number of TMPNode2 in destination buffer this node propagates to; or
@@ -53,7 +60,7 @@ typedef union TPMNode TPMNode;
 
 struct taintedBuf
 {
-  struct TPMNode2 *bufstart;	// point to the TMPNode2 of the start addr of some tainted buffer in TPM;
+  struct TPMNode2 *bufstart;  // point to the TMPNode2 of the start addr of some tainted buffer in TPM;
   struct taintedBuf *next;	  // point to the taintedBuf structure of the next tainted buffer; null if no more
 };
 typedef struct taintedBuf TaintedBuf;

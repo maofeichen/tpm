@@ -91,6 +91,9 @@ initHitMapBufHTNode(
 static int
 cmpHitMapBufHashNode(HitMapBufHash *l, HitMapBufHash *r);
 
+static int
+cmp_HM_bufhash_byseqn(HitMapBufHash *l, HitMapBufHash *r);
+
 static void
 assignHitMapBufID(HitMapBufHash *headBuf);
 
@@ -626,12 +629,18 @@ cmpHitMapBufHashNode(HitMapBufHash *l, HitMapBufHash *r)
   //    if(l->minseq < r->minseq) { return -1; }
   //    else if(l->minseq == r->minseq) { return 0; }
   //    else { return 1; }
-
   if(l->headNode->bufId < r->headNode->bufId) { return -1; }
   else if(l->headNode->bufId == r->headNode->bufId) { return 0; }
   else { return 1; }
 }
 
+static int
+cmp_HM_bufhash_byseqn(HitMapBufHash *l, HitMapBufHash *r)
+{
+  if(l->minseq < r->minseq) { return -1; }
+  else if(l->minseq == r->minseq) { return 0; }
+  else { return 1; }
+}
 
 void
 delHitMap(HitMapContext *hitmap)
@@ -749,6 +758,39 @@ printHitMapBufHash(HitMapBufHash *hitMapBufHash)
   printf("minimum num of node:%u - maximum num of node:%u - total num of node:%u "
       "- total buf:%u - avg num of node:%u\n",
       minNode, maxNode, totalNode, bufCnt, totalNode / bufCnt);
+}
+
+void print_hitmap_source(HitMapContext *hitmap)
+{
+  HitMapBufNodePtr2NodeHashTable *nodeHash;
+  HitMapBufHash *bufHashHead = NULL, *bufHash, *bufFound;
+  HitMapNode *node;
+
+  nodeHash = hitmap->hitMapNodeHT;
+  printf("--------------------\nHitMap Source\n");
+  for(; nodeHash != NULL; nodeHash = nodeHash->hh_hitMapBufNode2NodeHT.next) {
+    node = nodeHash->toHitMapNode;
+    if(node ->lastUpdateTS < 0)
+    {
+      u32 baddr = node->addr;
+        bufHash = initHitMapBufHTNode(node->addr, node->addr+node->bytesz,
+                                      node->lastUpdateTS, node->lastUpdateTS, 1, node, 1);
+        HASH_FIND(hh_hmBufHash, bufHashHead, &baddr, 4, bufFound);
+        if(bufFound == NULL)
+        {
+          HASH_ADD(hh_hmBufHash, bufHashHead, baddr, 4, bufHash);
+        }
+        else { free(bufHash); bufHash = NULL; }
+    }
+  }
+
+  HASH_SRT(hh_hmBufHash, bufHashHead, cmp_HM_bufhash_byseqn);
+  HASH_ITER(hh_hmBufHash, bufHashHead, bufHash, bufFound) {
+    node = bufHash->headNode;
+    printHitMapNodeLit(node);
+    HASH_DELETE(hh_hmBufHash, bufHashHead, bufHash);
+    free(bufHash);
+  }
 }
 
 static BufContext *
