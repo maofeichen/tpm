@@ -33,11 +33,11 @@ int main(int argc, char const *argv[])
 
     if((tpm = calloc(sizeof(struct TPMContext), 1) ) != NULL) {
       printf("alloc TPMContext: %zu MB\n", sizeof(struct TPMContext) / (1024*1024) );
-      printTime("Before build TPM");
+      // printTime("Before build TPM");
 
       if((numOfTPMNode = buildTPM(log, tpm) ) >= 0) {
         printf("build TPM successful, total number nodes:%d\n", numOfTPMNode);
-        printTime("Finish building TPM");
+        // printTime("Finish building TPM");
 
         // print_tpm_source(tpm);
         // tpmBufCtxt = initTPMBufContext(tpm);

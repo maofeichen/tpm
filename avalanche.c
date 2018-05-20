@@ -263,6 +263,7 @@ searchAllAvalancheInTPM(TPMContext *tpm)
   for(srcBuf = tpmBufHT; srcBuf != NULL; srcBuf = srcBuf->hh_tpmBufHT.next) {
     for(dstBuf = srcBuf->hh_tpmBufHT.next; dstBuf != NULL; dstBuf = dstBuf->hh_tpmBufHT.next) {
 
+#if 0
       if(srcBuf->baddr == 0x804a080 && dstBuf->baddr == 0x804a860){ // test signle buf
         init_AvalancheSearchCtxt(&avalsctxt, tpm->minBufferSz,
             srcBuf->headNode, dstBuf->headNode, srcBuf->baddr, srcBuf->eaddr,
@@ -272,8 +273,8 @@ searchAllAvalancheInTPM(TPMContext *tpm)
         free_AvalancheSearchCtxt(avalsctxt);
         goto OUTLOOP;
       }
+#endif
 
-#if 0
       init_AvalancheSearchCtxt(&avalsctxt, tpm->minBufferSz,
           srcBuf->headNode, dstBuf->headNode, srcBuf->baddr, srcBuf->eaddr,
           dstBuf->baddr, dstBuf->eaddr, srcBuf->numOfAddr, dstBuf->numOfAddr);
@@ -285,7 +286,6 @@ searchAllAvalancheInTPM(TPMContext *tpm)
       free_AvalancheSearchCtxt(avalsctxt);
 
       searchcnt++;
-#endif
     }
     // break;
   }
@@ -369,8 +369,8 @@ searchAvalancheInOutBuf(
   printDstMemNodesHTTotal(avalsctxt->addr2Node);
   printDstMemNodesHT(avalsctxt->addr2Node);
 #endif
-  // print2LevelHashTable(avalsctxt->addr2NodeAry, avalsctxt->numOfSrcAddr);
-  detectAvalancheInOutBufFast(tpm, avalsctxt); // CURRENT USE
+  print2LevelHashTable(avalsctxt->addr2NodeAry, avalsctxt->numOfSrcAddr);
+  // detectAvalancheInOutBufFast(tpm, avalsctxt); // CURRENT USE
   return 0;
 }
 
@@ -1676,9 +1676,9 @@ print2LevelHashTable(struct addr2NodeItem **addr2NodeAry, u32 numOfAddr)
   int addridx = 0;
   for(; addridx < numOfAddr; addridx++) {
     for(src = addr2NodeAry[addridx]; src != NULL; src = src->hh_addr2NodeItem.next) {
-      printf("--------------------\nsrc node in 2L ht:\n");
+      printf("--------------------2LHash\nsrc:\n");
       printMemNodeLit(src->node);
-      printf("propagate to:\n");
+      printf("to:\n");
       for(dst = src->subHash; dst != NULL; dst = dst->hh_addr2NodeItem.next) {
         printMemNodeLit(dst->node);
       }
