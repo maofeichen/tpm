@@ -74,7 +74,7 @@ static bool
 has_adjacent(struct TPMContext *tpm, struct Mem2NodeHT **l, struct Mem2NodeHT **r, u32 addr, u32 bytesz);
 
 static bool 
-has_left_adjacent(struct TPMContext *tpm, struct Mem2NodeHT **item, u32 addr);
+has_left_adjacent(struct TPMContext *tpm, struct Mem2NodeHT **item, u32 addr, u32 bytesz);
 
 static bool  
 has_right_adjacent(struct TPMContext *tpm,struct Mem2NodeHT **item, u32 addr, u32 bytesz);
@@ -235,8 +235,9 @@ initTPMBufContext(TPMContext *tpm)
 
   tpmBufHash = analyzeTPMBuf(tpm);
   assignTPMBufID(tpmBufHash);
-  numOfBuf = HASH_CNT(hh_tpmBufHT, tpmBufHash);
+  printTPMBufHashTable(tpmBufHash);
 
+  numOfBuf = HASH_CNT(hh_tpmBufHT, tpmBufHash);
   tpmBufCtxt->tpmBufHash = tpmBufHash;
   tpmBufCtxt->numOfBuf = numOfBuf;
 
@@ -299,7 +300,6 @@ assignTPMBufID(TPMBufHashTable *tpmBuf)
     // printBufNode(headNode);
     bufid++;
   }
-  printTPMBufHashTable(tpmBuf);
 }
 
 TPMBufHashTable *
@@ -523,8 +523,8 @@ printTPMBufHashTable(TPMBufHashTable *tpmBufHT)
         buf->baddr, buf->eaddr, buf->eaddr - buf->baddr,
         buf->numOfAddr, buf->minseq, buf->maxseq, (buf->maxseq - buf->minseq),
         buf->headNode->bufid, buf->totalNode);
-    // printBufNode(buf->headNode);
-
+    printBufNode(buf->headNode);
+    printf("-----\n");
     if(buf->totalNode < minNode)
       minNode = buf->totalNode;
     if(buf->totalNode > maxNode)
@@ -611,6 +611,9 @@ processOneXTaintRecord(struct TPMContext *tpm, struct Record *rec, struct TPMNod
 
   //  handle source node
   if(rec->is_load) { // src is mem addr
+    if(rec->s_addr == 0x814b1d0)
+      printf("addr:%x sz:%u\n", rec->d_addr, rec->bytesz);
+
     if( (newsrc = handle_src_mem(tpm, rec, &src) ) >= 0 ) {}
     else { return -1; }
     srctype = TPM_Type_Memory;
@@ -632,6 +635,9 @@ processOneXTaintRecord(struct TPMContext *tpm, struct Record *rec, struct TPMNod
 
   //  hanlde destination node
   if(rec->is_store || rec->is_storeptr) { // dst is mem addr (include store ptr)
+    if(rec->d_addr == 0x814b961 || rec->d_addr == 0x814b964)
+      printf("addr:%x sz:%u\n", rec->d_addr, rec->bytesz);
+
     if((newdst =  handle_dst_mem(tpm, rec, &dst) ) >= 0) {}
     else { return -1; }
     dsttype = TPM_Type_Memory;
@@ -1276,15 +1282,22 @@ update_adjacent(struct TPMContext *tpm, union TPMNode *n, struct Mem2NodeHT **l,
   else { return 0; }
 }
 
-static bool 
-has_adjacent(struct TPMContext *tpm, struct Mem2NodeHT **l, struct Mem2NodeHT **r, u32 addr, u32 bytesz)
 // Returns:
 //  1: if has either left or right adjacent mem node
 //  0: otherwise
+//  If has left, l is the ptr of the left neighbor
+//  If has right, r is the ptr of the right neightbor
+static bool
+has_adjacent(
+    struct TPMContext *tpm,
+    struct Mem2NodeHT **l,
+    struct Mem2NodeHT **r,
+    u32 addr,
+    u32 bytesz)
 {
   bool rl = false, rr = false;
 
-  rl = has_left_adjacent(tpm, l, addr);
+  rl = has_left_adjacent(tpm, l, addr, bytesz);
   rr = has_right_adjacent(tpm, r, addr, bytesz);
 
   if( rl || rr ) {
@@ -1293,18 +1306,41 @@ has_adjacent(struct TPMContext *tpm, struct Mem2NodeHT **l, struct Mem2NodeHT **
   else { return false; }
 }
 
-static bool 
-has_left_adjacent(struct TPMContext *tpm, struct Mem2NodeHT **item, u32 addr)
+// ! Assumption, nodes with varias can connect together.
+// For example:
+//      0x814b960 sz 1 byte
+//      0x814b961 sz 4 bytes
+//  is OK to connect
+// Counter example:
+//      0x814b960 sz 4 bytes
+//      0x814b961 sz 1 bytes
+//      Can't connect them due to they are not continuous ranges
 // Returns:
 //  t: if has left adjacent mem node
 //  f: otherwise
+static bool 
+has_left_adjacent(
+    struct TPMContext *tpm,
+    struct Mem2NodeHT **item,
+    u32 addr,
+    u32 bytesz)
 {
   *item = NULL;
   u32 l_adjcnt;
 
+  /*
+  l_adjcnt = addr - bytesz;
+  *item = find_mem_ht( &(tpm->mem2NodeHT), l_adjcnt);
+  if(*item != NULL && ((*item)->toMem->addr + (*item)->toMem->bytesz ) == addr) {
+    return true;
+  }
+  else
+    return false;
+   */
+
   l_adjcnt = addr - DWORD;    // try 4 bytes first
   *item = find_mem_ht( &(tpm->mem2NodeHT), l_adjcnt);
-  if(*item != NULL) {
+  if(*item != NULL && ((*item)->toMem->addr + (*item)->toMem->bytesz ) == addr ) {
 #ifdef DEBUG
     printf("has left adjacent: addr: 0x%x\n", (*item)->toMem->addr);
 #endif
@@ -1312,7 +1348,7 @@ has_left_adjacent(struct TPMContext *tpm, struct Mem2NodeHT **item, u32 addr)
   }else { // doesn't find 4 bytes left adjacent
     l_adjcnt = addr - WORD; // try 2 bytes
     *item = find_mem_ht( &(tpm->mem2NodeHT), l_adjcnt);
-    if(*item != NULL) {
+    if(*item != NULL && ((*item)->toMem->addr + (*item)->toMem->bytesz ) == addr) {
 #ifdef DEBUG
       printf("has left adjacent: addr: 0x%x\n", (*item)->toMem->addr);
 #endif                                
@@ -1321,7 +1357,7 @@ has_left_adjacent(struct TPMContext *tpm, struct Mem2NodeHT **item, u32 addr)
     else {
       l_adjcnt = addr - BYTE; // try 1 byte
       *item = find_mem_ht( &(tpm->mem2NodeHT), l_adjcnt);
-      if(*item != NULL) {
+      if(*item != NULL && ((*item)->toMem->addr + (*item)->toMem->bytesz ) == addr) {
 #ifdef DEBUG
         printf("has left adjacent: addr: 0x%x\n", (*item)->toMem->addr);
 #endif                                               

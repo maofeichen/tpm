@@ -40,7 +40,7 @@ int main(int argc, char const *argv[])
         // printTime("Finish building TPM");
 
         // print_tpm_source(tpm);
-        // tpmBufCtxt = initTPMBufContext(tpm);
+        tpmBufCtxt = initTPMBufContext(tpm);
 #if TPM_RE_TRANSITON
         // disp_tpm_buf_source(tpm, tpmBufCtxt, 89);
 #endif
@@ -80,7 +80,7 @@ int main(int argc, char const *argv[])
         // delTPM(tpm);
         */
 
-        searchAllAvalancheInTPM(tpm);
+        // searchAllAvalancheInTPM(tpm);
         delTPM(tpm);
       }
       else { fprintf(stderr, "error build TPM\n"); }
