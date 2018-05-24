@@ -257,7 +257,7 @@ searchAllAvalancheInTPM(TPMContext *tpm)
 
   tpmBufHT = analyzeTPMBuf(tpm);
   assignTPMBufID(tpmBufHT);
-  // printTPMBufHashTable(tpmBufHT);
+  printTPMBufHashTable(tpmBufHT);
 
   int searchcnt = 1;
   for(srcBuf = tpmBufHT; srcBuf != NULL; srcBuf = srcBuf->hh_tpmBufHT.next) {

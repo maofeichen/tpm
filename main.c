@@ -38,8 +38,8 @@ int main(int argc, char const *argv[])
       if((numOfTPMNode = buildTPM(log, tpm) ) >= 0) {
         printf("build TPM successful, total number nodes:%d\n", numOfTPMNode);
         // printTime("Finish building TPM");
-
         // print_tpm_source(tpm);
+
         tpmBufCtxt = initTPMBufContext(tpm);
 #if TPM_RE_TRANSITON
         // disp_tpm_buf_source(tpm, tpmBufCtxt, 89);
@@ -48,6 +48,7 @@ int main(int argc, char const *argv[])
         stat(tpm);
         // benchTPMDFS(tpm);
 #endif
+
         /*
         hitMap = buildHitMap(tpm, tpmBufCtxt);   // TODO: flag forward or reverse build
         // print_hitmap_source(hitMap);
@@ -59,8 +60,7 @@ int main(int argc, char const *argv[])
         // detectHitMapAvalanche(hitMap, tpm, bufType, bufHitCntArray, 64);
         // Due to bugs in 2D hit count array, the buffer pair given by it does
         // not include all legitimate pairs. Thus call detectHitMapAvalanche()
-        // for temporary work around. 
-        
+        // for temporary work around.
 
         if( (bufHitCntArray = buildBufHitCntArray(hitMap, bufType) ) != NULL) {
           createHitMapBuftHitCnt(hitMap);   // creates IN/OUT aggregate hit count array for each HitMap buffer
@@ -77,7 +77,6 @@ int main(int argc, char const *argv[])
         delHitMapBufHitCnt(hitMap);
         delHitMapBufContext(hitMap->hitMapBufCtxt);
         delHitMap(hitMap);
-        // delTPM(tpm);
         */
 
         // searchAllAvalancheInTPM(tpm);

@@ -509,7 +509,6 @@ detect_HM_avalnch_HMBuf_bruteforce(
   HitMapBufHash *src;
   HitMapBufHash *dst;
 
-
   if(bufType == HitMapBuf) {
     for(src = hitMap->hitMapBufCtxt->hitMapBufHash;
         src->hh_hmBufHash.next != NULL; src = src->hh_hmBufHash.next) {
@@ -588,9 +587,11 @@ detect_HM_inoutbuf_HMBuf(
   printOneHitMapBufHash(hitMapAvalSrchCtxt->dstHitMapBuf);
   // printf("total src buf node:%u - total dst buf node:%u\n", srcBufNodeTotal, dstBufNodeTotal);
 
-  printTimeMicroStart();
+  // printTimeMicroStart();
   if(search_HM_inoutbuf_propgt(hitMapAvalSrchCtxt, hitMap) >= 0) {
+    /* Temp disable for testing building 2Level hash
     printTime("Finish building 2Level hash table");
+
     create_HMBuf_aggrgt_hitCntAry(hitMapAvalSrchCtxt->srcHitMapBuf->headNode, srcbuf,
         hitMapAvalSrchCtxt->srcAddrStart, hitMapAvalSrchCtxt->srcAddrEnd, hitMapAvalSrchCtxt);
     create_HMBuf_aggrgt_hitCntAry(hitMapAvalSrchCtxt->dstHitMapBuf->headNode, dstbuf,
@@ -602,8 +603,9 @@ detect_HM_inoutbuf_HMBuf(
     printTime("Finish creating aggregate hit count array");
     search_inoutbuf_avalnch(hitMapAvalSrchCtxt);
     // totalTraverse = srchHitMapPropgtInOutReverse(hitMapAvalSrchCtxt, hitMap);
+    */
   }
-  printTimeMicroEnd(totalElapse);
+  // printTimeMicroEnd(totalElapse);
 }
 
 static void
@@ -705,7 +707,7 @@ search_HM_inoutbuf_propgt(
       } while(ver != srcbuf_head->version);
 
       HASH_SRT(hh_hmAddr2NodeItem, avalnch_HM_ctxt->hitMapAddr2NodeAry[srcAddrIdx], cmpHitMapAddr2NodeItem);
-      // printHitMap2LAddr2NodeItem(avalnch_HM_ctxt->hitMapAddr2NodeAry[srcAddrIdx]);
+      printHitMap2LAddr2NodeItem(avalnch_HM_ctxt->hitMapAddr2NodeAry[srcAddrIdx]);
       // if(printFlag)
       //   printHitMap2LAddr2NodeItem(avalnch_HM_ctxt->hitMapAddr2NodeAry[srcAddrIdx]);
 

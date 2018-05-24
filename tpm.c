@@ -265,6 +265,11 @@ analyzeTPMBuf(TPMContext *tpm)
 
   for(memNodeHT = tpm->mem2NodeHT; memNodeHT != NULL; memNodeHT = memNodeHT->hh_mem.next) {
     memNode = memNodeHT->toMem;
+
+    // dbg
+    // if(memNode->addr >= 0xbffff670 && memNode->addr <= 0xbffff680)
+    //   printMemNodeLit(memNode);
+
     compBufStat(memNode, &baddr, &eaddr, &minseq, &maxseq,
         &numOfAddr, &firstMemNode, &totalNode);
     if(eaddr - baddr >= tpm->minBufferSz){ // only consider bufs with sz satisfies the min requirement
@@ -519,12 +524,12 @@ printTPMBufHashTable(TPMBufHashTable *tpmBufHT)
   maxNode = tpmBufHT->totalNode;
 
   HASH_ITER(hh_tpmBufHT, tpmBufHT, buf, temp) {
+    printf("-----\n");
     printf("begin:0x%-8x end:0x%-8x sz:%-4u numofaddr:%-4u minseq:%-7d maxseq:%-7d diffseq:%-7d bufID:%-4u total nodes:%u\n",
         buf->baddr, buf->eaddr, buf->eaddr - buf->baddr,
         buf->numOfAddr, buf->minseq, buf->maxseq, (buf->maxseq - buf->minseq),
         buf->headNode->bufid, buf->totalNode);
     printBufNode(buf->headNode);
-    printf("-----\n");
     if(buf->totalNode < minNode)
       minNode = buf->totalNode;
     if(buf->totalNode > maxNode)
@@ -611,8 +616,8 @@ processOneXTaintRecord(struct TPMContext *tpm, struct Record *rec, struct TPMNod
 
   //  handle source node
   if(rec->is_load) { // src is mem addr
-    if(rec->s_addr == 0x814b1d0)
-      printf("addr:%x sz:%u\n", rec->d_addr, rec->bytesz);
+    if(rec->s_addr == 0xbffff670)
+      printf("bffff670\n");
 
     if( (newsrc = handle_src_mem(tpm, rec, &src) ) >= 0 ) {}
     else { return -1; }
@@ -635,8 +640,8 @@ processOneXTaintRecord(struct TPMContext *tpm, struct Record *rec, struct TPMNod
 
   //  hanlde destination node
   if(rec->is_store || rec->is_storeptr) { // dst is mem addr (include store ptr)
-    if(rec->d_addr == 0x814b961 || rec->d_addr == 0x814b964)
-      printf("addr:%x sz:%u\n", rec->d_addr, rec->bytesz);
+    if(rec->d_addr == 0xbffff670)
+      printf("bffff670\n");
 
     if((newdst =  handle_dst_mem(tpm, rec, &dst) ) >= 0) {}
     else { return -1; }
@@ -1336,6 +1341,13 @@ has_left_adjacent(
   }
   else
     return false;
+   */
+
+  /*
+   * TODO
+   *    If nodes in same buffer can be various:
+   *    1) it's not enough to only test the hash table node, but also all version nodes
+   *    2) it's not a if-else situation, should be a or relation
    */
 
   l_adjcnt = addr - DWORD;    // try 4 bytes first
