@@ -198,11 +198,13 @@ printRecSrcAddr(struct Record *rec)
 void 
 printRecSrc(struct Record *rec)
 {
-    printf("flag:%-2x s_addr:%-8x s_val:%-8x\n", rec->flag, rec->s_addr, rec->s_val);
+    printf("flag:%-2x s_addr:%-8x s_val:%-8x sz:%u\n",
+            rec->flag, rec->s_addr, rec->s_val, rec->bytesz);
 }
 
 void 
 printRecDst(struct Record *rec)
 {
-    printf("flag:%-2x d_addr:%-8x d_val:%-8x\n", rec->flag, rec->d_addr, rec->d_val);
+    printf("flag:%-2x d_addr:%-8x d_val:%-8x sz:%u\n",
+            rec->flag, rec->d_addr, rec->d_val, rec->bytesz);
 }

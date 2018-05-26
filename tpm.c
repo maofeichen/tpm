@@ -82,6 +82,9 @@ has_right_adjacent(struct TPMContext *tpm,struct Mem2NodeHT **item, u32 addr, u3
 static bool 
 link_adjacent(struct TPMNode2 *linker, struct TPMNode2 *linkee, bool is_left);
 
+static void
+link_left_adjacent(struct TPMNode2 *linker, struct TPMNode2 *linkee);
+
 /* temp or register nodes */
 static void 
 clear_tempcontext(struct TPMNode1 *tempCntxt[] );
@@ -616,8 +619,9 @@ processOneXTaintRecord(struct TPMContext *tpm, struct Record *rec, struct TPMNod
 
   //  handle source node
   if(rec->is_load) { // src is mem addr
-    if(rec->s_addr == 0xbffff670)
-      printf("bffff670\n");
+    // dbg
+    if(rec->s_addr >= 0x814b960 && rec->s_addr <= 0x814b9c0)
+      printRecSrc(rec);
 
     if( (newsrc = handle_src_mem(tpm, rec, &src) ) >= 0 ) {}
     else { return -1; }
@@ -640,8 +644,9 @@ processOneXTaintRecord(struct TPMContext *tpm, struct Record *rec, struct TPMNod
 
   //  hanlde destination node
   if(rec->is_store || rec->is_storeptr) { // dst is mem addr (include store ptr)
-    if(rec->d_addr == 0xbffff670)
-      printf("bffff670\n");
+    // dbg
+    if(rec->d_addr >= 0x814b960 && rec->d_addr <= 0x814b9c0)
+      printRecDst(rec);
 
     if((newdst =  handle_dst_mem(tpm, rec, &dst) ) >= 0) {}
     else { return -1; }
@@ -758,6 +763,17 @@ handle_src_mem(struct TPMContext *tpm, struct Record *rec, union TPMNode **src)
 //         2) init seqNo (lastUpdatTS) to -1
 //      b) updates its previous version pointer (prev->nextversion points to it)
 //      b) updates same as 1.1 b)
+//  1.2.3 !!! it's not enough that only the address is found, but the size needs to
+//      match. If the found node's size is different from src's, goto 1.2.2.
+//      For example:
+//      flag:5a d_addr:814b960  d_val:1b       sz:1
+//      flag:52 s_addr:814b960  s_val:1b       sz:1
+//      flag:52 s_addr:814b960  s_val:65da881b sz:4
+//      before update self r:
+//      mem:0x9b8c8a0 addr:0x814b960  val:1b sz:1 lastUpdateTS:6390 leftNBR:(nil) rightNBR:0x9b8cb20 nextVersion:0x9b8c8a0 version:0
+//      after update: self r
+//      mem:0x9b8c8a0 addr:0x814b960  val:1b sz:1 lastUpdateTS:6390 leftNBR:(nil) rightNBR:0x9b8e4e8 nextVersion:0x9b8c8a0 version:0
+//      the rightNBR is overwritten by sz 4 node
 //  2. updates neighbours: 
 //  2.1 detects if its left neighbour exists (could be 4, 2, 1 bytes)
 //      a) yes, updates its leftNBR points to the earliest version of its left adjcent mem node 
@@ -777,12 +793,31 @@ handle_src_mem(struct TPMContext *tpm, struct Record *rec, union TPMNode **src)
     //     return -1;
     // }
     *src = (union TPMNode*)src_hn->toMem;
+
+    if(src_hn->toMem->bytesz != rec->bytesz) { // handle the case that even rec's addr and
+      // found node's address are same, but their size are different. We consider them as different nodes.
+      union TPMNode *newsrc = createTPMNode(TPM_Type_Memory, rec->s_addr, rec->s_val, rec->ts, rec->bytesz);
+      u32 ver = getMemNodeVersion(src_hn->toMem);
+      setMemNodeVersion(newsrc, ver+1);
+      addNextVerMemNode(src_hn->toMem, &(newsrc->tpmnode2) );
+
+      if(create_trans_node(rec->ts, TPM_Type_Memory, *src, newsrc) == NULL) {   // creates a trans from old src to new src
+        return -1;
+      }
+
+      if(add_mem_ht(&(tpm->mem2NodeHT), rec->s_addr, &(newsrc->tpmnode2) ) < 0) {   // updates hash
+        return -1;
+      }
+
+      *src = newsrc;
+    }
 #ifdef DEBUG
     printf("\thandle src mem: addr:0x%-8x found in hash table\n", rec->s_addr);
     printMemNode(*src);
 #endif       
   }
-  else { // not found
+  else
+  { // not found
     *src = create1stVersionMemNode(rec->s_addr, rec->s_val, initSeqNo, rec->bytesz);
     decreaseInitSeqNoByOne();
 #ifdef DEBUG
@@ -799,6 +834,7 @@ handle_src_mem(struct TPMContext *tpm, struct Record *rec, union TPMNode **src)
     tpm->seqNo2NodeHash[rec->s_ts] = *src; // updates seqNo hash table
     numNewNode++;
   }
+
   // updates adjacent mem node if any
   if(update_adjacent(tpm, *src, &left, &right, rec->s_addr, rec->bytesz) >= 0) {}
   else { return -1; }
@@ -1252,32 +1288,86 @@ update_adjacent(struct TPMContext *tpm, union TPMNode *n, struct Mem2NodeHT **l,
 
   if(has_adjacent(tpm, l, r, addr, bytesz) ) {
     struct TPMNode2 *earliest = NULL;
-    if(*l != NULL){
+    if(*l != NULL)
+    {
       earliest = (*l)->toMem;
-      if(getMemNode1stVersion(&earliest) == 0) {
+      if(getMemNode1stVersion(&earliest) == 0)
+      {
+        // dbg
+        if(n->tpmnode2.addr >= 0x814b960 && n->tpmnode2.addr <= 0x814b9c0) {
+          printf("before update this l:\n");
+          printMemNode(&(n->tpmnode2));
+        }
+
         is_left = true;
         link_adjacent(&(n->tpmnode2), earliest, is_left);   // update the self leftNBR
 
+        // dbg
+        if(n->tpmnode2.addr >= 0x814b960 && n->tpmnode2.addr <= 0x814b9c0) {
+          printf("after update this l:\n");
+          printMemNode(&(n->tpmnode2));
+        }
+
         self = &(n->tpmnode2);
-        if(getMemNode1stVersion(&self) == 0) {
+        if(getMemNode1stVersion(&self) == 0)
+        {
+          // dbg
+          if(earliest->addr >= 0x814b960 && earliest->addr <= 0x814b9c0) {
+            printf("before update nbr l:\n");
+            printMemNode(earliest);
+          }
+
           is_left = false;
           link_adjacent(earliest, self, is_left); // updates the target rightNBR
+
+          // dbg
+          if(earliest->addr >= 0x814b960 && earliest->addr <= 0x814b9c0) {
+            printf("after update nbr l:\n");
+            printMemNode(earliest);
+          }
         }
         else { return -1; }
       }
       else { return -1; }
     }
 
-    if(*r != NULL){
+    if(*r != NULL)
+    {
       earliest = (*r)->toMem;
-      if(getMemNode1stVersion(&earliest) == 0) {
+      if(getMemNode1stVersion(&earliest) == 0)
+      {
+        // dbg
+        if(n->tpmnode2.addr >= 0x814b960 && n->tpmnode2.addr <= 0x814b9c0) {
+          printf("before update self r:\n");
+          printMemNode(&(n->tpmnode2));
+        }
+
         is_left = false;
         link_adjacent(&(n->tpmnode2), earliest, is_left); // updates the self rightNBR
 
+        // dbg
+        if(n->tpmnode2.addr >= 0x814b960 && n->tpmnode2.addr <= 0x814b9c0) {
+          printf("after update: self r\n");
+          printMemNode(&(n->tpmnode2));
+        }
+
         self = &(n->tpmnode2);
-        if(getMemNode1stVersion(&self) == 0) {
+        if(getMemNode1stVersion(&self) == 0)
+        {
+          // dbg
+          if(earliest->addr >= 0x814b960 && earliest->addr <= 0x814b9c0) {
+            printf("before update nbr r:\n");
+            printMemNode(earliest);
+          }
+
           is_left = true;
           link_adjacent(earliest, self, is_left); // updates the target leftNBR
+
+          // dbg
+          if(earliest->addr >= 0x814b960 && earliest->addr <= 0x814b9c0) {
+            printf("after update nbr r:\n");
+            printMemNode(earliest);
+          }
         }
       }
       else { return -1; }
@@ -1411,13 +1501,38 @@ link_adjacent(struct TPMNode2 *linker, struct TPMNode2 *linkee, bool is_left)
     return false;
   }
 
-  if(is_left) { linker->leftNBR = linkee; }
+  if(is_left)
+  {
+    // linker->leftNBR = linkee;
+    link_left_adjacent(linker, linkee);
+  }
   else { linker->rightNBR = linkee; }
 
   return true;
 }
 
+/*
+ * linkee <--linker
+ */
 static void 
+link_left_adjacent(struct TPMNode2 *linker, struct TPMNode2 *linkee)
+{
+  if(linker->leftNBR == NULL) {
+    linker->leftNBR = linkee;
+  }
+  else {
+//    printf("linker/linkee\n");
+//    printMemNode(linker);
+//    printMemNode(linkee);
+//    struct TPMNode2 *leftNBR = linker->leftNBR;
+//    while(leftNBR->siblingNBR != NULL) {  // get last leftNBR in sibling linked list
+//      leftNBR = leftNBR->siblingNBR;
+//    }
+//    leftNBR->siblingNBR = linkee;
+  }
+}
+
+static void
 clear_tempcontext(struct TPMNode1 *tempCntxt[] )
 {
   for(int i = 0; i < MAX_TEMPIDX; i++) {

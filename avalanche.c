@@ -263,8 +263,7 @@ searchAllAvalancheInTPM(TPMContext *tpm)
   for(srcBuf = tpmBufHT; srcBuf != NULL; srcBuf = srcBuf->hh_tpmBufHT.next) {
     for(dstBuf = srcBuf->hh_tpmBufHT.next; dstBuf != NULL; dstBuf = dstBuf->hh_tpmBufHT.next) {
 
-#if 0
-      if(srcBuf->baddr == 0x804a080 && dstBuf->baddr == 0x804a860){ // test signle buf
+      if(srcBuf->baddr == 0x814b180 && dstBuf->baddr == 0x814b960){ // test signle buf
         init_AvalancheSearchCtxt(&avalsctxt, tpm->minBufferSz,
             srcBuf->headNode, dstBuf->headNode, srcBuf->baddr, srcBuf->eaddr,
             dstBuf->baddr, dstBuf->eaddr, srcBuf->numOfAddr, dstBuf->numOfAddr);
@@ -273,8 +272,8 @@ searchAllAvalancheInTPM(TPMContext *tpm)
         free_AvalancheSearchCtxt(avalsctxt);
         goto OUTLOOP;
       }
-#endif
 
+#if 0
       init_AvalancheSearchCtxt(&avalsctxt, tpm->minBufferSz,
           srcBuf->headNode, dstBuf->headNode, srcBuf->baddr, srcBuf->eaddr,
           dstBuf->baddr, dstBuf->eaddr, srcBuf->numOfAddr, dstBuf->numOfAddr);
@@ -285,6 +284,7 @@ searchAllAvalancheInTPM(TPMContext *tpm)
       searchAvalancheInOutBuf(tpm, avalsctxt, &propaStat);
       free_AvalancheSearchCtxt(avalsctxt);
 
+#endif
       searchcnt++;
     }
     // break;
@@ -369,8 +369,8 @@ searchAvalancheInOutBuf(
   printDstMemNodesHTTotal(avalsctxt->addr2Node);
   printDstMemNodesHT(avalsctxt->addr2Node);
 #endif
-  print2LevelHashTable(avalsctxt->addr2NodeAry, avalsctxt->numOfSrcAddr);
-  // detectAvalancheInOutBufFast(tpm, avalsctxt); // CURRENT USE
+  // print2LevelHashTable(avalsctxt->addr2NodeAry, avalsctxt->numOfSrcAddr);
+  detectAvalancheInOutBufFast(tpm, avalsctxt); // CURRENT USE
   return 0;
 }
 

@@ -79,7 +79,7 @@ int main(int argc, char const *argv[])
         delHitMap(hitMap);
         */
 
-        // searchAllAvalancheInTPM(tpm);
+        searchAllAvalancheInTPM(tpm);
         delTPM(tpm);
       }
       else { fprintf(stderr, "error build TPM\n"); }
