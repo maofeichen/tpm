@@ -1088,9 +1088,10 @@ storeAllAddrHashChildrenFast(
     if(nodeHash->node->hitcnt >= minBufSz ){ // only push nodes satisfy the min sz requirement
       if(nodeHash->node->lastUpdateTS < 0
           && srcLastUpdateTS < 0) {    // if both < 0, smaller is later
-        if(nodeHash->node->lastUpdateTS < srcLastUpdateTS){
-          addr2NodeItemStackPush(stackAddr2NodeItemTop, stackAddr2NodeItemCount, nodeHash);
-        }
+        addr2NodeItemStackPush(stackAddr2NodeItemTop, stackAddr2NodeItemCount, nodeHash);
+        // if(nodeHash->node->lastUpdateTS < srcLastUpdateTS){
+        //   addr2NodeItemStackPush(stackAddr2NodeItemTop, stackAddr2NodeItemCount, nodeHash);
+        // }
       }
       else{
         if(nodeHash->node->lastUpdateTS > srcLastUpdateTS) {

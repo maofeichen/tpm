@@ -796,20 +796,21 @@ handle_src_mem(struct TPMContext *tpm, struct Record *rec, union TPMNode **src)
 
     if(src_hn->toMem->bytesz != rec->bytesz) { // handle the case that even rec's addr and
       // found node's address are same, but their size are different. We consider them as different nodes.
-      union TPMNode *newsrc = createTPMNode(TPM_Type_Memory, rec->s_addr, rec->s_val, rec->ts, rec->bytesz);
-      u32 ver = getMemNodeVersion(src_hn->toMem);
-      setMemNodeVersion(newsrc, ver+1);
-      addNextVerMemNode(src_hn->toMem, &(newsrc->tpmnode2) );
 
-      if(create_trans_node(rec->ts, TPM_Type_Memory, *src, newsrc) == NULL) {   // creates a trans from old src to new src
-        return -1;
-      }
+      // union TPMNode *newsrc = createTPMNode(TPM_Type_Memory, rec->s_addr, rec->s_val, rec->ts, rec->bytesz);
+      // u32 ver = getMemNodeVersion(src_hn->toMem);
+      // setMemNodeVersion(newsrc, ver+1);
+      // addNextVerMemNode(src_hn->toMem, &(newsrc->tpmnode2) );
 
-      if(add_mem_ht(&(tpm->mem2NodeHT), rec->s_addr, &(newsrc->tpmnode2) ) < 0) {   // updates hash
-        return -1;
-      }
+      // if(create_trans_node(rec->ts, TPM_Type_Memory, *src, newsrc) == NULL) {   // creates a trans from old src to new src
+      //   return -1;
+      // }
 
-      *src = newsrc;
+      // if(add_mem_ht(&(tpm->mem2NodeHT), rec->s_addr, &(newsrc->tpmnode2) ) < 0) {   // updates hash
+      //   return -1;
+      // }
+
+      // *src = newsrc;
     }
 #ifdef DEBUG
     printf("\thandle src mem: addr:0x%-8x found in hash table\n", rec->s_addr);
