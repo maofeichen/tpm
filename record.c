@@ -14,6 +14,9 @@ static int
 split_mem(char r[MAX_NUM_FIELD][MAX_FIELD_SZ], struct Record *rec);
 
 static int 
+split_load(char r[MAX_NUM_FIELD][MAX_FIELD_SZ], struct Record *rec);
+
+static int
 split_nonmem(char r[MAX_NUM_FIELD][MAX_FIELD_SZ], struct Record *rec);
 
 bool
@@ -102,7 +105,6 @@ analyzeRecord(char *s, char c, struct Record *rec)
 		i++;
 	} while (*e++ != 0);	
 
-
 	// for(i = 0; i < MAX_NUM_FIELD; i++) {
 	// 	if(r[i][0] == '\0')
 	// 		break;
@@ -112,8 +114,9 @@ analyzeRecord(char *s, char c, struct Record *rec)
 	char flag[3] = {0};
 	if(getRecordFlag(flag, s) ) 
 	{
-		if(equalRecordMark(flag, TCG_QEMU_LD) 
-		   || equalRecordMark(flag, TCG_QEMU_ST)
+		if(equalRecordMark(flag, TCG_QEMU_LD) )
+		{ split_load(r, rec); }
+		else if(equalRecordMark(flag, TCG_QEMU_ST)
 		   || equalRecordMark(flag, TCG_QEMU_LD_POINTER) 
 		   || equalRecordMark(flag, TCG_QEMU_ST_POINTER) )	{ 
 			split_mem(r, rec); // split mem 
@@ -155,6 +158,34 @@ split_mem(char r[MAX_NUM_FIELD][MAX_FIELD_SZ], struct Record *rec)
 }
 
 static int 
+split_load(char r[MAX_NUM_FIELD][MAX_FIELD_SZ], struct Record *rec)
+{
+  rec->flag 	= strtoul(r[0], NULL, 16); 	// 0st str: flag
+  rec->s_addr	= strtoul(r[1], NULL, 16);	// 1st str: src addr
+  rec->s_val	= strtoul(r[2], NULL, 16); 	// 2nd str: src val
+  rec->d_addr	= strtoul(r[4], NULL, 16); 	// 4th str: dst addr
+  rec->d_val	= strtoul(r[5], NULL, 16);	// 5th str: dst val
+  u32 bitsz	    = strtoul(r[6], NULL, 10);	// 6th str: mem size
+  rec->bytesz	= bitsz / 8;
+
+  int ts        = strtoul(r[8], NULL, 10);
+  if(ts > 0) {  // has group mark
+    int gmark = strtoul(r[7], NULL, 10);
+    rec->group_mark = gmark;
+    rec->ts = ts;
+  }
+  else {
+    rec->ts 	= strtoul(r[7], NULL, 10);	// 7th str: seqNo
+  }
+  rec->s_ts     = getRecSrcTS(rec->ts);
+  rec->d_ts 	= getRecDstTS(rec->ts);
+
+  if(isLoadRecord(r[0]) ) { rec->is_load = 1; }
+  // printRecord(rec);
+  return 0;
+}
+
+static int
 split_nonmem(char r[MAX_NUM_FIELD][MAX_FIELD_SZ], struct Record *rec)
 {
 	// int i;
@@ -182,11 +213,13 @@ printRecord(struct Record* rec)
     printf("flag:%-2x s_addr:%-8x s_val:%-8x" 
                     " d_addr:%-8x d_val:%-8x"
                     " size:%-2d seqNo:%-8u s_seqNo:%-8u d_seqNo:%-8u" 
-                    " load:%-1u store:%-1u loadptr:%-1u storeptr:%-1u\n", 
+                    " load:%-1u store:%-1u loadptr:%-1u storeptr:%-1u"
+                    " group mark: %u\n",
             rec->flag, rec->s_addr, rec->s_val, 
                        rec->d_addr, rec->d_val, 
                        rec->bytesz, rec->ts, rec->s_ts, rec->d_ts, 
-                       rec->is_load, rec->is_store, rec->is_loadptr, rec->is_storeptr);
+                       rec->is_load, rec->is_store, rec->is_loadptr, rec->is_storeptr,
+                       rec->group_mark);
 }
 
 void 

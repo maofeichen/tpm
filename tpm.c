@@ -270,8 +270,8 @@ analyzeTPMBuf(TPMContext *tpm)
     memNode = memNodeHT->toMem;
 
     // dbg
-    // if(memNode->addr >= 0xbffff670 && memNode->addr <= 0xbffff680)
-    //   printMemNodeLit(memNode);
+    // if(memNode->addr >= 0x804b880 && memNode->addr <= 0x804ba8dc)
+    //   printMemNodeAllVersion(memNode);
 
     compBufStat(memNode, &baddr, &eaddr, &minseq, &maxseq,
         &numOfAddr, &firstMemNode, &totalNode);
@@ -527,12 +527,12 @@ printTPMBufHashTable(TPMBufHashTable *tpmBufHT)
   maxNode = tpmBufHT->totalNode;
 
   HASH_ITER(hh_tpmBufHT, tpmBufHT, buf, temp) {
-    printf("-----\n");
+    // printf("-----\n");
     printf("begin:0x%-8x end:0x%-8x sz:%-4u numofaddr:%-4u minseq:%-7d maxseq:%-7d diffseq:%-7d bufID:%-4u total nodes:%u\n",
         buf->baddr, buf->eaddr, buf->eaddr - buf->baddr,
         buf->numOfAddr, buf->minseq, buf->maxseq, (buf->maxseq - buf->minseq),
         buf->headNode->bufid, buf->totalNode);
-    printBufNode(buf->headNode);
+    // printBufNode(buf->headNode);
     if(buf->totalNode < minNode)
       minNode = buf->totalNode;
     if(buf->totalNode > maxNode)
@@ -619,10 +619,6 @@ processOneXTaintRecord(struct TPMContext *tpm, struct Record *rec, struct TPMNod
 
   //  handle source node
   if(rec->is_load) { // src is mem addr
-    // dbg
-    if(rec->s_addr >= 0x814b960 && rec->s_addr <= 0x814b9c0)
-      printRecSrc(rec);
-
     if( (newsrc = handle_src_mem(tpm, rec, &src) ) >= 0 ) {}
     else { return -1; }
     srctype = TPM_Type_Memory;
@@ -645,8 +641,8 @@ processOneXTaintRecord(struct TPMContext *tpm, struct Record *rec, struct TPMNod
   //  hanlde destination node
   if(rec->is_store || rec->is_storeptr) { // dst is mem addr (include store ptr)
     // dbg
-    if(rec->d_addr >= 0x814b960 && rec->d_addr <= 0x814b9c0)
-      printRecDst(rec);
+//    if(rec->d_addr >= 0x814b960 && rec->d_addr <= 0x814b9c0)
+//      printRecDst(rec);
 
     if((newdst =  handle_dst_mem(tpm, rec, &dst) ) >= 0) {}
     else { return -1; }
@@ -743,7 +739,8 @@ handle_src_mem(struct TPMContext *tpm, struct Record *rec, union TPMNode **src)
 //  >=0: num of new nodes creates 
 //  <0: error 
 //  stores the created or found node pointer in src 
-// 
+//
+// Handles source memory node:
 //  1. detects if src's addr is in mem hash table (tpm->Mem2NodeHT)
 //  1.1 not found: new addr
 //      a) creates new node
@@ -780,6 +777,7 @@ handle_src_mem(struct TPMContext *tpm, struct Record *rec, union TPMNode **src)
 //      b) no, do nothing
 //  2.2 detects if its right neighbour exist, similar to 2.1, and updates it's rightNBR accordingly
 {
+  // printRecord(rec);
   int numNewNode = 0;
   struct Mem2NodeHT *src_hn = NULL, *left = NULL, *right = NULL;
 
@@ -1107,6 +1105,10 @@ handle_dst_temp(struct TPMContext *tpm, struct Record *rec, struct TPMNode1 *tem
 //      c) updates the seqNo hash table
 //  1.2.2 "addtion" (add, xor, etc)
 //      a) verifies that the value of temp and the one found in the tempCntxt should be same
+// 3.1 If there is group mark (split memory node to byte to byte):
+//  a) uses the previous node as destination
+//  b) updates seqNo
+// 3.2 else, otherwise
 {
   int numNewNode = 0;
 
@@ -1122,27 +1124,38 @@ handle_dst_temp(struct TPMContext *tpm, struct Record *rec, struct TPMNode1 *tem
     numNewNode++;
   }
   else { // in TPM
-    if(isPropagationOverwriting(rec->flag, rec) ) { // overwrite
-      *dst = createTPMNode(TPM_Type_Temprary, rec->d_addr, rec->d_val, -1, 0);
-      tempCntxt[rec->d_addr] = &( (*dst)->tpmnode1);
-      tpm->seqNo2NodeHash[rec->d_ts] = *dst;   // updates seqNo hash table
-      numNewNode++;
-    }
-    else { // non overwrite
-#ifdef DEBUG
-      printf("\thandle dst temp: non overwrite hit\n");
-#endif                             
-      /* disable the sanity check */
-      // if(is_equal_value(rec->d_val, tempCntxt[rec->d_addr]) ) {
-      //     *dst = tempCntxt[rec->d_addr];
-      // }
-      // else {
-      //     fprintf(stderr, "error: values are not equal\n");
-      //     print_nonmem_node(tempCntxt[rec->d_addr]);
-      //     return -1;
-      // }
+    if(rec->group_mark == GROUP_MIDDLE ||
+       rec->group_mark == GROUP_END)
+    {
       *dst = (union TPMNode*)tempCntxt[rec->d_addr];
-      // TODO: update the seqNo hash table
+      assert((*dst)->tpmnode1.addr == rec->d_addr &&
+             (*dst)->tpmnode1.val == rec->d_val);
+      (*dst)->tpmnode1.lastUpdateTS = rec->ts;
+    }
+    else
+    {
+      if(isPropagationOverwriting(rec->flag, rec) ) { // overwrite
+        *dst = createTPMNode(TPM_Type_Temprary, rec->d_addr, rec->d_val, -1, 0);
+        tempCntxt[rec->d_addr] = &( (*dst)->tpmnode1);
+        tpm->seqNo2NodeHash[rec->d_ts] = *dst;   // updates seqNo hash table
+        numNewNode++;
+      }
+      else { // non overwrite
+#ifdef DEBUG
+        printf("\thandle dst temp: non overwrite hit\n");
+#endif                             
+        /* disable the sanity check */
+        // if(is_equal_value(rec->d_val, tempCntxt[rec->d_addr]) ) {
+        //     *dst = tempCntxt[rec->d_addr];
+        // }
+        // else {
+        //     fprintf(stderr, "error: values are not equal\n");
+        //     print_nonmem_node(tempCntxt[rec->d_addr]);
+        //     return -1;
+        // }
+        *dst = (union TPMNode*)tempCntxt[rec->d_addr];
+        // TODO: update the seqNo hash table
+      }
     }
   }
   return numNewNode;
@@ -1295,37 +1308,37 @@ update_adjacent(struct TPMContext *tpm, union TPMNode *n, struct Mem2NodeHT **l,
       if(getMemNode1stVersion(&earliest) == 0)
       {
         // dbg
-        if(n->tpmnode2.addr >= 0x814b960 && n->tpmnode2.addr <= 0x814b9c0) {
-          printf("before update this l:\n");
-          printMemNode(&(n->tpmnode2));
-        }
+//        if(n->tpmnode2.addr >= 0x814b960 && n->tpmnode2.addr <= 0x814b9c0) {
+//          printf("before update this l:\n");
+//          printMemNode(&(n->tpmnode2));
+//        }
 
         is_left = true;
         link_adjacent(&(n->tpmnode2), earliest, is_left);   // update the self leftNBR
 
         // dbg
-        if(n->tpmnode2.addr >= 0x814b960 && n->tpmnode2.addr <= 0x814b9c0) {
-          printf("after update this l:\n");
-          printMemNode(&(n->tpmnode2));
-        }
+//        if(n->tpmnode2.addr >= 0x814b960 && n->tpmnode2.addr <= 0x814b9c0) {
+//          printf("after update this l:\n");
+//          printMemNode(&(n->tpmnode2));
+//        }
 
         self = &(n->tpmnode2);
         if(getMemNode1stVersion(&self) == 0)
         {
           // dbg
-          if(earliest->addr >= 0x814b960 && earliest->addr <= 0x814b9c0) {
-            printf("before update nbr l:\n");
-            printMemNode(earliest);
-          }
+//          if(earliest->addr >= 0x814b960 && earliest->addr <= 0x814b9c0) {
+//            printf("before update nbr l:\n");
+//            printMemNode(earliest);
+//          }
 
           is_left = false;
           link_adjacent(earliest, self, is_left); // updates the target rightNBR
 
           // dbg
-          if(earliest->addr >= 0x814b960 && earliest->addr <= 0x814b9c0) {
-            printf("after update nbr l:\n");
-            printMemNode(earliest);
-          }
+//          if(earliest->addr >= 0x814b960 && earliest->addr <= 0x814b9c0) {
+//            printf("after update nbr l:\n");
+//            printMemNode(earliest);
+//          }
         }
         else { return -1; }
       }
@@ -1338,37 +1351,37 @@ update_adjacent(struct TPMContext *tpm, union TPMNode *n, struct Mem2NodeHT **l,
       if(getMemNode1stVersion(&earliest) == 0)
       {
         // dbg
-        if(n->tpmnode2.addr >= 0x814b960 && n->tpmnode2.addr <= 0x814b9c0) {
-          printf("before update self r:\n");
-          printMemNode(&(n->tpmnode2));
-        }
+//        if(n->tpmnode2.addr >= 0x814b960 && n->tpmnode2.addr <= 0x814b9c0) {
+//          printf("before update self r:\n");
+//          printMemNode(&(n->tpmnode2));
+//        }
 
         is_left = false;
         link_adjacent(&(n->tpmnode2), earliest, is_left); // updates the self rightNBR
 
         // dbg
-        if(n->tpmnode2.addr >= 0x814b960 && n->tpmnode2.addr <= 0x814b9c0) {
-          printf("after update: self r\n");
-          printMemNode(&(n->tpmnode2));
-        }
+//        if(n->tpmnode2.addr >= 0x814b960 && n->tpmnode2.addr <= 0x814b9c0) {
+//          printf("after update: self r\n");
+//          printMemNode(&(n->tpmnode2));
+//        }
 
         self = &(n->tpmnode2);
         if(getMemNode1stVersion(&self) == 0)
         {
           // dbg
-          if(earliest->addr >= 0x814b960 && earliest->addr <= 0x814b9c0) {
-            printf("before update nbr r:\n");
-            printMemNode(earliest);
-          }
+//          if(earliest->addr >= 0x814b960 && earliest->addr <= 0x814b9c0) {
+//            printf("before update nbr r:\n");
+//            printMemNode(earliest);
+//          }
 
           is_left = true;
           link_adjacent(earliest, self, is_left); // updates the target leftNBR
 
           // dbg
-          if(earliest->addr >= 0x814b960 && earliest->addr <= 0x814b9c0) {
-            printf("after update nbr r:\n");
-            printMemNode(earliest);
-          }
+//          if(earliest->addr >= 0x814b960 && earliest->addr <= 0x814b9c0) {
+//            printf("after update nbr r:\n");
+//            printMemNode(earliest);
+//          }
         }
       }
       else { return -1; }

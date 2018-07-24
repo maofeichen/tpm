@@ -14,6 +14,10 @@
 #define RET_INSN            	"18"
 #define RET_INSN_SEC        	"19"	
 
+#define GROUP_START             100
+#define GROUP_MIDDLE            101
+#define GROUP_END               102
+
 /* Qemu IR */
 
 #define TCG_QEMU_LD         	"52"

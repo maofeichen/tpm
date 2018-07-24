@@ -263,7 +263,7 @@ searchAllAvalancheInTPM(TPMContext *tpm)
   for(srcBuf = tpmBufHT; srcBuf != NULL; srcBuf = srcBuf->hh_tpmBufHT.next) {
     for(dstBuf = srcBuf->hh_tpmBufHT.next; dstBuf != NULL; dstBuf = dstBuf->hh_tpmBufHT.next) {
 
-      if(srcBuf->baddr == 0x814b180 && dstBuf->baddr == 0x814b960){ // test signle buf
+      if(srcBuf->baddr == 0x813e1e0 && dstBuf->baddr == 0x813e9c0 ){ // test signle buf
         init_AvalancheSearchCtxt(&avalsctxt, tpm->minBufferSz,
             srcBuf->headNode, dstBuf->headNode, srcBuf->baddr, srcBuf->eaddr,
             dstBuf->baddr, dstBuf->eaddr, srcBuf->numOfAddr, dstBuf->numOfAddr);
@@ -952,6 +952,10 @@ detectAvalancheOfSourceFast(
 
   bool hasPrint = false;  // if avalanche has been printed, avoid duplication
 
+  // gdb
+  // if(srcnode->addr == 0x813e220)
+  //    printf("addr: 0x813e220\n");
+
   oldsrcnode = srcnode;
   addr2NodeItemStackPush(&stckSrcTop, &stckSrcCnt, oldsrcnode);
   oldra = buildRangeArray(oldsrcnode->subHash);
@@ -997,8 +1001,9 @@ detectAvalancheOfSourceFast(
     // can't delete here, due to in the yes case below, newra is assigned to oldra,
     // if delete newra, then oldra will be deleted also. Now I set new to NULL if the case.
     newra = buildRangeArray(newsrcnode->subHash);
-    newintersct_ra = getIntersectRangeArray(oldsrcnode, oldra, newsrcnode, newra);
     // printRangeArray(newra, "newra");
+    // printRangeArray(oldra, "oldra");
+    newintersct_ra = getIntersectRangeArray(oldsrcnode, oldra, newsrcnode, newra);
     // printRangeArray(newintersct_ra, "new intersect ra");
 
     if(newintersct_ra->rangeAryUsed > 0) { // valid intersection range array
