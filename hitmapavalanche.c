@@ -1212,6 +1212,11 @@ search_srcnode_avalanche(
     // printRangeArray(newintersect_ra, "");
 
     if(newintersect_ra->rangeAryUsed > 0) { // valid intersection range array
+      if(oldintersect_ra != NULL &&
+         !is_rangearray_same(oldintersect_ra, newintersect_ra) ) {
+        goto NEW_BLOCK;
+      }
+
       old_srcnode = new_srcnode;
       hitMapAddr2NodeItemPush(old_srcnode, &stack_srcnode_top, &stack_srcnode_cnt);
 
@@ -1228,6 +1233,7 @@ search_srcnode_avalanche(
       has_print_rslt = false;   // only has new src aval node, indicating new avalanche
     }
     else {  // no valid intersection ranges
+NEW_BLOCK:
       if(!has_print_rslt){
         if(stack_srcnode_cnt >= 2 && stack_srcnode_cnt >= *block_sz_detect) {
           display_avalanche(stack_srcnode_top, oldintersect_ra,
