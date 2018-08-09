@@ -519,7 +519,10 @@ detect_HM_avalnch_HMBuf_bruteforce(
         // dbg
         if( (src->baddr == 0x8142220 && dst->baddr == 0x813e9c0) ||
             (src->baddr == 0xde911000 && dst->baddr == 0x804c170) ||
-            (src->baddr == 0x813e1e0 && dst->baddr == 0x813e9c0) ) {
+            (src->baddr == 0x813e1e0 && dst->baddr == 0x813e9c0) ||
+            (src->baddr == 0x804a080 && dst->baddr == 0x804a860) ||
+            (src->baddr == 0x814b180 && dst->baddr == 0x814b960) ||
+            (src->baddr == 0x804b0a0 && dst->baddr == 0x804b880) ) {
           printf("Detect HitMap Avalanche for speical pair\n");
           hitMapAvalSrchCtxt = init_HM_avalnch_ctxt_HMBuf(srcIdx, src, dstIdx, dst, tpm->minBufferSz);
           detect_HM_inoutbuf_HMBuf(hitMapAvalSrchCtxt, hitMap, &totalElapse);

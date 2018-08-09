@@ -168,7 +168,7 @@ compBufHitCntArrayStat(
   else
     numOfBuf = hitMap->hitMapBufCtxt->numOfBuf;
 
-  // printBufHitCntArray(bufHitCntArray, numOfBuf);
+  printBufHitCntArray(bufHitCntArray, numOfBuf);
   for(size_t r = 0; r < numOfBuf; r++) {
     for (size_t c = 0; c < numOfBuf; c++) {
       u8 val = bufHitCntArray[r*numOfBuf + c];
@@ -242,6 +242,11 @@ buildBufHitCntAryOfAddr(
   } while(ver != addrHead->version);
 }
 
+
+/*
+ * For each HitMap buffer, creates its own in/out hit count array
+ */
+
 static u8 *
 buildHitMapBufHitCntAry(HitMapContext *hitMap)
 {
@@ -261,6 +266,11 @@ buildHitMapBufHitCntAry(HitMapContext *hitMap)
         continue;
 
       buildHitMapBufHitCntAryOfOneBuf(bufHitCntAry, numOfBuf, hitMapBufHash);
+//      for(size_t r = 0; r < numOfBuf; r++) {
+//          for(size_t c = 0; c < numOfBuf; c++) {
+//              printf("bufHitCntAry[%zu][%zu]:%u \n", r, c, bufHitCntAry[r*numOfBuf + c]);
+//          }
+//      }
     }
     printTime("After build buffer hit count array");
     return bufHitCntAry;
@@ -268,6 +278,9 @@ buildHitMapBufHitCntAry(HitMapContext *hitMap)
   else { return NULL; }
 }
 
+/*
+ * For each node in buffer, aggregate their total in/out hit count
+ */
 static void
 buildHitMapBufHitCntAryOfOneBuf(
     u8 *bufHitCntAry,

@@ -927,9 +927,9 @@ dfsHitMapNodePropgtOfBuildBufHitCntAry(
   }
   if(srcNode->firstChild == NULL) { return 0; }
 
-  // printf("-----dfsHitMapNodePropgtOfBuildBufHitCntAry\n");
-  // printHitMapNodeLit(srcNode);
-  // printf("dfsHitMapNodePropgtOfBuildBufHitCntAry: bufHitCntAry:%p\n", bufHitCntAry);
+//  printf("-----dfsHitMapNodePropgtOfBuildBufHitCntAry\n");
+//  printHitMapNodeLit(srcNode);
+//  printf("dfsHitMapNodePropgtOfBuildBufHitCntAry: bufHitCntAry:%p\n", bufHitCntAry);
 
   stackHitMapNodePush(srcNode, &stackHMNodeTop, &stackHMNodeCnt);
   storeHitTransChildren(visitHitTransHash, srcNode, 0, &stackHitTransTop, &stackHitTransCnt);
@@ -955,6 +955,7 @@ dfsHitMapNodePropgtOfBuildBufHitCntAry(
       // stackHitMapNodeDisplay(stackHMNodeTop, stackHMNodeCnt);
       // printf("hit map node stack sz:%u\n", stackHMNodeCnt);
 
+      // stackHitMapNodeDisplay(stackHMNodeTop, stackHMNodeCnt);
       updateBufHitCntArray(bufHitCntAry, numOfBuf, stackHMNodeTop);
       // printHitMapNodeLit(topDstNode);
 
@@ -1027,21 +1028,25 @@ updateBufHitCntArray(
     srcBufID = stackHMNodeTop->hmNode->bufId;
     newBufID = srcBufID;
     if(srcBufID != dstBufID && srcBufID != oldBufID) {
-      if(stackHMNodeTop->taintBy != NULL &&
-          stackHMNodeTop->taintBy->hasUpdateBufHitCnt == 0) {
+      // handle root node exception, since root node does not has any tainted by
+      if(stackHMNodeTop->hmNode->lastUpdateTS < 0 ||
+          (stackHMNodeTop->taintBy != NULL &&
+           stackHMNodeTop->taintBy->hasUpdateBufHitCnt == 0) ) {
 
         u32 srcBufIdx = srcBufID-1, dstBufIdx = dstBufID -1;
         // assert(srcBufIdx < numOfBuf);
         // assert(dstBufIdx < numOfBuf);
         if(srcBufIdx < numOfBuf && dstBufIdx < numOfBuf) {
-          // printf("src buf ID:%u --> dst buf ID:%u size:%u\n", srcBufID, dstBufID, dstNode->bytesz);
+//          printf("src buf ID:%u --> dst buf ID:%u size:%u\n", srcBufID, dstBufID, dstNode->bytesz);
           u8 currVal = bufHitCntAry[srcBufIdx*numOfBuf + dstBufIdx];
-          // printf("before update: bufHitCntAry:%p plus offset:%p val:%u\n",
-          //         bufHitCntAry, bufHitCntAry+(srcBufIdx*numOfBuf + dstBufIdx), currVal);
+//          printf("before update: bufHitCntAry:%p plus offset:%p val:%d\n",
+//                  bufHitCntAry, bufHitCntAry+(srcBufIdx*numOfBuf + dstBufIdx), currVal);
 
           /* updates src & dst node's hit cout, including direct and indirect. */
           stackHMNodeTop->hmNode->hitcntOut += dstNode->bytesz;
           dstNode->hitcntIn += stackHMNodeTop->hmNode->bytesz;
+//          printHitMapNodeLit(stackHMNodeTop->hmNode);
+//          printHitMapNodeLit(dstNode);
 
           /* Dbg: print out update hit count for a specific <src,dst> pair. 
            Disable temporarily. */
@@ -1051,11 +1056,13 @@ updateBufHitCntArray(
 
           if(currVal + dstNode->bytesz <= 255) {
             bufHitCntAry[srcBufIdx * numOfBuf + dstBufIdx] += dstNode->bytesz;
-            // printf("after update: bufHitCntAry:%p plus offset:%p val:%u\n",
-            //         bufHitCntAry, bufHitCntAry+(srcBufIdx*numOfBuf + dstBufIdx),
-            //         bufHitCntAry[srcBufIdx * numOfBuf + dstBufIdx]);
-            // printf("update 2D array: bufHitCntAry[ %u ][ %u ] += byte size: %u\n",
-            //         srcBufIdx, dstBufIdx, dstNode->bytesz);
+//            printf("after update: bufHitCntAry:%p plus offset:%p val:%d\n",
+//                    bufHitCntAry, bufHitCntAry+(srcBufIdx*numOfBuf + dstBufIdx),
+//                    bufHitCntAry[srcBufIdx * numOfBuf + dstBufIdx]);
+//            printf("update 2D array: bufHitCntAry[ %u ][ %u ] += byte size: %u\n",
+//                    srcBufIdx, dstBufIdx, dstNode->bytesz);
+//            printf("current 2D array: bufHitCntAry[ %u ][ %u ]: %d\n",
+//                srcBufIdx, dstBufIdx, bufHitCntAry[srcBufIdx*numOfBuf + dstBufIdx]);
           }
         }
       }

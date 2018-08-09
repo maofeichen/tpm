@@ -994,9 +994,9 @@ updateHMNodeHitCnt(
     u32 bufEnd   )
 {
   if(node != NULL && inBufHitCntAry != NULL && outBufHitCntAry != NULL) {
-    // printf("-----\nHitMap Buf: start:%x end:%x\n", bufStart, bufEnd);
-    // printf("HMNode: addr:%x version:%u byteSz:%u inHitCnt:%u outHitCnt:%u\n",
-    //        node->addr, node->version, node->bytesz, node->hitcntIn, node->hitcntOut);
+//    printf("-----\nHitMap Buf: start:%x end:%x\n", bufStart, bufEnd);
+//    printf("HMNode: addr:%x version:%u byteSz:%u inHitCnt:%u outHitCnt:%u\n",
+//           node->addr, node->version, node->bytesz, node->hitcntIn, node->hitcntOut);
 
     if(node->addr < bufStart || node->addr + node->bytesz > bufEnd)
       return 0;
@@ -1017,7 +1017,7 @@ updateHMNodeHitCnt(
       outBufHitCntAry[byteIdx] += node->hitcntOut;  // same reason here
 
       // printf("avg IN hit count:%u avg Out hit count:%u\n", avgInHitCnt, avgOutHitCnt);
-      // printf("update HMNode of buf hit count array: in:%u out:%u\n", inBufHitCntAry[byteIdx], outBufHitCntAry[byteIdx]);
+//      printf("update HMNode of buf hit count array: in:%u out:%u\n", inBufHitCntAry[byteIdx], outBufHitCntAry[byteIdx]);
     }
     return 0;
   }

@@ -657,13 +657,13 @@ printHitMapNodeLit(HitMapNode *node)
     printf("HitMap node:%p\n", node);
     return;
   }
-  printf("addr:0x%-8x val:%-8x sz:%u lastUpdateTS:%-16d version:%-4u bufID:%u\n",
-      node->addr, node->val, node->bytesz, node->lastUpdateTS,
-      node->version, node->bufId);
-//  printf("addr:0x%-8x val:%-8x sz:%u lastUpdateTS:%-16d version:%-4u bufID:%u inHitCnt:%u outHitCnt:%u\n",
+//  printf("addr:0x%-8x val:%-8x sz:%u lastUpdateTS:%-16d version:%-4u bufID:%u\n",
 //      node->addr, node->val, node->bytesz, node->lastUpdateTS,
-//      node->version, node->bufId, node->hitcntIn, node->hitcntOut);
-  // printf("%-16d\n",node->lastUpdateTS);
+//      node->version, node->bufId);
+  printf("addr:0x%-8x val:%-8x sz:%u lastUpdateTS:%-16d version:%-4u bufID:%u inHitCnt:%u outHitCnt:%u\n",
+      node->addr, node->val, node->bytesz, node->lastUpdateTS,
+      node->version, node->bufId, node->hitcntIn, node->hitcntOut);
+//  printf("%-16d\n",node->lastUpdateTS);
 }
 
 void
