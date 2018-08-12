@@ -43,10 +43,12 @@ struct TPMNode2		  // for memory address
   struct TPMNode2 *leftNBR;	    // point to node of adjacent, smaller memory address
   struct TPMNode2 *rightNBR;	// point to node of adjacent, bigger memory address
   struct TPMNode2 *nextVersion; // point to node of the same addr buf of different version or age. Forms circular link
+  struct TPMNode2 *siblingNBR;  // points to possible multiple nodes that all left neighbor
+  // of a same right node. Siblings forms a singly linked list
   u32 version;	// the version of current node, monotonically increasing from 0.
-  u32	hitcnt;		/* as source, the number of TMPNode2 in destination buffer this node propagates to; or
+  u32	hitcnt;	/* as source, the number of TMPNode2 in destination buffer this node propagates to; or
 			   as detination, the number of TMPNode2 in source buffer that propagates to this node	*/
-  u32 bufid;      // bufid the node belongs to, init to 0 (belongs to no buf), will be assigned after tpm is build
+  u32 bufid;    // bufid the node belongs to, init to 0 (belongs to no buf), will be assigned after tpm is build
   struct HitcntHashTable *hitcntHT; // Not use right now
 };
 typedef struct TPMNode2 TPMNode2;

@@ -4,7 +4,7 @@
 #include <stdbool.h>
 #include "type.h"
 
-#define MAX_NUM_FIELD	8	  // max num of fields, flag, addr, ect a record has
+#define MAX_NUM_FIELD	9	// max num of fields, flag, addr, ect a record has
 #define MAX_FIELD_SZ	16	// max byte sz of a field
 
 struct Record
@@ -22,6 +22,7 @@ struct Record
     u32 is_loadptr;
     u32 is_store;
     u32 is_storeptr;
+    u32 group_mark;
 };
 typedef struct Record Record;
 

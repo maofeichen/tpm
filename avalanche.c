@@ -257,13 +257,13 @@ searchAllAvalancheInTPM(TPMContext *tpm)
 
   tpmBufHT = analyzeTPMBuf(tpm);
   assignTPMBufID(tpmBufHT);
-  // printTPMBufHashTable(tpmBufHT);
+  printTPMBufHashTable(tpmBufHT);
 
   int searchcnt = 1;
   for(srcBuf = tpmBufHT; srcBuf != NULL; srcBuf = srcBuf->hh_tpmBufHT.next) {
     for(dstBuf = srcBuf->hh_tpmBufHT.next; dstBuf != NULL; dstBuf = dstBuf->hh_tpmBufHT.next) {
 
-      if(srcBuf->baddr == 0x804a080 && dstBuf->baddr == 0x804a860){ // test signle buf
+      if(srcBuf->baddr == 0x813e1e0 && dstBuf->baddr == 0x813e9c0 ){ // test signle buf
         init_AvalancheSearchCtxt(&avalsctxt, tpm->minBufferSz,
             srcBuf->headNode, dstBuf->headNode, srcBuf->baddr, srcBuf->eaddr,
             dstBuf->baddr, dstBuf->eaddr, srcBuf->numOfAddr, dstBuf->numOfAddr);
@@ -284,8 +284,8 @@ searchAllAvalancheInTPM(TPMContext *tpm)
       searchAvalancheInOutBuf(tpm, avalsctxt, &propaStat);
       free_AvalancheSearchCtxt(avalsctxt);
 
-      searchcnt++;
 #endif
+      searchcnt++;
     }
     // break;
   }
@@ -952,6 +952,10 @@ detectAvalancheOfSourceFast(
 
   bool hasPrint = false;  // if avalanche has been printed, avoid duplication
 
+  // gdb
+  // if(srcnode->addr == 0x813e220)
+  //    printf("addr: 0x813e220\n");
+
   oldsrcnode = srcnode;
   addr2NodeItemStackPush(&stckSrcTop, &stckSrcCnt, oldsrcnode);
   oldra = buildRangeArray(oldsrcnode->subHash);
@@ -997,8 +1001,9 @@ detectAvalancheOfSourceFast(
     // can't delete here, due to in the yes case below, newra is assigned to oldra,
     // if delete newra, then oldra will be deleted also. Now I set new to NULL if the case.
     newra = buildRangeArray(newsrcnode->subHash);
-    newintersct_ra = getIntersectRangeArray(oldsrcnode, oldra, newsrcnode, newra);
     // printRangeArray(newra, "newra");
+    // printRangeArray(oldra, "oldra");
+    newintersct_ra = getIntersectRangeArray(oldsrcnode, oldra, newsrcnode, newra);
     // printRangeArray(newintersct_ra, "new intersect ra");
 
     if(newintersct_ra->rangeAryUsed > 0) { // valid intersection range array
@@ -1088,9 +1093,10 @@ storeAllAddrHashChildrenFast(
     if(nodeHash->node->hitcnt >= minBufSz ){ // only push nodes satisfy the min sz requirement
       if(nodeHash->node->lastUpdateTS < 0
           && srcLastUpdateTS < 0) {    // if both < 0, smaller is later
-        if(nodeHash->node->lastUpdateTS < srcLastUpdateTS){
-          addr2NodeItemStackPush(stackAddr2NodeItemTop, stackAddr2NodeItemCount, nodeHash);
-        }
+        addr2NodeItemStackPush(stackAddr2NodeItemTop, stackAddr2NodeItemCount, nodeHash);
+        // if(nodeHash->node->lastUpdateTS < srcLastUpdateTS){
+        //   addr2NodeItemStackPush(stackAddr2NodeItemTop, stackAddr2NodeItemCount, nodeHash);
+        // }
       }
       else{
         if(nodeHash->node->lastUpdateTS > srcLastUpdateTS) {
@@ -1676,9 +1682,9 @@ print2LevelHashTable(struct addr2NodeItem **addr2NodeAry, u32 numOfAddr)
   int addridx = 0;
   for(; addridx < numOfAddr; addridx++) {
     for(src = addr2NodeAry[addridx]; src != NULL; src = src->hh_addr2NodeItem.next) {
-      printf("--------------------\nsrc node in 2L ht:\n");
+      printf("--------------------2LHash\nsrc:\n");
       printMemNodeLit(src->node);
-      printf("propagate to:\n");
+      printf("to:\n");
       for(dst = src->subHash; dst != NULL; dst = dst->hh_addr2NodeItem.next) {
         printMemNodeLit(dst->node);
       }

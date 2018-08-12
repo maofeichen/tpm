@@ -381,6 +381,7 @@ getIntersectRange(Addr2NodeItem *l, Addr2NodeItem *r, u32 start, u32 end)
       if(intersectStart == 0){
         intersectStart = lnode->node->addr;
         intersectEnd = intersectStart + lnode->node->bytesz;
+        // printf("start: %x end: %x\n", intersectStart, intersectEnd);
       }
       else {
         intersectEnd = intersectEnd + lnode->node->bytesz;
@@ -389,6 +390,8 @@ getIntersectRange(Addr2NodeItem *l, Addr2NodeItem *r, u32 start, u32 end)
 
     u32 lend = lnode->node->addr + lnode->node->bytesz;
     u32 rend = rnode->node->addr + rnode->node->bytesz;
+    // printf("lend:%x\n", lend);
+    // printf("rend:%x\n", rend);
     if(lend < rend) {
       lnode = lnode->hh_addr2NodeItem.next;
       currend = lend;
@@ -408,6 +411,8 @@ getIntersectRange(Addr2NodeItem *l, Addr2NodeItem *r, u32 start, u32 end)
   if(intersectStart != 0){
     intersect_r = initRange();
     intersect_r->start = intersectStart;
+    if(intersectEnd > end)
+      intersectEnd = end;
     intersect_r->end = intersectEnd;
   }
 
@@ -554,6 +559,7 @@ getIntersectRangeArray(Addr2NodeItem *l, RangeArray *lra, Addr2NodeItem *r, Rang
     if(intersectStart < intersectEnd) { // there is intersected range
       intersect_r = getIntersectRange(l, r, intersectStart, intersectEnd);
       if(intersect_r != NULL) {
+        // printRange(intersect_r, "intersect range ");
         add2Range(intersect_ra, intersect_r);
       }
     }

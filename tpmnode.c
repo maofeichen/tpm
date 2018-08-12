@@ -22,6 +22,10 @@ createTPMNode(u32 type, u32 addr, u32 val, int TS, u32 bytesz)
     tpmnode->tpmnode2.bufid = 0;
     tpmnode->tpmnode2.hitcntHT = NULL;
     tpmnode->tpmnode2.firstChild = NULL;
+    tpmnode->tpmnode2.leftNBR = NULL;
+    tpmnode->tpmnode2.rightNBR = NULL;
+    tpmnode->tpmnode2.nextVersion = NULL;
+    tpmnode->tpmnode2.siblingNBR = NULL;
 #if TPM_RE_TRANSITON
     tpmnode->tpmnode2.first_farther = NULL;
 #endif
@@ -153,12 +157,21 @@ printNode(TPMNode *tpmnode)
 void 
 printMemNode(struct TPMNode2 *n)
 {
-  printf("mem: type:%-1u addr:0x%-8x val:%-8x sz:%u lastUpdateTS:%-16d"
+  printf("mem:%p addr:0x%-8x val:%-x sz:%u lastUpdateTS:%d"
+      " leftNBR:%p rightNBR:%p nextVersion:%-8p"
+      " version:%u\n",
+      n, n->addr, n->val, n->bytesz, n->lastUpdateTS,
+      n->leftNBR, n->rightNBR, n->nextVersion,
+      n->version);
+
+  /*
+  printf("mem:%p type:%-1u addr:0x%-8x val:%-8x sz:%u lastUpdateTS:%-16d"
       " firstChild:%-8p leftNBR:%-10p rightNBR:%-10p nextVersion:%-8p"
       " version:%-9u hitcnt:%-8u bufID:%u\n",
-      n->type, n->addr, n->val, n->bytesz, n->lastUpdateTS,
+      n, n->type, n->addr, n->val, n->bytesz, n->lastUpdateTS,
       n->firstChild, n->leftNBR, n->rightNBR, n->nextVersion,
       n->version, n->hitcnt, n->bufid);
+  */
 }
 
 void 
@@ -188,6 +201,7 @@ printMemNodeAllVersion(struct TPMNode2 *head)
   do{
     // printf("version: %u\n", head->version);
     printMemNode(head);
+    // printMemNodeLit(head);
     head = head->nextVersion;
   } while(head->version != currVersion);
 }
@@ -195,6 +209,7 @@ printMemNodeAllVersion(struct TPMNode2 *head)
 void 
 printBufNode(TPMNode2 *head)
 {
+  printf("-----\n");
   while(head != NULL) {
     printMemNodeAllVersion(head);
     head = head->rightNBR;

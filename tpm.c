@@ -74,13 +74,16 @@ static bool
 has_adjacent(struct TPMContext *tpm, struct Mem2NodeHT **l, struct Mem2NodeHT **r, u32 addr, u32 bytesz);
 
 static bool 
-has_left_adjacent(struct TPMContext *tpm, struct Mem2NodeHT **item, u32 addr);
+has_left_adjacent(struct TPMContext *tpm, struct Mem2NodeHT **item, u32 addr, u32 bytesz);
 
 static bool  
 has_right_adjacent(struct TPMContext *tpm,struct Mem2NodeHT **item, u32 addr, u32 bytesz);
 
 static bool 
 link_adjacent(struct TPMNode2 *linker, struct TPMNode2 *linkee, bool is_left);
+
+static void
+link_left_adjacent(struct TPMNode2 *linker, struct TPMNode2 *linkee);
 
 /* temp or register nodes */
 static void 
@@ -235,8 +238,9 @@ initTPMBufContext(TPMContext *tpm)
 
   tpmBufHash = analyzeTPMBuf(tpm);
   assignTPMBufID(tpmBufHash);
-  numOfBuf = HASH_CNT(hh_tpmBufHT, tpmBufHash);
+  printTPMBufHashTable(tpmBufHash);
 
+  numOfBuf = HASH_CNT(hh_tpmBufHT, tpmBufHash);
   tpmBufCtxt->tpmBufHash = tpmBufHash;
   tpmBufCtxt->numOfBuf = numOfBuf;
 
@@ -264,6 +268,11 @@ analyzeTPMBuf(TPMContext *tpm)
 
   for(memNodeHT = tpm->mem2NodeHT; memNodeHT != NULL; memNodeHT = memNodeHT->hh_mem.next) {
     memNode = memNodeHT->toMem;
+
+    // dbg
+    // if(memNode->addr >= 0x804b880 && memNode->addr <= 0x804ba8dc)
+    //   printMemNodeAllVersion(memNode);
+
     compBufStat(memNode, &baddr, &eaddr, &minseq, &maxseq,
         &numOfAddr, &firstMemNode, &totalNode);
     if(eaddr - baddr >= tpm->minBufferSz){ // only consider bufs with sz satisfies the min requirement
@@ -299,7 +308,6 @@ assignTPMBufID(TPMBufHashTable *tpmBuf)
     // printBufNode(headNode);
     bufid++;
   }
-  printTPMBufHashTable(tpmBuf);
 }
 
 TPMBufHashTable *
@@ -519,12 +527,12 @@ printTPMBufHashTable(TPMBufHashTable *tpmBufHT)
   maxNode = tpmBufHT->totalNode;
 
   HASH_ITER(hh_tpmBufHT, tpmBufHT, buf, temp) {
+    // printf("-----\n");
     printf("begin:0x%-8x end:0x%-8x sz:%-4u numofaddr:%-4u minseq:%-7d maxseq:%-7d diffseq:%-7d bufID:%-4u total nodes:%u\n",
         buf->baddr, buf->eaddr, buf->eaddr - buf->baddr,
         buf->numOfAddr, buf->minseq, buf->maxseq, (buf->maxseq - buf->minseq),
         buf->headNode->bufid, buf->totalNode);
     // printBufNode(buf->headNode);
-
     if(buf->totalNode < minNode)
       minNode = buf->totalNode;
     if(buf->totalNode > maxNode)
@@ -632,6 +640,10 @@ processOneXTaintRecord(struct TPMContext *tpm, struct Record *rec, struct TPMNod
 
   //  hanlde destination node
   if(rec->is_store || rec->is_storeptr) { // dst is mem addr (include store ptr)
+    // dbg
+//    if(rec->d_addr >= 0x814b960 && rec->d_addr <= 0x814b9c0)
+//      printRecDst(rec);
+
     if((newdst =  handle_dst_mem(tpm, rec, &dst) ) >= 0) {}
     else { return -1; }
     dsttype = TPM_Type_Memory;
@@ -727,7 +739,8 @@ handle_src_mem(struct TPMContext *tpm, struct Record *rec, union TPMNode **src)
 //  >=0: num of new nodes creates 
 //  <0: error 
 //  stores the created or found node pointer in src 
-// 
+//
+// Handles source memory node:
 //  1. detects if src's addr is in mem hash table (tpm->Mem2NodeHT)
 //  1.1 not found: new addr
 //      a) creates new node
@@ -747,12 +760,24 @@ handle_src_mem(struct TPMContext *tpm, struct Record *rec, union TPMNode **src)
 //         2) init seqNo (lastUpdatTS) to -1
 //      b) updates its previous version pointer (prev->nextversion points to it)
 //      b) updates same as 1.1 b)
+//  1.2.3 !!! it's not enough that only the address is found, but the size needs to
+//      match. If the found node's size is different from src's, goto 1.2.2.
+//      For example:
+//      flag:5a d_addr:814b960  d_val:1b       sz:1
+//      flag:52 s_addr:814b960  s_val:1b       sz:1
+//      flag:52 s_addr:814b960  s_val:65da881b sz:4
+//      before update self r:
+//      mem:0x9b8c8a0 addr:0x814b960  val:1b sz:1 lastUpdateTS:6390 leftNBR:(nil) rightNBR:0x9b8cb20 nextVersion:0x9b8c8a0 version:0
+//      after update: self r
+//      mem:0x9b8c8a0 addr:0x814b960  val:1b sz:1 lastUpdateTS:6390 leftNBR:(nil) rightNBR:0x9b8e4e8 nextVersion:0x9b8c8a0 version:0
+//      the rightNBR is overwritten by sz 4 node
 //  2. updates neighbours: 
 //  2.1 detects if its left neighbour exists (could be 4, 2, 1 bytes)
 //      a) yes, updates its leftNBR points to the earliest version of its left adjcent mem node 
 //      b) no, do nothing
 //  2.2 detects if its right neighbour exist, similar to 2.1, and updates it's rightNBR accordingly
 {
+  // printRecord(rec);
   int numNewNode = 0;
   struct Mem2NodeHT *src_hn = NULL, *left = NULL, *right = NULL;
 
@@ -766,12 +791,32 @@ handle_src_mem(struct TPMContext *tpm, struct Record *rec, union TPMNode **src)
     //     return -1;
     // }
     *src = (union TPMNode*)src_hn->toMem;
+
+    if(src_hn->toMem->bytesz != rec->bytesz) { // handle the case that even rec's addr and
+      // found node's address are same, but their size are different. We consider them as different nodes.
+
+      // union TPMNode *newsrc = createTPMNode(TPM_Type_Memory, rec->s_addr, rec->s_val, rec->ts, rec->bytesz);
+      // u32 ver = getMemNodeVersion(src_hn->toMem);
+      // setMemNodeVersion(newsrc, ver+1);
+      // addNextVerMemNode(src_hn->toMem, &(newsrc->tpmnode2) );
+
+      // if(create_trans_node(rec->ts, TPM_Type_Memory, *src, newsrc) == NULL) {   // creates a trans from old src to new src
+      //   return -1;
+      // }
+
+      // if(add_mem_ht(&(tpm->mem2NodeHT), rec->s_addr, &(newsrc->tpmnode2) ) < 0) {   // updates hash
+      //   return -1;
+      // }
+
+      // *src = newsrc;
+    }
 #ifdef DEBUG
     printf("\thandle src mem: addr:0x%-8x found in hash table\n", rec->s_addr);
     printMemNode(*src);
 #endif       
   }
-  else { // not found
+  else
+  { // not found
     *src = create1stVersionMemNode(rec->s_addr, rec->s_val, initSeqNo, rec->bytesz);
     decreaseInitSeqNoByOne();
 #ifdef DEBUG
@@ -788,6 +833,7 @@ handle_src_mem(struct TPMContext *tpm, struct Record *rec, union TPMNode **src)
     tpm->seqNo2NodeHash[rec->s_ts] = *src; // updates seqNo hash table
     numNewNode++;
   }
+
   // updates adjacent mem node if any
   if(update_adjacent(tpm, *src, &left, &right, rec->s_addr, rec->bytesz) >= 0) {}
   else { return -1; }
@@ -1059,6 +1105,10 @@ handle_dst_temp(struct TPMContext *tpm, struct Record *rec, struct TPMNode1 *tem
 //      c) updates the seqNo hash table
 //  1.2.2 "addtion" (add, xor, etc)
 //      a) verifies that the value of temp and the one found in the tempCntxt should be same
+// 3.1 If there is group mark (split memory node to byte to byte):
+//  a) uses the previous node as destination
+//  b) updates seqNo
+// 3.2 else, otherwise
 {
   int numNewNode = 0;
 
@@ -1074,27 +1124,38 @@ handle_dst_temp(struct TPMContext *tpm, struct Record *rec, struct TPMNode1 *tem
     numNewNode++;
   }
   else { // in TPM
-    if(isPropagationOverwriting(rec->flag, rec) ) { // overwrite
-      *dst = createTPMNode(TPM_Type_Temprary, rec->d_addr, rec->d_val, -1, 0);
-      tempCntxt[rec->d_addr] = &( (*dst)->tpmnode1);
-      tpm->seqNo2NodeHash[rec->d_ts] = *dst;   // updates seqNo hash table
-      numNewNode++;
-    }
-    else { // non overwrite
-#ifdef DEBUG
-      printf("\thandle dst temp: non overwrite hit\n");
-#endif                             
-      /* disable the sanity check */
-      // if(is_equal_value(rec->d_val, tempCntxt[rec->d_addr]) ) {
-      //     *dst = tempCntxt[rec->d_addr];
-      // }
-      // else {
-      //     fprintf(stderr, "error: values are not equal\n");
-      //     print_nonmem_node(tempCntxt[rec->d_addr]);
-      //     return -1;
-      // }
+    if(rec->group_mark == GROUP_MIDDLE ||
+       rec->group_mark == GROUP_END)
+    {
       *dst = (union TPMNode*)tempCntxt[rec->d_addr];
-      // TODO: update the seqNo hash table
+      assert((*dst)->tpmnode1.addr == rec->d_addr &&
+             (*dst)->tpmnode1.val == rec->d_val);
+      (*dst)->tpmnode1.lastUpdateTS = rec->ts;
+    }
+    else
+    {
+      if(isPropagationOverwriting(rec->flag, rec) ) { // overwrite
+        *dst = createTPMNode(TPM_Type_Temprary, rec->d_addr, rec->d_val, -1, 0);
+        tempCntxt[rec->d_addr] = &( (*dst)->tpmnode1);
+        tpm->seqNo2NodeHash[rec->d_ts] = *dst;   // updates seqNo hash table
+        numNewNode++;
+      }
+      else { // non overwrite
+#ifdef DEBUG
+        printf("\thandle dst temp: non overwrite hit\n");
+#endif                             
+        /* disable the sanity check */
+        // if(is_equal_value(rec->d_val, tempCntxt[rec->d_addr]) ) {
+        //     *dst = tempCntxt[rec->d_addr];
+        // }
+        // else {
+        //     fprintf(stderr, "error: values are not equal\n");
+        //     print_nonmem_node(tempCntxt[rec->d_addr]);
+        //     return -1;
+        // }
+        *dst = (union TPMNode*)tempCntxt[rec->d_addr];
+        // TODO: update the seqNo hash table
+      }
     }
   }
   return numNewNode;
@@ -1241,32 +1302,86 @@ update_adjacent(struct TPMContext *tpm, union TPMNode *n, struct Mem2NodeHT **l,
 
   if(has_adjacent(tpm, l, r, addr, bytesz) ) {
     struct TPMNode2 *earliest = NULL;
-    if(*l != NULL){
+    if(*l != NULL)
+    {
       earliest = (*l)->toMem;
-      if(getMemNode1stVersion(&earliest) == 0) {
+      if(getMemNode1stVersion(&earliest) == 0)
+      {
+        // dbg
+//        if(n->tpmnode2.addr >= 0x814b960 && n->tpmnode2.addr <= 0x814b9c0) {
+//          printf("before update this l:\n");
+//          printMemNode(&(n->tpmnode2));
+//        }
+
         is_left = true;
         link_adjacent(&(n->tpmnode2), earliest, is_left);   // update the self leftNBR
 
+        // dbg
+//        if(n->tpmnode2.addr >= 0x814b960 && n->tpmnode2.addr <= 0x814b9c0) {
+//          printf("after update this l:\n");
+//          printMemNode(&(n->tpmnode2));
+//        }
+
         self = &(n->tpmnode2);
-        if(getMemNode1stVersion(&self) == 0) {
+        if(getMemNode1stVersion(&self) == 0)
+        {
+          // dbg
+//          if(earliest->addr >= 0x814b960 && earliest->addr <= 0x814b9c0) {
+//            printf("before update nbr l:\n");
+//            printMemNode(earliest);
+//          }
+
           is_left = false;
           link_adjacent(earliest, self, is_left); // updates the target rightNBR
+
+          // dbg
+//          if(earliest->addr >= 0x814b960 && earliest->addr <= 0x814b9c0) {
+//            printf("after update nbr l:\n");
+//            printMemNode(earliest);
+//          }
         }
         else { return -1; }
       }
       else { return -1; }
     }
 
-    if(*r != NULL){
+    if(*r != NULL)
+    {
       earliest = (*r)->toMem;
-      if(getMemNode1stVersion(&earliest) == 0) {
+      if(getMemNode1stVersion(&earliest) == 0)
+      {
+        // dbg
+//        if(n->tpmnode2.addr >= 0x814b960 && n->tpmnode2.addr <= 0x814b9c0) {
+//          printf("before update self r:\n");
+//          printMemNode(&(n->tpmnode2));
+//        }
+
         is_left = false;
         link_adjacent(&(n->tpmnode2), earliest, is_left); // updates the self rightNBR
 
+        // dbg
+//        if(n->tpmnode2.addr >= 0x814b960 && n->tpmnode2.addr <= 0x814b9c0) {
+//          printf("after update: self r\n");
+//          printMemNode(&(n->tpmnode2));
+//        }
+
         self = &(n->tpmnode2);
-        if(getMemNode1stVersion(&self) == 0) {
+        if(getMemNode1stVersion(&self) == 0)
+        {
+          // dbg
+//          if(earliest->addr >= 0x814b960 && earliest->addr <= 0x814b9c0) {
+//            printf("before update nbr r:\n");
+//            printMemNode(earliest);
+//          }
+
           is_left = true;
           link_adjacent(earliest, self, is_left); // updates the target leftNBR
+
+          // dbg
+//          if(earliest->addr >= 0x814b960 && earliest->addr <= 0x814b9c0) {
+//            printf("after update nbr r:\n");
+//            printMemNode(earliest);
+//          }
         }
       }
       else { return -1; }
@@ -1276,15 +1391,22 @@ update_adjacent(struct TPMContext *tpm, union TPMNode *n, struct Mem2NodeHT **l,
   else { return 0; }
 }
 
-static bool 
-has_adjacent(struct TPMContext *tpm, struct Mem2NodeHT **l, struct Mem2NodeHT **r, u32 addr, u32 bytesz)
 // Returns:
 //  1: if has either left or right adjacent mem node
 //  0: otherwise
+//  If has left, l is the ptr of the left neighbor
+//  If has right, r is the ptr of the right neightbor
+static bool
+has_adjacent(
+    struct TPMContext *tpm,
+    struct Mem2NodeHT **l,
+    struct Mem2NodeHT **r,
+    u32 addr,
+    u32 bytesz)
 {
   bool rl = false, rr = false;
 
-  rl = has_left_adjacent(tpm, l, addr);
+  rl = has_left_adjacent(tpm, l, addr, bytesz);
   rr = has_right_adjacent(tpm, r, addr, bytesz);
 
   if( rl || rr ) {
@@ -1293,18 +1415,48 @@ has_adjacent(struct TPMContext *tpm, struct Mem2NodeHT **l, struct Mem2NodeHT **
   else { return false; }
 }
 
-static bool 
-has_left_adjacent(struct TPMContext *tpm, struct Mem2NodeHT **item, u32 addr)
+// ! Assumption, nodes with varias can connect together.
+// For example:
+//      0x814b960 sz 1 byte
+//      0x814b961 sz 4 bytes
+//  is OK to connect
+// Counter example:
+//      0x814b960 sz 4 bytes
+//      0x814b961 sz 1 bytes
+//      Can't connect them due to they are not continuous ranges
 // Returns:
 //  t: if has left adjacent mem node
 //  f: otherwise
+static bool 
+has_left_adjacent(
+    struct TPMContext *tpm,
+    struct Mem2NodeHT **item,
+    u32 addr,
+    u32 bytesz)
 {
   *item = NULL;
   u32 l_adjcnt;
 
+  /*
+  l_adjcnt = addr - bytesz;
+  *item = find_mem_ht( &(tpm->mem2NodeHT), l_adjcnt);
+  if(*item != NULL && ((*item)->toMem->addr + (*item)->toMem->bytesz ) == addr) {
+    return true;
+  }
+  else
+    return false;
+   */
+
+  /*
+   * TODO
+   *    If nodes in same buffer can be various:
+   *    1) it's not enough to only test the hash table node, but also all version nodes
+   *    2) it's not a if-else situation, should be a or relation
+   */
+
   l_adjcnt = addr - DWORD;    // try 4 bytes first
   *item = find_mem_ht( &(tpm->mem2NodeHT), l_adjcnt);
-  if(*item != NULL) {
+  if(*item != NULL && ((*item)->toMem->addr + (*item)->toMem->bytesz ) == addr ) {
 #ifdef DEBUG
     printf("has left adjacent: addr: 0x%x\n", (*item)->toMem->addr);
 #endif
@@ -1312,7 +1464,7 @@ has_left_adjacent(struct TPMContext *tpm, struct Mem2NodeHT **item, u32 addr)
   }else { // doesn't find 4 bytes left adjacent
     l_adjcnt = addr - WORD; // try 2 bytes
     *item = find_mem_ht( &(tpm->mem2NodeHT), l_adjcnt);
-    if(*item != NULL) {
+    if(*item != NULL && ((*item)->toMem->addr + (*item)->toMem->bytesz ) == addr) {
 #ifdef DEBUG
       printf("has left adjacent: addr: 0x%x\n", (*item)->toMem->addr);
 #endif                                
@@ -1321,7 +1473,7 @@ has_left_adjacent(struct TPMContext *tpm, struct Mem2NodeHT **item, u32 addr)
     else {
       l_adjcnt = addr - BYTE; // try 1 byte
       *item = find_mem_ht( &(tpm->mem2NodeHT), l_adjcnt);
-      if(*item != NULL) {
+      if(*item != NULL && ((*item)->toMem->addr + (*item)->toMem->bytesz ) == addr) {
 #ifdef DEBUG
         printf("has left adjacent: addr: 0x%x\n", (*item)->toMem->addr);
 #endif                                               
@@ -1363,13 +1515,38 @@ link_adjacent(struct TPMNode2 *linker, struct TPMNode2 *linkee, bool is_left)
     return false;
   }
 
-  if(is_left) { linker->leftNBR = linkee; }
+  if(is_left)
+  {
+    // linker->leftNBR = linkee;
+    link_left_adjacent(linker, linkee);
+  }
   else { linker->rightNBR = linkee; }
 
   return true;
 }
 
+/*
+ * linkee <--linker
+ */
 static void 
+link_left_adjacent(struct TPMNode2 *linker, struct TPMNode2 *linkee)
+{
+  if(linker->leftNBR == NULL) {
+    linker->leftNBR = linkee;
+  }
+  else {
+//    printf("linker/linkee\n");
+//    printMemNode(linker);
+//    printMemNode(linkee);
+//    struct TPMNode2 *leftNBR = linker->leftNBR;
+//    while(leftNBR->siblingNBR != NULL) {  // get last leftNBR in sibling linked list
+//      leftNBR = leftNBR->siblingNBR;
+//    }
+//    leftNBR->siblingNBR = linkee;
+  }
+}
+
+static void
 clear_tempcontext(struct TPMNode1 *tempCntxt[] )
 {
   for(int i = 0; i < MAX_TEMPIDX; i++) {

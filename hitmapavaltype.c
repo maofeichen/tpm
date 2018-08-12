@@ -70,9 +70,9 @@ printHitMapAddr2NodeItemSubhash(HitMapAddr2NodeItem *hmAddr2NodeItem)
   }
   // totalSubItem = HASH_CNT(hh_hmAddr2NodeItem, hmAddr2NodeItem->subHash);
 
-  printf("--------------------\nsrc node in 2L ht:\n");
+  printf("--------------------2LHash\nsrc:\n");
   printHitMapNodeLit(hmAddr2NodeItem->node);
-  printf("propagate to:\n");
+  printf("to:\n");
   // printf("total propagate dst hitmap node:%u\n", totalSubItem);
   for(subitem = hmAddr2NodeItem->subHash; subitem != NULL; subitem = subitem->hh_hmAddr2NodeItem.next) {
     printHitMapNodeLit(subitem->node);

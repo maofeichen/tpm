@@ -509,20 +509,37 @@ detect_HM_avalnch_HMBuf_bruteforce(
   HitMapBufHash *src;
   HitMapBufHash *dst;
 
-
   if(bufType == HitMapBuf) {
     for(src = hitMap->hitMapBufCtxt->hitMapBufHash;
         src->hh_hmBufHash.next != NULL; src = src->hh_hmBufHash.next) {
       for(dst = src->hh_hmBufHash.next; dst != NULL; dst = dst->hh_hmBufHash.next) {
         u32 srcIdx = src->headNode->bufId - 1;
         u32 dstIdx = dst->headNode->bufId - 1;
-        hitMapAvalSrchCtxt = init_HM_avalnch_ctxt_HMBuf(srcIdx, src, dstIdx, dst, tpm->minBufferSz);
-        detect_HM_inoutbuf_HMBuf(hitMapAvalSrchCtxt, hitMap, &totalElapse);
-        freeHitMapAvalSearchCtxt(hitMapAvalSrchCtxt);
-        searchCnt++;
+
+        // dbg
+        if( (src->baddr == 0x8142220 && dst->baddr == 0x813e9c0) ||
+            (src->baddr == 0xde911000 && dst->baddr == 0x804c170) ||
+            (src->baddr == 0x813e1e0 && dst->baddr == 0x813e9c0) ||
+            (src->baddr == 0x804a080 && dst->baddr == 0x804a860) ||
+            (src->baddr == 0x814b180 && dst->baddr == 0x814b960) ||
+            (src->baddr == 0x804b0a0 && dst->baddr == 0x804b880) ) {
+          printf("Detect HitMap Avalanche for speical pair\n");
+          hitMapAvalSrchCtxt = init_HM_avalnch_ctxt_HMBuf(srcIdx, src, dstIdx, dst, tpm->minBufferSz);
+          detect_HM_inoutbuf_HMBuf(hitMapAvalSrchCtxt, hitMap, &totalElapse);
+          freeHitMapAvalSearchCtxt(hitMapAvalSrchCtxt);
+          searchCnt++;
+          goto OutLoop;
+        }
+
+        // Comment for dbg
+//        hitMapAvalSrchCtxt = init_HM_avalnch_ctxt_HMBuf(srcIdx, src, dstIdx, dst, tpm->minBufferSz);
+//        detect_HM_inoutbuf_HMBuf(hitMapAvalSrchCtxt, hitMap, &totalElapse);
+//        freeHitMapAvalSearchCtxt(hitMapAvalSrchCtxt);
+//        searchCnt++;
       }
     }
 
+OutLoop:
     if(searchCnt > 0)
       printf("---------------\ntotal search pairs:%u - avg avalanche detection time:%.1f microseconds\n",
              searchCnt, totalElapse/searchCnt);
@@ -588,9 +605,11 @@ detect_HM_inoutbuf_HMBuf(
   printOneHitMapBufHash(hitMapAvalSrchCtxt->dstHitMapBuf);
   // printf("total src buf node:%u - total dst buf node:%u\n", srcBufNodeTotal, dstBufNodeTotal);
 
-  printTimeMicroStart();
+  // printTimeMicroStart();
   if(search_HM_inoutbuf_propgt(hitMapAvalSrchCtxt, hitMap) >= 0) {
+    // Temp disable for testing building 2Level hash
     printTime("Finish building 2Level hash table");
+
     create_HMBuf_aggrgt_hitCntAry(hitMapAvalSrchCtxt->srcHitMapBuf->headNode, srcbuf,
         hitMapAvalSrchCtxt->srcAddrStart, hitMapAvalSrchCtxt->srcAddrEnd, hitMapAvalSrchCtxt);
     create_HMBuf_aggrgt_hitCntAry(hitMapAvalSrchCtxt->dstHitMapBuf->headNode, dstbuf,
@@ -602,8 +621,9 @@ detect_HM_inoutbuf_HMBuf(
     printTime("Finish creating aggregate hit count array");
     search_inoutbuf_avalnch(hitMapAvalSrchCtxt);
     // totalTraverse = srchHitMapPropgtInOutReverse(hitMapAvalSrchCtxt, hitMap);
+
   }
-  printTimeMicroEnd(totalElapse);
+  // printTimeMicroEnd(totalElapse);
 }
 
 static void
@@ -1157,6 +1177,7 @@ search_srcnode_avalanche(
 
   store_addr2nodeitem_rightnbr(hitMapAvalSrchCtxt->hitMapAddr2NodeAry[srcbuf_addridx],
       &stack_traverse_top, &stack_traverse_cnt, old_srcnode->node->lastUpdateTS, hitMapAvalSrchCtxt->minBufferSz);
+  // hitMapAddr2NodeItemDisplay(stack_traverse_top);
 
   while(!isHitMapAddr2NodeItemStackEmpty(stack_traverse_top, stack_traverse_cnt) ) {
     new_srcnode = hitMapAddr2NodeItemPop(&stack_traverse_top, &stack_traverse_cnt);
@@ -1194,6 +1215,11 @@ search_srcnode_avalanche(
     // printRangeArray(newintersect_ra, "");
 
     if(newintersect_ra->rangeAryUsed > 0) { // valid intersection range array
+      if(oldintersect_ra != NULL &&
+         !is_rangearray_same(oldintersect_ra, newintersect_ra) ) {
+        goto NEW_BLOCK;
+      }
+
       old_srcnode = new_srcnode;
       hitMapAddr2NodeItemPush(old_srcnode, &stack_srcnode_top, &stack_srcnode_cnt);
 
@@ -1210,6 +1236,7 @@ search_srcnode_avalanche(
       has_print_rslt = false;   // only has new src aval node, indicating new avalanche
     }
     else {  // no valid intersection ranges
+NEW_BLOCK:
       if(!has_print_rslt){
         if(stack_srcnode_cnt >= 2 && stack_srcnode_cnt >= *block_sz_detect) {
           display_avalanche(stack_srcnode_top, oldintersect_ra,
@@ -1229,9 +1256,20 @@ search_srcnode_avalanche(
       if(srcbuf_addridx < hitMapAvalSrchCtxt->numOfSrcAddr) {
         store_addr2nodeitem_rightnbr(hitMapAvalSrchCtxt->hitMapAddr2NodeAry[srcbuf_addridx],
             &stack_traverse_top, &stack_traverse_cnt, old_srcnode->node->lastUpdateTS, hitMapAvalSrchCtxt->minBufferSz);
+        // hitMapAddr2NodeItemDisplay(stack_traverse_top);
       }
     }
   }
+
+  // handle last case
+  if(!has_print_rslt){
+    if(stack_srcnode_cnt >= 2 && stack_srcnode_cnt >= *block_sz_detect) {
+      display_avalanche(stack_srcnode_top, oldintersect_ra,
+          &srcbuf_oldstart, &srcbuf_oldend, &lst_olddst_avalnch, hitMapAvalSrchCtxt->minBufferSz);
+      *block_sz_detect = stack_srcnode_cnt;  // set to max num src node has avalanche
+    }
+  }
+
   delOldNewRangeArray(&old_ra, &new_ra);
   delOldNewRangeArray(&oldintersect_ra, &newintersect_ra);
 }
@@ -1249,9 +1287,11 @@ store_addr2nodeitem_rightnbr(
     for(; rightnbr_b != NULL; rightnbr_b = rightnbr_b->hh_hmAddr2NodeItem.next) {
       if(has_enough_dstnode(rightnbr_b, min_bufsz) ) { // TODO: uses minBufSz later
         if(curnode_lastupdate_ts < 0 && rightnbr_b->node->lastUpdateTS < 0) {
+          hitMapAddr2NodeItemPush(rightnbr_b, stackHitMapAddr2NodeItemTop, stackHitMapAddr2NodeItemCount);
           // if both are negative, smaller is later
-          if(rightnbr_b->node->lastUpdateTS < curnode_lastupdate_ts)
-            hitMapAddr2NodeItemPush(rightnbr_b, stackHitMapAddr2NodeItemTop, stackHitMapAddr2NodeItemCount);
+          // !!! Disable it, TPM avalanche search as standard
+          // if(rightnbr_b->node->lastUpdateTS < curnode_lastupdate_ts)
+          //   hitMapAddr2NodeItemPush(rightnbr_b, stackHitMapAddr2NodeItemTop, stackHitMapAddr2NodeItemCount);
         }
         else {
           if(rightnbr_b->node->lastUpdateTS > curnode_lastupdate_ts)

@@ -429,7 +429,7 @@ dfs(TPMContext *tpm,
       TPMNode *dst = getTransitionDst(pop);
 
       if(dst->tpmnode1.type == TPM_Type_Memory) {
-        // printf("propagate to addr:%x val:%x\n", dst->tpmnode2.addr, dst->tpmnode2.val);
+        // printf("propagate to addr:%x val:%x sz:%u\n", dst->tpmnode2.addr, dst->tpmnode2.val, dst->tpmnode2.bytesz);
         if(dst->tpmnode2.addr >= dstAddrStart
             && dst->tpmnode2.addr <= dstAddrEnd
             && dst->tpmnode2.lastUpdateTS >= dstMinSeq
@@ -442,6 +442,9 @@ dfs(TPMContext *tpm,
           Addr2NodeItem *addr2NodeItem = createAddr2NodeItem(dst->tpmnode2.addr, &(dst->tpmnode2), NULL, NULL);
           HASH_ADD(hh_addr2NodeItem, addr2NodeHT->subHash, node, 4, addr2NodeItem);
         }
+      }
+      else {
+        // printf("propagate to temp/reg:%x val:%x first_child:%p\n", dst->tpmnode1.addr, dst->tpmnode1.val, dst->tpmnode1.firstChild);
       }
       (*stepCount)++;
       storeAllUnvisitChildren(&markVisitTransHT, dst->tpmnode1.firstChild, dstMaxSeq);
