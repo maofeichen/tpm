@@ -49,7 +49,6 @@ int main(int argc, char const *argv[])
         // benchTPMDFS(tpm);
 #endif
 
-
         hitMap = buildHitMap(tpm, tpmBufCtxt);   // TODO: flag forward or reverse build
         // print_hitmap_source(hitMap);
 
@@ -64,6 +63,7 @@ int main(int argc, char const *argv[])
 
         if( (bufHitCntArray = buildBufHitCntArray(hitMap, bufType) ) != NULL) {
 
+
           // Further optimization
           // Temporary Comment for debug
           createHitMapBuftHitCnt(hitMap);   // creates IN/OUT aggregate hit count array for each HitMap buffer
@@ -73,6 +73,7 @@ int main(int argc, char const *argv[])
           compBufHitCntArrayStat(hitMap, bufType, bufHitCntArray, 64);      // 64 bytes
           detectHitMapAvalanche(hitMap, tpm, bufType, bufHitCntArray, 64);  // TODO: flag forward or reverse build
           delBufHitCntArray(bufHitCntArray);
+
         }
         else { fprintf(stderr, "build buffer hit count array error\n"); }
 
@@ -80,7 +81,6 @@ int main(int argc, char const *argv[])
         delHitMapBufHitCnt(hitMap);
         delHitMapBufContext(hitMap->hitMapBufCtxt);
         delHitMap(hitMap);
-
 
         // searchAllAvalancheInTPM(tpm);
         delTPM(tpm);

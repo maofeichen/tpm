@@ -48,6 +48,7 @@ typedef struct StackTPMNode
   Transition *dirctTrans; // The transition between farther and itself
   u32 currSeqN;
   struct StackTPMNode *next;
+  char isVisit;
 } StackTPMNode;
 
 /* function prototype */

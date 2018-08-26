@@ -230,6 +230,18 @@ storeUnvisitTPMNodeChildren(
     u32 *stackTPMNodeCnt);
 
 static int
+dfs_build_hitmap(
+    TPMContext *tpm,
+    TPMNode2 *srcnode,
+    HitMapContext *hitMapCtxt);
+
+static void
+storeTPMNodeChildren(
+    TPMNode2 *srcnode,
+    StackTPMNode **stackTpmNodeTop,
+    u32 *stackTpmNodeCnt);
+
+static int
 dfs2HitMapNode_PopAtEnd(
     TPMContext *tpm,
     TPMNode2 *srcnode,
@@ -362,7 +374,8 @@ bufnodePropgt2HitMapNode(
     HitMapContext *hitMapCtxt)
 {
   // return dfs2HitMapNode(tpm, srcnode, hitMapCtxt);
-  return dfs2HitMapNode_NodeStack(tpm, srcnode, hitMapCtxt);
+  // return dfs2HitMapNode_NodeStack(tpm, srcnode, hitMapCtxt); // last used
+  return dfs_build_hitmap(tpm, srcnode, hitMapCtxt); // Non hash table
 
   // return dfs2HitMapNode_PopAtEnd(tpm, srcnode, hitMapCtxt);
   // return dfs2BuildHitMap_DBG(tpm, srcnode, hitMapCtxt);
@@ -878,6 +891,7 @@ stackTPMNodePush(
   s->farther = farther;
   s->dirctTrans = dirctTrans;
   s->next = *stackTPMNodeTop;
+  s->isVisit = 0;
   *stackTPMNodeTop = s;
   (*stackTPMNodeCnt)++;
 }
@@ -1246,8 +1260,8 @@ dfs2HitMapNode_NodeStack(
     return 0;
   }
 
-  // printf("---------------\ndfs2HitMapNode_NodeStack source:%p\n", srcnode);
-  // printMemNode(srcnode);
+  printf("---------------\ndfs2HitMapNode_NodeStack source:%p\n", srcnode);
+  printMemNode(srcnode);
 
   stackTPMNodePush((TPMNode *)srcnode, NULL, NULL, &stackTPMNodeTop, &stackTPMNodeCnt);
   stackTPMNodeTop->currSeqN = currSeqN;
@@ -1323,9 +1337,9 @@ add2HitMap(
     u32 minHitTransSeqN = stackBufNodePathTop->next->minSeqN;
     u32 maxHitTransSeqN = stackTPMNodeTop->dirctTrans->seqNo;
     assert(minHitTransSeqN <= maxHitTransSeqN);
-    // printf("-----\nCreates HitTransition between: minSeqN:%u maxSeqN:%u\n", minHitTransSeqN, maxHitTransSeqN);
-    // printMemNodeLit(src);
-    // printMemNodeLit(dst);
+//    printf("-----\nCreates HitTransition between: minSeqN:%u maxSeqN:%u\n", minHitTransSeqN, maxHitTransSeqN);
+//    printMemNodeLit(src);
+//    printMemNodeLit(dst);
 
     createHitMapRecord(stackBufNodePathTop->next->memnode, minHitTransSeqN, (TPMNode2 *)topNode, maxHitTransSeqN, hitMapCtxt);
     // createHitMapRecordReverse(stackBufNodePathTop->next->memnode, minHitTransSeqN, (TPMNode2 *)topNode, maxHitTransSeqN, hitMapCtxt);
@@ -1379,6 +1393,106 @@ storeUnvisitTPMNodeChildren(
       // printNode(farther);
       // print1Trans(firstChild);
       // printNode(childNode);
+    }
+    firstChild = firstChild->next;
+  }
+}
+
+static int
+dfs_build_hitmap(
+    TPMContext *tpm,
+    TPMNode2 *srcnode,
+    HitMapContext *hitMapCtxt)
+{
+  StackTPMNode *stackTpmNodeTop = NULL;
+  u32           stackTpmNodeCnt = 0;
+
+  StckMemnode *stackBufNodePathTop = NULL;
+  u32          stackBufNodePathCnt = 0;
+
+  if(tpm == NULL || srcnode == NULL || hitMapCtxt == NULL) {
+    fprintf(stderr, "dfs_build_hitmap: error: tpm:%p srcnode:%p HitMapCtxt:%p\n",
+        tpm, srcnode, hitMapCtxt);
+    return -1;
+  }
+
+  if(isHitMapNodeExist(srcnode, hitMapCtxt) )
+    return 0;
+
+//  printf("---------------\ndfs build HitMap, source:%p\n", srcnode);
+//  printMemNode(srcnode);
+
+  stackTPMNodePush((TPMNode *)srcnode, NULL, NULL, &stackTpmNodeTop, &stackTpmNodeCnt);
+  stackTpmNodeTop->currSeqN = 0;    // init
+
+  while(!isStackTPMNodeEmpty(stackTpmNodeTop) ) {
+    TPMNode *top = stackTpmNodeTop->node;
+    u32 lvl = 0;
+
+//    if(stackTpmNodeTop->isVisit) {
+    if(top->tpmnode1.src_ptr == srcnode) { // had been visited
+      if(top->tpmnode1.type == TPM_Type_Memory && top->tpmnode2.bufid > 0) {
+        add2HitMap(top, stackBufNodePathTop, stackBufNodePathCnt, stackTpmNodeTop, hitMapCtxt);
+        stckMemnodePop(&lvl, &stackBufNodePathTop, &stackBufNodePathCnt);
+      }
+
+      stackTPMNodePop(&stackTpmNodeTop, &stackTpmNodeCnt);
+    }
+    else{ // unvisited node
+//      stackTpmNodeTop->isVisit = 1; // mark visit in tpmnode stack
+      top->tpmnode1.src_ptr = srcnode; // mark visit in tpmnode itself
+
+      if(top->tpmnode1.type == TPM_Type_Memory && top->tpmnode2.bufid > 0) {
+        stckMemnodePush((TPMNode2 *)top, lvl, &stackBufNodePathTop, &stackBufNodePathCnt);
+      }
+      else {
+        if(stackTpmNodeTop->farther->tpmnode1.type == TPM_Type_Memory &&
+            (TPMNode2 *)stackTpmNodeTop->farther == stackBufNodePathTop->memnode){
+          stackBufNodePathTop->minSeqN = stackTpmNodeTop->dirctTrans->seqNo;
+        }
+      }
+
+      if(top->tpmnode1.firstChild == NULL) { // leaf node
+        if(top->tpmnode1.type == TPM_Type_Memory && top->tpmnode2.bufid > 0) {
+          add2HitMap(top, stackBufNodePathTop, stackBufNodePathCnt, stackTpmNodeTop, hitMapCtxt);
+          stckMemnodePop(&lvl, &stackBufNodePathTop, &stackBufNodePathCnt);
+        }
+        stackTPMNodePop(&stackTpmNodeTop, &stackTpmNodeCnt);
+      }
+      else {
+        storeTPMNodeChildren(srcnode, &stackTpmNodeTop, &stackTpmNodeCnt);
+//        printf("num of nodes in stack:%u\n", stackTpmNodeCnt);
+      }
+    }
+  }
+
+  stckMemnodePopAll(&stackBufNodePathTop, &stackBufNodePathCnt);
+  return 0;
+}
+
+static void
+storeTPMNodeChildren(
+    TPMNode2 *srcnode,
+    StackTPMNode **stackTpmNodeTop,
+    u32 *stackTpmNodeCnt)
+{
+  TPMNode *farther = (*stackTpmNodeTop)->node;
+  u32 far_trans = (*stackTpmNodeTop)->currSeqN;
+//  printf("----- -----\nfarther's transition:%u\n", far_trans);
+  Transition *firstChild = farther->tpmnode1.firstChild;
+
+  while(firstChild != NULL) {
+//    printf("transition seqNo:%u\n", firstChild->seqNo);
+    TPMNode *child = firstChild->child;
+    if(far_trans < firstChild->seqNo && // guarantee the dfs monotonic transition seqNo
+        child->tpmnode1.src_ptr != srcnode) { // replace hash table, if the node had been visit, not visit again
+      stackTPMNodePush(child, farther, firstChild, stackTpmNodeTop, stackTpmNodeCnt);
+      (*stackTpmNodeTop)->currSeqN = firstChild->seqNo;   // stores the transition's seqNo,
+      // farther's transition number
+//      printNode(child);
+    }
+    else {
+//      printf("dbg\n");
     }
     firstChild = firstChild->next;
   }
