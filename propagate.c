@@ -1260,8 +1260,8 @@ dfs2HitMapNode_NodeStack(
     return 0;
   }
 
-  // printf("---------------\ndfs2HitMapNode_NodeStack source:%p\n", srcnode);
-  // printMemNode(srcnode);
+  printf("---------------\ndfs2HitMapNode_NodeStack source:%p\n", srcnode);
+  printMemNode(srcnode);
 
   stackTPMNodePush((TPMNode *)srcnode, NULL, NULL, &stackTPMNodeTop, &stackTPMNodeCnt);
   stackTPMNodeTop->currSeqN = currSeqN;
@@ -1337,9 +1337,9 @@ add2HitMap(
     u32 minHitTransSeqN = stackBufNodePathTop->next->minSeqN;
     u32 maxHitTransSeqN = stackTPMNodeTop->dirctTrans->seqNo;
     assert(minHitTransSeqN <= maxHitTransSeqN);
-    // printf("-----\nCreates HitTransition between: minSeqN:%u maxSeqN:%u\n", minHitTransSeqN, maxHitTransSeqN);
-    // printMemNodeLit(src);
-    // printMemNodeLit(dst);
+//    printf("-----\nCreates HitTransition between: minSeqN:%u maxSeqN:%u\n", minHitTransSeqN, maxHitTransSeqN);
+//    printMemNodeLit(src);
+//    printMemNodeLit(dst);
 
     createHitMapRecord(stackBufNodePathTop->next->memnode, minHitTransSeqN, (TPMNode2 *)topNode, maxHitTransSeqN, hitMapCtxt);
     // createHitMapRecordReverse(stackBufNodePathTop->next->memnode, minHitTransSeqN, (TPMNode2 *)topNode, maxHitTransSeqN, hitMapCtxt);
@@ -1419,27 +1419,44 @@ dfs_build_hitmap(
   if(isHitMapNodeExist(srcnode, hitMapCtxt) )
     return 0;
 
-  printf("---------------\ndfs build HitMap, source:%p\n", srcnode);
-  printMemNode(srcnode);
+//  printf("---------------\ndfs build HitMap, source:%p\n", srcnode);
+//  printMemNode(srcnode);
 
   stackTPMNodePush((TPMNode *)srcnode, NULL, NULL, &stackTpmNodeTop, &stackTpmNodeCnt);
   stackTpmNodeTop->currSeqN = 0;    // init
 
   while(!isStackTPMNodeEmpty(stackTpmNodeTop) ) {
     TPMNode *top = stackTpmNodeTop->node;
+    u32 lvl = 0;
 
 //    if(stackTpmNodeTop->isVisit) {
     if(top->tpmnode1.src_ptr == srcnode) { // had been visited
+      if(top->tpmnode1.type == TPM_Type_Memory && top->tpmnode2.bufid > 0) {
+        add2HitMap(top, stackBufNodePathTop, stackBufNodePathCnt, stackTpmNodeTop, hitMapCtxt);
+        stckMemnodePop(&lvl, &stackBufNodePathTop, &stackBufNodePathCnt);
+      }
+
       stackTPMNodePop(&stackTpmNodeTop, &stackTpmNodeCnt);
     }
     else{ // unvisited node
 //      stackTpmNodeTop->isVisit = 1; // mark visit in tpmnode stack
       top->tpmnode1.src_ptr = srcnode; // mark visit in tpmnode itself
 
-//      if(top->tpmnode1.type == TPM_Type_Memory)
-//        printNode(top);
+      if(top->tpmnode1.type == TPM_Type_Memory && top->tpmnode2.bufid > 0) {
+        stckMemnodePush((TPMNode2 *)top, lvl, &stackBufNodePathTop, &stackBufNodePathCnt);
+      }
+      else {
+        if(stackTpmNodeTop->farther->tpmnode1.type == TPM_Type_Memory &&
+            (TPMNode2 *)stackTpmNodeTop->farther == stackBufNodePathTop->memnode){
+          stackBufNodePathTop->minSeqN = stackTpmNodeTop->dirctTrans->seqNo;
+        }
+      }
 
       if(top->tpmnode1.firstChild == NULL) { // leaf node
+        if(top->tpmnode1.type == TPM_Type_Memory && top->tpmnode2.bufid > 0) {
+          add2HitMap(top, stackBufNodePathTop, stackBufNodePathCnt, stackTpmNodeTop, hitMapCtxt);
+          stckMemnodePop(&lvl, &stackBufNodePathTop, &stackBufNodePathCnt);
+        }
         stackTPMNodePop(&stackTpmNodeTop, &stackTpmNodeCnt);
       }
       else {
@@ -1449,6 +1466,7 @@ dfs_build_hitmap(
     }
   }
 
+  stckMemnodePopAll(&stackBufNodePathTop, &stackBufNodePathCnt);
   return 0;
 }
 
