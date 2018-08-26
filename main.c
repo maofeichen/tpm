@@ -53,6 +53,7 @@ int main(int argc, char const *argv[])
         hitMap = buildHitMap(tpm, tpmBufCtxt);   // TODO: flag forward or reverse build
         // print_hitmap_source(hitMap);
 
+
         compHitMapStat(hitMap);
         // compReverseHitMapStat(hitMap);
 

@@ -18,6 +18,7 @@ createTPMNode(u32 type, u32 addr, u32 val, int TS, u32 bytesz)
     tpmnode->tpmnode2.val  = val;   // add val
     tpmnode->tpmnode2.lastUpdateTS = TS;
     tpmnode->tpmnode2.hasVisit = 0;
+    tpmnode->tpmnode2.src_ptr = NULL;
     tpmnode->tpmnode2.bytesz = bytesz;
     tpmnode->tpmnode2.bufid = 0;
     tpmnode->tpmnode2.hitcntHT = NULL;
@@ -38,6 +39,7 @@ createTPMNode(u32 type, u32 addr, u32 val, int TS, u32 bytesz)
     tpmnode->tpmnode1.val  = val;   // add val
     tpmnode->tpmnode1.lastUpdateTS = TS;
     tpmnode->tpmnode1.hasVisit = 0;
+    tpmnode->tpmnode1.src_ptr = NULL;
     tpmnode->tpmnode1.firstChild = NULL;
 #if TPM_RE_TRANSITON
     tpmnode->tpmnode1.first_farther = NULL;
@@ -146,7 +148,8 @@ printNode(TPMNode *tpmnode)
 {
   if(tpmnode != NULL) {
     if(tpmnode->tpmnode1.type == TPM_Type_Memory) {
-      printMemNodeLit(&(tpmnode->tpmnode2) );
+      printMemNode(&(tpmnode->tpmnode2) );
+      // printMemNodeLit(&(tpmnode->tpmnode2) );
     }
     else {
       printNonmemNode(&(tpmnode->tpmnode1) );
