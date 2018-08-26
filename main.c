@@ -56,7 +56,7 @@ int main(int argc, char const *argv[])
 
         compHitMapStat(hitMap);
         // compReverseHitMapStat(hitMap);
-
+/*
         BufType bufType = HitMapBuf;
         // detectHitMapAvalanche(hitMap, tpm, bufType, bufHitCntArray, 64);
         // Due to bugs in 2D hit count array, the buffer pair given by it does
@@ -81,7 +81,7 @@ int main(int argc, char const *argv[])
         delHitMapBufHitCnt(hitMap);
         delHitMapBufContext(hitMap->hitMapBufCtxt);
         delHitMap(hitMap);
-
+*/
 
         // searchAllAvalancheInTPM(tpm);
         delTPM(tpm);

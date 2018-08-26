@@ -237,6 +237,7 @@ dfs_build_hitmap(
 
 static void
 storeTPMNodeChildren(
+    TPMNode2 *srcnode,
     StackTPMNode **stackTpmNodeTop,
     u32 *stackTpmNodeCnt);
 
@@ -373,8 +374,8 @@ bufnodePropgt2HitMapNode(
     HitMapContext *hitMapCtxt)
 {
   // return dfs2HitMapNode(tpm, srcnode, hitMapCtxt);
-  return dfs2HitMapNode_NodeStack(tpm, srcnode, hitMapCtxt); // last used
-  // return dfs_build_hitmap(tpm, srcnode, hitMapCtxt); // Non hash table
+  // return dfs2HitMapNode_NodeStack(tpm, srcnode, hitMapCtxt); // last used
+  return dfs_build_hitmap(tpm, srcnode, hitMapCtxt); // Non hash table
 
   // return dfs2HitMapNode_PopAtEnd(tpm, srcnode, hitMapCtxt);
   // return dfs2BuildHitMap_DBG(tpm, srcnode, hitMapCtxt);
@@ -1427,19 +1428,23 @@ dfs_build_hitmap(
   while(!isStackTPMNodeEmpty(stackTpmNodeTop) ) {
     TPMNode *top = stackTpmNodeTop->node;
 
-    if(stackTpmNodeTop->isVisit) {
+//    if(stackTpmNodeTop->isVisit) {
+    if(top->tpmnode1.src_ptr == srcnode) { // had been visited
       stackTPMNodePop(&stackTpmNodeTop, &stackTpmNodeCnt);
     }
     else{ // unvisited node
-      stackTpmNodeTop->isVisit = 1;
-      printNode(top);
+//      stackTpmNodeTop->isVisit = 1; // mark visit in tpmnode stack
+      top->tpmnode1.src_ptr = srcnode; // mark visit in tpmnode itself
+
+//      if(top->tpmnode1.type == TPM_Type_Memory)
+//        printNode(top);
 
       if(top->tpmnode1.firstChild == NULL) { // leaf node
         stackTPMNodePop(&stackTpmNodeTop, &stackTpmNodeCnt);
       }
       else {
-        storeTPMNodeChildren(&stackTpmNodeTop, &stackTpmNodeCnt);
-        printf("num of nodes in stack:%u\n", stackTpmNodeCnt);
+        storeTPMNodeChildren(srcnode, &stackTpmNodeTop, &stackTpmNodeCnt);
+//        printf("num of nodes in stack:%u\n", stackTpmNodeCnt);
       }
     }
   }
@@ -1449,24 +1454,28 @@ dfs_build_hitmap(
 
 static void
 storeTPMNodeChildren(
+    TPMNode2 *srcnode,
     StackTPMNode **stackTpmNodeTop,
     u32 *stackTpmNodeCnt)
 {
   TPMNode *farther = (*stackTpmNodeTop)->node;
   u32 far_trans = (*stackTpmNodeTop)->currSeqN;
-  printf("----- -----\nfarther's transition:%u\n", far_trans);
+//  printf("----- -----\nfarther's transition:%u\n", far_trans);
   Transition *firstChild = farther->tpmnode1.firstChild;
 
   while(firstChild != NULL) {
-    printf("transition seqNo:%u\n", firstChild->seqNo);
-    if(far_trans < firstChild->seqNo) { // guarantee the dfs monotonic transition seqNo
-      TPMNode *child = firstChild->child;
+//    printf("transition seqNo:%u\n", firstChild->seqNo);
+    TPMNode *child = firstChild->child;
+    if(far_trans < firstChild->seqNo && // guarantee the dfs monotonic transition seqNo
+        child->tpmnode1.src_ptr != srcnode) { // replace hash table, if the node had been visit, not visit again
       stackTPMNodePush(child, farther, firstChild, stackTpmNodeTop, stackTpmNodeCnt);
       (*stackTpmNodeTop)->currSeqN = firstChild->seqNo;   // stores the transition's seqNo,
       // farther's transition number
-      printNode(child);
+//      printNode(child);
     }
-    else { printf("dbg\n"); }
+    else {
+//      printf("dbg\n");
+    }
     firstChild = firstChild->next;
   }
 }
