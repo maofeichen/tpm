@@ -238,6 +238,7 @@ dfs_build_hitmap(
 static void
 storeTPMNodeChildren(
     TPMNode2 *srcnode,
+    u32 maxSeqN,
     StackTPMNode **stackTpmNodeTop,
     u32 *stackTpmNodeCnt);
 
@@ -1460,7 +1461,7 @@ dfs_build_hitmap(
         stackTPMNodePop(&stackTpmNodeTop, &stackTpmNodeCnt);
       }
       else {
-        storeTPMNodeChildren(srcnode, &stackTpmNodeTop, &stackTpmNodeCnt);
+        storeTPMNodeChildren(srcnode, hitMapCtxt->maxBufSeqN, &stackTpmNodeTop, &stackTpmNodeCnt);
 //        printf("num of nodes in stack:%u\n", stackTpmNodeCnt);
       }
     }
@@ -1473,6 +1474,7 @@ dfs_build_hitmap(
 static void
 storeTPMNodeChildren(
     TPMNode2 *srcnode,
+    u32 maxSeqN,
     StackTPMNode **stackTpmNodeTop,
     u32 *stackTpmNodeCnt)
 {
@@ -1485,7 +1487,8 @@ storeTPMNodeChildren(
 //    printf("transition seqNo:%u\n", firstChild->seqNo);
     TPMNode *child = firstChild->child;
     if(far_trans < firstChild->seqNo && // guarantee the dfs monotonic transition seqNo
-        child->tpmnode1.src_ptr != srcnode) { // replace hash table, if the node had been visit, not visit again
+        child->tpmnode1.src_ptr != srcnode && // replace hash table, if the node had been visit, not visit again
+        firstChild->seqNo <= maxSeqN) {
       stackTPMNodePush(child, farther, firstChild, stackTpmNodeTop, stackTpmNodeCnt);
       (*stackTpmNodeTop)->currSeqN = firstChild->seqNo;   // stores the transition's seqNo,
       // farther's transition number
