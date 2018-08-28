@@ -171,10 +171,13 @@ buildHitMap(TPMContext *tpm, TPMBufContext *tpmBufCtxt)
 
   hitMap = initHitMap(tpm, tpmBufCtxt);
 
-  int i = 0;
+  int i      = 1;
   TPMBufHashTable *currBuf = hitMap->tpmBuf;
+
   for(; currBuf != NULL; currBuf = currBuf->hh_tpmBufHT.next) {
     buildBufContext(tpm, hitMap, currBuf);
+    printTime("build HitMap: ");
+    printf("finished %u th buf\n", i);
     i++;
   }
   printTime("Finish building HitMap");
