@@ -230,6 +230,21 @@ storeUnvisitTPMNodeChildren(
     u32 *stackTPMNodeCnt);
 
 static int
+dfs2HitMapNode_NodeStack_dupl(
+    TPMContext *tpm,
+    TPMNode2 *srcnode,
+    HitMapContext *hitMapCtxt);
+
+static void
+storeUnvisitTPMNodeChildren_dupl(
+    TPMNodeHash **tpmnodeHash,
+    TPMNode2 *srcnode,
+    TPMNode *farther,
+    int maxSeqN,
+    StackTPMNode **stackTPMNodeTop,
+    u32 *stackTPMNodeCnt);
+
+static int
 dfs_build_hitmap(
     TPMContext *tpm,
     TPMNode2 *srcnode,
@@ -375,8 +390,9 @@ bufnodePropgt2HitMapNode(
     HitMapContext *hitMapCtxt)
 {
   // return dfs2HitMapNode(tpm, srcnode, hitMapCtxt);
-  // return dfs2HitMapNode_NodeStack(tpm, srcnode, hitMapCtxt); // last used
-  return dfs_build_hitmap(tpm, srcnode, hitMapCtxt); // Non hash table
+  return dfs2HitMapNode_NodeStack(tpm, srcnode, hitMapCtxt); // last used
+  // return dfs2HitMapNode_NodeStack_dupl(tpm, srcnode, hitMapCtxt);
+  // return dfs_build_hitmap(tpm, srcnode, hitMapCtxt); // Non hash table
 
   // return dfs2HitMapNode_PopAtEnd(tpm, srcnode, hitMapCtxt);
   // return dfs2BuildHitMap_DBG(tpm, srcnode, hitMapCtxt);
@@ -1261,8 +1277,8 @@ dfs2HitMapNode_NodeStack(
     return 0;
   }
 
-  printf("---------------\ndfs2HitMapNode_NodeStack source:%p\n", srcnode);
-  printMemNode(srcnode);
+//  printf("---------------\ndfs2HitMapNode_NodeStack source:%p\n", srcnode);
+//  printMemNode(srcnode);
 
   stackTPMNodePush((TPMNode *)srcnode, NULL, NULL, &stackTPMNodeTop, &stackTPMNodeCnt);
   stackTPMNodeTop->currSeqN = currSeqN;
@@ -1397,6 +1413,136 @@ storeUnvisitTPMNodeChildren(
     }
     firstChild = firstChild->next;
   }
+}
+
+/*
+ * Duplicate function, only difference is using tpm node flag to mark visited nodes
+ * instead of hash table.
+ */
+static int
+dfs2HitMapNode_NodeStack_dupl(
+    TPMContext *tpm,
+    TPMNode2 *srcnode,
+    HitMapContext *hitMapCtxt)
+{
+  TPMNodeHash *visitTPMNodeHash = NULL;
+
+  StackTPMNode *stackTPMNodeTop = NULL;
+  u32 stackTPMNodeCnt = 0;
+
+  StckMemnode *stackBufNodePathTop = NULL;
+  u32 stackBufNodePathCnt = 0;
+
+  u32 dfsLevel = 0; // Not used
+  u32 currSeqN = 0; // Init source seqN to 0
+
+  if(tpm == NULL || srcnode == NULL || hitMapCtxt == NULL) {
+    fprintf(stderr, "dfs2HitMapNode_NodeStack: tpm:%p srcnode:%p hitMap:%p\n", tpm, srcnode, hitMapCtxt);
+    return -1;
+  }
+
+  if(isHitMapNodeExist(srcnode, hitMapCtxt) ) {
+    // printf("srcnode %p had been build HitMap\n", srcnode);
+    return 0;
+  }
+
+//  printf("---------------\ndfs2HitMapNode_NodeStack source:%p\n", srcnode);
+//  printMemNode(srcnode);
+
+  stackTPMNodePush((TPMNode *)srcnode, NULL, NULL, &stackTPMNodeTop, &stackTPMNodeCnt);
+  stackTPMNodeTop->currSeqN = currSeqN;
+
+  while(!isStackTPMNodeEmpty(stackTPMNodeTop) ) {
+    TPMNode *topNode = stackTPMNodeTop->node;
+    u32 transLvl = 0;
+
+    // if(isTPMNodeVisited(visitTPMNodeHash, topNode) ) {
+    if(topNode->tpmnode1.src_ptr == srcnode) {
+      if(topNode->tpmnode1.type == TPM_Type_Memory &&
+          topNode->tpmnode2.bufid > 0) {
+
+        add2HitMap(topNode, stackBufNodePathTop, stackBufNodePathCnt, stackTPMNodeTop, hitMapCtxt);
+        stckMemnodePop(&transLvl, &stackBufNodePathTop, &stackBufNodePathCnt);
+      }
+      stackTPMNodePop(&stackTPMNodeTop, &stackTPMNodeCnt);
+      // stackTPMNodeDisplay(stackTPMNodeTop, stackTPMNodeCnt);
+    }
+    else {  // new TPMNode
+      // markVisitTPMNode(&visitTPMNodeHash, topNode);
+      topNode->tpmnode1.src_ptr = srcnode;
+
+      if(topNode->tpmnode1.type == TPM_Type_Memory &&
+          topNode->tpmnode2.bufid > 0) {
+        stckMemnodePush((TPMNode2 *)topNode, transLvl, &stackBufNodePathTop, &stackBufNodePathCnt);
+        // stckMemnodeDisplay(stackBufNodePathTop, stackBufNodePathCnt);
+      }
+      else { // it's not a valid buffer node, might need to update the minSeqN of
+        // source buffer node (top of the path buf stack
+        if(stackTPMNodeTop->farther->tpmnode1.type == TPM_Type_Memory &&
+            (TPMNode2 *)stackTPMNodeTop->farther == stackBufNodePathTop->memnode) {
+          // printf("-----update minSeqN\n");
+          // set the minSeqN (should be direct transition of the source)
+          stackBufNodePathTop->minSeqN = stackTPMNodeTop->dirctTrans->seqNo;
+          // stckMemnodeDisplay(stackBufNodePathTop, stackBufNodePathCnt);
+        }
+      }
+
+      if(topNode->tpmnode1.firstChild == NULL) { // leaf
+        if(topNode->tpmnode1.type == TPM_Type_Memory &&
+            topNode->tpmnode2.bufid > 0) {
+
+          add2HitMap(topNode, stackBufNodePathTop, stackBufNodePathCnt, stackTPMNodeTop, hitMapCtxt);
+          stckMemnodePop(&transLvl, &stackBufNodePathTop, &stackBufNodePathCnt);
+        }
+        stackTPMNodePop(&stackTPMNodeTop, &stackTPMNodeCnt);
+        // stackTPMNodeDisplay(stackTPMNodeTop, stackTPMNodeCnt);
+      }
+      else {
+        storeUnvisitTPMNodeChildren_dupl(&visitTPMNodeHash, srcnode, topNode, hitMapCtxt->maxBufSeqN, &stackTPMNodeTop, &stackTPMNodeCnt);
+        // stackTPMNodeDisplay(stackTPMNodeTop, stackTPMNodeCnt);
+      }
+    } // end else new TPMNode
+  }
+
+  // delTPMNodeHash(&visitTPMNodeHash);
+  stckMemnodePopAll(&stackBufNodePathTop, &stackBufNodePathCnt);
+
+  return 0;
+}
+
+static void
+storeUnvisitTPMNodeChildren_dupl(
+    TPMNodeHash **tpmnodeHash,
+    TPMNode2 *srcnode,
+    TPMNode *farther,
+    int maxSeqN,
+    StackTPMNode **stackTPMNodeTop,
+    u32 *stackTPMNodeCnt)
+{
+  Transition *firstChild = farther->tpmnode1.firstChild;
+  while(firstChild != NULL) {
+    TPMNode *childNode = firstChild->child;
+
+    if(// !isTPMNodeVisited(*tpmnodeHash, childNode) &&
+        // firstChild->hasVisit == 0 && // The transition had not been visited before
+        childNode->tpmnode1.src_ptr != srcnode &&
+        (*stackTPMNodeTop)->currSeqN <= firstChild->seqNo && // enforces the increasing seqN policy
+        firstChild->seqNo <= maxSeqN ) {
+      stackTPMNodePush(childNode, farther, firstChild, stackTPMNodeTop, stackTPMNodeCnt);
+      (*stackTPMNodeTop)->currSeqN = firstChild->seqNo;
+
+      firstChild->hasVisit += 1;
+      // print1Trans(firstChild);
+    }
+    else {
+      // printf("-----skip: \n");
+      // printNode(farther);
+      // print1Trans(firstChild);
+      // printNode(childNode);
+    }
+    firstChild = firstChild->next;
+  }
+
 }
 
 static int
