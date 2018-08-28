@@ -18,7 +18,8 @@ static void
 buildBufContext(
     TPMContext *tpm,
     HitMapContext *hitMap,
-    TPMBufHashTable *buf);
+    TPMBufHashTable *buf,
+    u32 *nodeVisitIdx);
 
 static void
 delBufContext(BufContext *bufCtxt);
@@ -34,7 +35,8 @@ static void
 buildHitMapAddr(
     TPMContext *tpm,
     HitMapContext *hitMap,
-    TPMNode2 *headNode);
+    TPMNode2 *headNode,
+    u32 *nodeVisitIdx);
 
 static u32
 getHitMapTotalNode(HitMapContext *hitMap);
@@ -174,8 +176,10 @@ buildHitMap(TPMContext *tpm, TPMBufContext *tpmBufCtxt)
   int i      = 1;
   TPMBufHashTable *currBuf = hitMap->tpmBuf;
 
+  u32 nodeVisitIdx = 1;
+
   for(; currBuf != NULL; currBuf = currBuf->hh_tpmBufHT.next) {
-    buildBufContext(tpm, hitMap, currBuf);
+    buildBufContext(tpm, hitMap, currBuf, &nodeVisitIdx);
     printTime("build HitMap: ");
     printf("finished %u th buf\n", i);
     i++;
@@ -849,7 +853,8 @@ static void
 buildBufContext(
     TPMContext *tpm,
     HitMapContext *hitMap,
-    TPMBufHashTable *buf)
+    TPMBufHashTable *buf,
+    u32 *nodeVisitIdx)
 {
   // printf("----------\nbegin addr:0x%-8x end addr:0x%-8x sz:%u numofaddr:%-2u minseq:%d maxseq:%d diffseq:%d bufID:%u\n",
   //         buf->baddr, buf->eaddr, buf->eaddr - buf->baddr,
@@ -859,7 +864,7 @@ buildBufContext(
   TPMNode2 *bufHead = buf->headNode;
   while(bufHead != NULL) {
     // printMemNodeLit(bufHead);
-    buildHitMapAddr(tpm, hitMap, bufHead);
+    buildHitMapAddr(tpm, hitMap, bufHead, nodeVisitIdx);
     bufHead = bufHead->rightNBR;
   }
 }
@@ -879,7 +884,8 @@ static void
 buildHitMapAddr(
     TPMContext *tpm,
     HitMapContext *hitMap,
-    TPMNode2 *headNode)
+    TPMNode2 *headNode,
+    u32 *nodeVisitIdx)
 {
   if(hitMap == NULL || headNode == NULL){
     fprintf(stderr, "hitMap:%p headNode:%p\n", hitMap, headNode);
@@ -895,8 +901,10 @@ buildHitMapAddr(
   u32 currVersion = headNode->version;
 
   do {
-    bufnodePropgt2HitMapNode(tpm, headNode, hitMap);
+    bufnodePropgt2HitMapNode(tpm, headNode, hitMap, nodeVisitIdx);
     headNode = headNode->nextVersion;
+    (*nodeVisitIdx)++;
+//    printf("node visit index:%u\n", *nodeVisitIdx);
   } while (currVersion != headNode->version);
 }
 

@@ -24,7 +24,7 @@ struct TPMNode1		  // for temp, register addresses
   struct Transition *first_farther; // points to its first father
 #endif
   char hasVisit;  // determines if the node had been visited during building HitMap, not used any more
-  void *src_ptr; // During build hitMap, given a source node, assigns the
+  u32 visitNodeIdx; // During build hitMap, given a source node, assigns the
   // source node ptr, to mark it had been visited during the traversing. To replace
   // hash table, which has a bug during large xtaint log test.
 };
@@ -41,7 +41,7 @@ struct TPMNode2		  // for memory address
   struct Transition *first_farther; // points to its first father
 #endif
   char hasVisit;  // determines if the node had been visited during building HitMap, not used any more
-  void *src_ptr;  // Same as TPMNode1
+  u32 visitNodeIdx;  // Same as TPMNode1
   /* the following fields are only for TPMNode for memory */
   u32 bytesz;                   // byte sz
   struct TPMNode2 *leftNBR;	    // point to node of adjacent, smaller memory address
