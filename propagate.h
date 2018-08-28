@@ -88,7 +88,8 @@ int
 bufnodePropgt2HitMapNode(
     TPMContext *tpm,
     TPMNode2 *srcnode,
-    HitMapContext *hitMapCtxt);
+    HitMapContext *hitMapCtxt,
+    u32 *nodeVisitIdx);
 // Returns:
 //  >=0: success
 //  <0: error

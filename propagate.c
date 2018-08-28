@@ -233,12 +233,12 @@ static int
 dfs2HitMapNode_NodeStack_dupl(
     TPMContext *tpm,
     TPMNode2 *srcnode,
-    HitMapContext *hitMapCtxt);
+    HitMapContext *hitMapCtxt,
+    u32 *nodeVisitIdx);
 
 static void
 storeUnvisitTPMNodeChildren_dupl(
-    TPMNodeHash **tpmnodeHash,
-    TPMNode2 *srcnode,
+    u32 *nodeVisitIdx,
     TPMNode *farther,
     int maxSeqN,
     StackTPMNode **stackTPMNodeTop,
@@ -387,11 +387,12 @@ int
 bufnodePropgt2HitMapNode(
     TPMContext *tpm,
     TPMNode2 *srcnode,
-    HitMapContext *hitMapCtxt)
+    HitMapContext *hitMapCtxt,
+    u32 *nodeVisitIdx)
 {
   // return dfs2HitMapNode(tpm, srcnode, hitMapCtxt);
-  return dfs2HitMapNode_NodeStack(tpm, srcnode, hitMapCtxt); // last used
-  // return dfs2HitMapNode_NodeStack_dupl(tpm, srcnode, hitMapCtxt);
+  // return dfs2HitMapNode_NodeStack(tpm, srcnode, hitMapCtxt); // last used
+  return dfs2HitMapNode_NodeStack_dupl(tpm, srcnode, hitMapCtxt, nodeVisitIdx);
   // return dfs_build_hitmap(tpm, srcnode, hitMapCtxt); // Non hash table
 
   // return dfs2HitMapNode_PopAtEnd(tpm, srcnode, hitMapCtxt);
@@ -1423,9 +1424,10 @@ static int
 dfs2HitMapNode_NodeStack_dupl(
     TPMContext *tpm,
     TPMNode2 *srcnode,
-    HitMapContext *hitMapCtxt)
+    HitMapContext *hitMapCtxt,
+    u32 *nodeVisitIdx)
 {
-  TPMNodeHash *visitTPMNodeHash = NULL;
+//  TPMNodeHash *visitTPMNodeHash = NULL;
 
   StackTPMNode *stackTPMNodeTop = NULL;
   u32 stackTPMNodeCnt = 0;
@@ -1457,7 +1459,7 @@ dfs2HitMapNode_NodeStack_dupl(
     u32 transLvl = 0;
 
     // if(isTPMNodeVisited(visitTPMNodeHash, topNode) ) {
-    if(topNode->tpmnode1.src_ptr == srcnode) {
+    if(topNode->tpmnode1.visitNodeIdx == *nodeVisitIdx) {
       if(topNode->tpmnode1.type == TPM_Type_Memory &&
           topNode->tpmnode2.bufid > 0) {
 
@@ -1469,7 +1471,7 @@ dfs2HitMapNode_NodeStack_dupl(
     }
     else {  // new TPMNode
       // markVisitTPMNode(&visitTPMNodeHash, topNode);
-      topNode->tpmnode1.src_ptr = srcnode;
+      topNode->tpmnode1.visitNodeIdx = *nodeVisitIdx;
 
       if(topNode->tpmnode1.type == TPM_Type_Memory &&
           topNode->tpmnode2.bufid > 0) {
@@ -1498,7 +1500,7 @@ dfs2HitMapNode_NodeStack_dupl(
         // stackTPMNodeDisplay(stackTPMNodeTop, stackTPMNodeCnt);
       }
       else {
-        storeUnvisitTPMNodeChildren_dupl(&visitTPMNodeHash, srcnode, topNode, hitMapCtxt->maxBufSeqN, &stackTPMNodeTop, &stackTPMNodeCnt);
+        storeUnvisitTPMNodeChildren_dupl(nodeVisitIdx, topNode, hitMapCtxt->maxBufSeqN, &stackTPMNodeTop, &stackTPMNodeCnt);
         // stackTPMNodeDisplay(stackTPMNodeTop, stackTPMNodeCnt);
       }
     } // end else new TPMNode
@@ -1512,8 +1514,7 @@ dfs2HitMapNode_NodeStack_dupl(
 
 static void
 storeUnvisitTPMNodeChildren_dupl(
-    TPMNodeHash **tpmnodeHash,
-    TPMNode2 *srcnode,
+    u32 *nodeVisitIdx,
     TPMNode *farther,
     int maxSeqN,
     StackTPMNode **stackTPMNodeTop,
@@ -1525,7 +1526,7 @@ storeUnvisitTPMNodeChildren_dupl(
 
     if(// !isTPMNodeVisited(*tpmnodeHash, childNode) &&
         // firstChild->hasVisit == 0 && // The transition had not been visited before
-        childNode->tpmnode1.src_ptr != srcnode &&
+        childNode->tpmnode1.visitNodeIdx != *nodeVisitIdx &&
         (*stackTPMNodeTop)->currSeqN <= firstChild->seqNo && // enforces the increasing seqN policy
         firstChild->seqNo <= maxSeqN ) {
       stackTPMNodePush(childNode, farther, firstChild, stackTPMNodeTop, stackTPMNodeCnt);
@@ -1545,6 +1546,7 @@ storeUnvisitTPMNodeChildren_dupl(
 
 }
 
+/*
 static int
 dfs_build_hitmap(
     TPMContext *tpm,
@@ -1646,6 +1648,9 @@ storeTPMNodeChildren(
     firstChild = firstChild->next;
   }
 }
+
+*/
+
 
 static int
 dfs2HitMapNode_PopAtEnd(
