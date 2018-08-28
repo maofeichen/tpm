@@ -168,7 +168,7 @@ compBufHitCntArrayStat(
   else
     numOfBuf = hitMap->hitMapBufCtxt->numOfBuf;
 
-  printBufHitCntArray(bufHitCntArray, numOfBuf);
+//  printBufHitCntArray(bufHitCntArray, numOfBuf);
   for(size_t r = 0; r < numOfBuf; r++) {
     for (size_t c = 0; c < numOfBuf; c++) {
       u8 val = bufHitCntArray[r*numOfBuf + c];
