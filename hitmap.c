@@ -901,10 +901,12 @@ buildHitMapAddr(
   u32 currVersion = headNode->version;
 
   do {
-    bufnodePropgt2HitMapNode(tpm, headNode, hitMap, nodeVisitIdx);
+    if(headNode->lastUpdateTS < 0) {
+      bufnodePropgt2HitMapNode(tpm, headNode, hitMap, nodeVisitIdx);
+      (*nodeVisitIdx)++;
+      //    printf("node visit index:%u\n", *nodeVisitIdx);
+    }
     headNode = headNode->nextVersion;
-    (*nodeVisitIdx)++;
-//    printf("node visit index:%u\n", *nodeVisitIdx);
   } while (currVersion != headNode->version);
 }
 
