@@ -50,7 +50,7 @@ int main(int argc, char const *argv[])
 #endif
 
         hitMap = buildHitMap(tpm, tpmBufCtxt);   // TODO: flag forward or reverse build
-        // print_hitmap_source(hitMap);
+        print_hitmap_source(hitMap);
 
         compHitMapStat(hitMap);
         // compReverseHitMapStat(hitMap);
@@ -71,7 +71,7 @@ int main(int argc, char const *argv[])
           // printHitMapBufHitCntAry(hitMap);
 
           compBufHitCntArrayStat(hitMap, bufType, bufHitCntArray, 64);      // 64 bytes
-          detectHitMapAvalanche(hitMap, tpm, bufType, bufHitCntArray, 64);  // TODO: flag forward or reverse build
+          // detectHitMapAvalanche(hitMap, tpm, bufType, bufHitCntArray, 64);  // TODO: flag forward or reverse build
           delBufHitCntArray(bufHitCntArray);
 
         }

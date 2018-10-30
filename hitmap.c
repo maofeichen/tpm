@@ -754,7 +754,7 @@ printHitMapBufHash(HitMapBufHash *hitMapBufHash)
         buf->numOfAddr, buf->minseq, buf->maxseq, (buf->maxseq - buf->minseq),
         buf->headNode->bufId, buf->totalNode);
     assert(isAllHMNodeSameBufID(buf->headNode->bufId, buf->headNode) == true);
-    // print_HM_all_buf_node(buf->headNode);
+    print_HM_all_buf_node(buf->headNode);
 
     if(buf->totalNode < minNode)
       minNode = buf->totalNode;
