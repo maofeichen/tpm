@@ -169,7 +169,7 @@ buildTPM(FILE *taintfp, struct TPMContext *tpm)
 #endif 
     char flag[REC_FLAG_SZ] = {0};
     if(getRecordFlag(flag, line) ) {
-      if(isControlRecord(flag) || equalRecordMark(flag, TCG_QEMU_ST_POINTER)) { // contol record, simply skip except for insn mark
+      if(isControlRecord(flag) ) { // contol record, simply skip except for insn mark
         if(equalRecordMark(flag, INSN_MARK) ) {
           clear_tempcontext(tempCntxt); /* clear current context of temp, due to temp are
           only alive within instruction, if encounter an insn mark it crosses insn boundary */
